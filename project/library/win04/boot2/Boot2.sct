@@ -1,0 +1,30 @@
+#! armclang --target=arm-arm-none-eabi -mcpu=cortex-m0plus -E -x c
+#include "../../../../source/mem_cfg/win04/win04_mem_cfg.h"
+
+LOAD_BOOT2_HEADER RAM_BOOT2_HEADER_ADDR RAM_BOOT2_HEADER_MAX_ADDR
+{
+	BOOT2_HEADER +0
+	{
+		*(.boot2.header)
+	}
+}
+
+LOAD_ROM_BLOCK RAM_BOOT2_CODE_ADDR RAM_BOOT2_CODE_MAX_ADDR
+{
+    ER_BOOT +0
+    {
+        *(.bootmain.code)
+    }
+
+    ER_DRIVERS +0
+    {
+        .ANY(+RO)
+    }
+
+    ;RAM DATA in Rom lib
+    RAM_ROM_DATA +0
+    {
+        .ANY(+RW, +ZI)
+    }
+}
+

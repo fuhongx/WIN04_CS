@@ -1,0 +1,4 @@
+loadfile ..\..\library\win04_rom_lib.hex
+clrReset
+setReset
+qc

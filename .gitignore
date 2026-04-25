@@ -1,0 +1,50 @@
+# Keil 编译生成的临时文件和产物
+*.axf
+*.bak
+*.d
+*.dep
+*.htm
+*.lnp
+*.lst
+*.map
+*.plg
+*.tmp
+*.uvoptx
+*.uvguix
+*.uvguix.*
+*.uvmpw.uvgui*
+*.log
+*.hex
+*.bin
+**/JLinkLog.txt
+
+# 输出文件夹
+**/Objects/
+**/Listings/
+/html/
+/latex/
+
+# 通用忽略规则
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.idb
+*.ilk
+*.dis
+*.nm
+
+# 忽略隐藏文件
+.DS_Store
+Thumbs.db
+
+# 忽略用户特定配置文件
+*.user
+*.swp
+*.swo
+*.~*
+
+# 忽略 IDE 临时文件
+*.workspace
+*.vscode

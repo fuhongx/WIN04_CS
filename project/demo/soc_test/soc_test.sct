@@ -1,0 +1,70 @@
+#! armclang --target=arm-arm-none-eabi -mcpu=cortex-m0plus -E -x c
+#include "../../../source/mem_cfg/win04/win04_mem_cfg.h"
+
+LOAD_BOOT2_CODE FLASH_BOOT2_HEADER_ADDR FLASH_BOOT2_CODE_MAX
+{
+    BOOT2_HEADER +0 FIXED
+    {
+        *(.boot2.code)
+    }
+}
+
+LOAD_APP FLASH_BOOT2_FIRMWARE_HEADER_ADDR FLASH_MAX_ADDR
+{
+
+    FIRMWARE_HEADER FLASH_BOOT2_FIRMWARE_HEADER_ADDR FLASH_CODE_ADDR_BASE
+    {
+        *(.firmware.header)
+    }
+
+    APP_CODE +0 FIXED
+    {
+        *.o (RESET, +First)
+        *(InRoot$$Sections)
+        startup_*.o(+RO)
+        system_*.o(+RO)
+    }
+
+    FLASH_RODATA +0
+    {
+        .ANY(+RO)
+    }
+
+    ; TODO: connot single section, keil flash program will faild
+    RAM_VECTOR RAM_VECTOR_ADDR UNINIT RAM_VECTOR_MAX_ADDR
+    {
+        .ANY(.bss.new_vector)
+    }
+
+    RAM_RETENTION RAM_APP_RETENTION_ADDR RAM_APP_STACK_ADDR
+    {
+        *(.retention.func)
+        *(.retention.data)
+    }
+
+    RAM_APP_CODE RAM_APP_CODE_ADDR RAM_APP_CODE_MAX_ADDR
+    {
+        *(.ram.function)
+    }
+
+    RAM_APP_DATA RAM_APP_DATA_ADDR RAM_APP_DATA_MAX_ADDR
+    {
+        .ANY(+RW +ZI)
+    }
+
+    RAM_ILA ImageLimit(RAM_APP_DATA) RAM_APP_DATA_MAX_ADDR
+    {
+        . = ALIGN(4);
+        *(.ram.ila)
+    }
+
+    RAM_HEAP RAM_APP_HEAP_ADDR UNINIT RAM_ADDR_MAX
+    {
+        .ANY(HEAP)
+    }
+
+    RAM_STACK RAM_APP_STACK_ADDR UNINIT RAM_APP_RETENTION_MAX_ADDR
+    {
+        .ANY(STACK)
+    }
+}

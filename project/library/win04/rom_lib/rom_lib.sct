@@ -1,0 +1,61 @@
+#! armclang --target=arm-arm-none-eabi -mcpu=cortex-m0plus -E -x c
+#include "../../../../source/mem_cfg/win04/win04_mem_cfg.h"
+
+LOAD_ROM_BLOCK ROM_LIB_BASE_ADDR ROM_LIB_MAX_ADDR
+{
+    ROM_CODE_BLOCK +0 FIXED
+    {
+        *.o (RESET, +First)
+    }
+
+    SYS_INIT +0 FIXED
+    {
+        *(InRoot$$Sections)
+        startup_ARMCM0plus.o (+RO)
+        system_ARMCM0plus.o(+RO)
+    }
+
+    ER_BOOT +0
+    {
+        boot_*.o(+RO)
+        bootloader*.o(+RO)
+    }
+
+    ER_DRIVERS +0 FIXED
+    {
+        .ANY(+RO)
+        hw_*.o(+RO)
+        rom_*.o(+RO)
+        *(.rom.function)
+    }
+
+    ROM_COMPONENTS0 +0 FIXED
+    {
+        utility*.o(+RO)
+    }
+
+    ER_MICRO_LIB +0
+    {
+        uidiv*.o(+RO)
+    }
+
+    ;RAM SHARED DATA in Rom lib
+    RAM_ROM_SHARED_DATA RAM_ROM_DATA_SHARED_ADDR RAM_ROM_DATA_SHARED_ADDR_MAX
+    {
+        *(.rom.shared)
+    }
+
+    ;RAM DATA in Rom lib
+    RAM_ROM_DATA RAM_ROM_DATA_ADDR RAM_ROM_DATA_ADDR_MAX
+    {
+        .ANY(+RW, +ZI)
+    }
+
+    ;stack& heap
+    STACK_HEAP RAM_ROM_STACK_HEAP_ADDR UNINIT RAM_ROM_STACK_HEAP_SIZE_MAX
+    {
+        .ANY(HEAP)
+        .ANY(STACK, +LAST)
+    }
+}
+
