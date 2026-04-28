@@ -17,8 +17,6 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
-#define CHIP_SOFT_ID                (0x04)
-
 typedef enum
 {
     EN_FIRMWARE_DEBUG           =   0xAA,  // Debug mode, Firmware will not be checked.

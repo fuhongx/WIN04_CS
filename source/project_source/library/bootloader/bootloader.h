@@ -34,11 +34,11 @@ typedef struct
 
 typedef enum
 {
-    FW_SAFE_LEVEL0 = 0,     // no security, for test only
-    FW_SAFE_LEVEL1,         // only normal startup check hash, low power startup not check
-    FW_SAFE_LEVEL2,         // only normal startup check hash and signature, low power startup not check
-    FW_SAFE_LEVEL3,         // normal startup check all, but low power startup only check hash
-    FW_SAFE_LEVEL4,         // normal startup check all, low power startup check all
+    FW_SAFE_LEVEL0 = 0,     // no security, for test only, flash no encrypt, support swd
+    FW_SAFE_LEVEL1,         // flash encrypt, no swd, only normal startup check hash, low power startup not check
+    FW_SAFE_LEVEL2,         // flash encrypt, no swd, only normal startup check hash and signature, low power startup not check
+    FW_SAFE_LEVEL3,         // flash encrypt, no swd, normal startup check all, but low power startup only check hash
+    FW_SAFE_LEVEL4,         // flash encrypt, no swd, normal startup check all, low power startup check all
 
     FW_SAFE_LEVEL_MAX,      // must be the last one
 } fw_safe_level_t;

@@ -26,7 +26,6 @@
 #define FIRM_UPGRADE_CRC_INIT_VAL                           (0xFFFFFFFF)
 
 
-
 #define FIRM_UPGRADE_CMD_HEADER                             (0xAA)
 #define FIRM_UPGRADE_RESP_HEADER                            (0x55)
 
@@ -60,6 +59,8 @@ typedef enum
     EN_FIRM_CMD_ERASE_SEC_REG       =   0x16,
     EN_FIRM_CMD_WRITE_CTRL_REG      =   0x17,
     EN_FIRM_CMD_READ_CTRL_REG       =   0x18,
+    EN_FIRM_CMD_GET_FLASH_DEVID     =   0x19,
+    EN_FIRM_CMD_FLASH_ERASE_CHIP    =   0x1A,
 }EN_FIRM_UPGRADE_CMD_T;
 
 typedef enum
@@ -74,8 +75,9 @@ typedef enum
     EN_FIRM_RESP_RESET              =   FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_RESET,
     EN_FIRM_RESP_FLASH_ID           =   FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_GET_FLASH_ID,
     EN_FIRM_RESP_DOWNBIN_END        =   FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_DOWNBIN_END,
+    EN_FIRM_RESP_FLASH_DEVID        =   FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_GET_FLASH_DEVID,
+    EN_FIRM_RESP_FLASH_ERASE_CHIP   =   FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_FLASH_ERASE_CHIP,
 }EN_FIRM_UPGRADE_RESP_T;
-
 
 typedef struct __attribute__((packed))
 {
@@ -85,13 +87,6 @@ typedef struct __attribute__((packed))
     uint8_t u8BootSel;
 }stFirmUpgradeInfo_t;
 
-
 extern void firmware_upgrade_main(void);
-
-
-
-
-
-
 
 #endif

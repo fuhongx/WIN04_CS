@@ -5,7 +5,7 @@
 
   <Header>### uVision Project, (C) Keil Software</Header>
 
-  <WorkspaceName>D:\WIN04\code\git\win04_cs\win04_soc_test\FPGA_fast_project.uvmpw</WorkspaceName>
+  <WorkspaceName>D:\WIN04\code\git\SLC\WIN04_CS\FPGA_fast_project.uvmpw</WorkspaceName>
 
   <project>
     <PathAndName>.\project\library\win04\rom_lib\rom_lib.uvprojx</PathAndName>

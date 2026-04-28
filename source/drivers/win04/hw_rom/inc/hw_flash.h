@@ -486,8 +486,8 @@ EN_ERR_STA_T rom_hw_flash_read_data_u32(uint32_t u32Addr, uint32_t* pu32Buffer, 
 EN_ERR_STA_T rom_hw_flash_write_data_u32(uint32_t u32Addr, uint32_t* pu32Buffer, uint32_t u32Len);
 EN_ERR_STA_T rom_hw_flash_read_uid(uint8_t *pu8Buffer, uint8_t u8Len);
 EN_ERR_STA_T rom_hw_flash_read_dev_id(uint8_t *pu8Buffer, uint8_t u8Len);
-EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u8Offset, uint8_t* pu8Buffer, uint16_t u16Len);
-EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u8Offset, uint8_t* pu8Buffer, uint16_t u16Len);
+EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t u16Offset, uint8_t* pu8Buffer, uint16_t u16Len);
+EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t u16Offset, uint8_t* pu8Buffer, uint16_t u16Len);
 EN_ERR_STA_T rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM_T enType, uint32_t u32Key);
 EN_ERR_STA_T rom_hw_flash_set_read_mode(EN_FLASH_READ_MODE_T enMode);
 EN_ERR_STA_T rom_hw_flash_set_write_mode(EN_FLASH_WRITE_MODE_T enMode);

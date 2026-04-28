@@ -478,43 +478,53 @@ EN_ERR_STA_T rom_hw_flash_write_enable_cmd(void)
 EN_ERR_STA_T rom_hw_flash_erase(EN_FLASH_ERASE_T enErase, uint32_t u32Addr)
 {
     uint32_t u32Cmd = 0;
+    uint32_t delay = PY_FLASH_TIMING_SE_US;
 
     switch (enErase)
     {
         case EN_FLASH_ERASE_SECTOR:
         {
             u32Cmd = FLASH_CTRL_CMD_ADDR_NODATA_INIT(GT_FLASH_CMD_SECTOR_ERASE);
+            delay = (gu8FlashType == EN_FLASH_TYPE_PY) ? PY_FLASH_TIMING_SE_US : GT_FLASH_TIMING_SECTOR_ERASE_US;
             break;
         }
 
         case EN_FLASH_ERASE_32K:
         {
             u32Cmd = FLASH_CTRL_CMD_ADDR_NODATA_INIT(GT_FLASH_CMD_32K_ERASE);
+            delay = (gu8FlashType == EN_FLASH_TYPE_PY) ? PY_FLASH_TIMING_BE32_US : GT_FLASH_TIMING_32K_ERASE_US;
             break;
         }
 
         case EN_FLASH_ERASE_64K:
         {
             u32Cmd = FLASH_CTRL_CMD_ADDR_NODATA_INIT(GT_FLASH_CMD_64K_ERASE);
+            delay = (gu8FlashType == EN_FLASH_TYPE_PY) ? PY_FLASH_TIMING_BE64_US : GT_FLASH_TIMING_64K_ERASE_US;
             break;
         }
 
         case EN_FLASH_ERASE_CHIP:
         {
             // PY & GT support chip erase cmd 0xC7/0x60
-            if (gu8FlashType == EN_FLASH_TYPE_PY)
+            if (gu8FlashType == EN_FLASH_TYPE_PY) {
                 u32Cmd = FLASH_CTRL_CMD_NOADDR_NODATA_INIT(PY_FLASH_CMD_CE);
-            else
+                delay = PY_FLASH_TIMING_CE_US;
+            } else {
                 u32Cmd = FLASH_CTRL_CMD_NOADDR_NODATA_INIT(GT_FLASH_CMD_CHIP_ERASE);
+                delay = GT_FLASH_TIMING_CHIP_ERASE_US;
+            }
             break;
         }
 
         case EN_FLASH_ERASE_PAGE:
         {
-            if (gu8FlashType == EN_FLASH_TYPE_PY)
-                u32Cmd = FLASH_CTRL_CMD_NOADDR_NODATA_INIT(PY_FLASH_CMD_PE);
-            else
+            if (gu8FlashType == EN_FLASH_TYPE_PY) {
+                u32Cmd = FLASH_CTRL_CMD_ADDR_NODATA_INIT(PY_FLASH_CMD_PE);
+                delay = PY_FLASH_TIMING_PE_US;
+            } else {
                 u32Cmd = FLASH_CTRL_CMD_ADDR_NODATA_INIT(GT_FLASH_CMD_PAGE_WRITE);
+                delay = GT_FLASH_TIMING_PAGE_PROGRAM_US;
+            }
             break;
         }
 
@@ -532,8 +542,7 @@ EN_ERR_STA_T rom_hw_flash_erase(EN_FLASH_ERASE_T enErase, uint32_t u32Addr)
         return u8Ret;
     }
 
-    // PY不同擦除方式最大时间都是20ms，GT不同擦除方式时间差异较大，但都小于20ms，故此处直接选用20ms
-    rom_utility_delay_us(PY_FLASH_TIMING_SE_US);
+    rom_utility_delay_us(delay);
 
     return EN_ERROR_STA_OK;
 }
@@ -1037,14 +1046,14 @@ EN_ERR_STA_T rom_hw_flash_read_dev_id(uint8_t *pu8Buffer, uint8_t u8Len)
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u8Offset, uint8_t *pu8Buffer, uint16_t u16Len)
+EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t u16Offset, uint8_t *pu8Buffer, uint16_t u16Len)
 {
-    if ((NULL == pu8Buffer) | ((u8Offset + u16Len) > 256))
+    if ((NULL == pu8Buffer) | ((u16Offset + u16Len) > 512))
     {
         return EN_ERROR_STA_INVALID;
     }
 
-    uint32_t u32Addr = ((enType & 0x3) << 8) | u8Offset;
+    uint32_t u32Addr = ((enType & 0x3) << 8) | u16Offset;
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
@@ -1053,7 +1062,7 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u
         } else {
             enType += 1;
         }
-        u32Addr = ((enType & 0x3) << 12) | u8Offset;
+        u32Addr = ((enType & 0x3) << 12) | u16Offset;
     }
 
     uint32_t u32Cmd = 0;
@@ -1088,21 +1097,21 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint8_t u8Offset, uint8_t *pu8Buffer, uint16_t u16Len)
+EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t u16Offset, uint8_t *pu8Buffer, uint16_t u16Len)
 {
-    if ((NULL == pu8Buffer) | ((u8Offset + u16Len) > 256))
+    if ((NULL == pu8Buffer) | ((u16Offset + u16Len) > 256))
     {
         return EN_ERROR_STA_INVALID;
     }
 
-    uint32_t u32Addr = ((enType & 0x3) << 8) | u8Offset;
+    uint32_t u32Addr = ((enType & 0x3) << 8) | u16Offset;
     uint32_t u32Cmd = 0;
     uint8_t u8Idx = 0;
     uint8_t u8ReadLen = 0;
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
-        u32Addr = ((enType & 0x3) << 12) | u8Offset;
+        u32Addr = ((enType & 0x3) << 12) | u16Offset;
     }
 
     while (u16Len)
