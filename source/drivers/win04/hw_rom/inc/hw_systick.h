@@ -14,14 +14,14 @@
  * ****************************************************************************
  */
 
-#ifndef __QMX_SYSTICK_H__
-#define __QMX_SYSTICK_H__
+#ifndef __HW_SYSTICK_H__
+#define __HW_SYSTICK_H__
 
-void qmx_systick_delay_us(uint32_t us);
-void qmx_systick_delay_ms(uint32_t ms);
-void qmx_systick_delay_s(uint32_t s);
+void rom_hw_systick_delay_us(uint32_t us);
+void rom_hw_systick_delay_ms(uint32_t ms);
+void rom_hw_systick_delay_s(uint32_t s);
 
-void qmx_systick_enable_interrupt(void);
-void qmx_systick_disable_interrupt(void);
+void rom_hw_systick_enable_interrupt(void);
+void rom_hw_systick_disable_interrupt(void);
 
 #endif

@@ -14,6 +14,7 @@
 #include "version.h"
 #include "app_cfg.h"
 #include "debug.h"
+#include "hw_wdt.h"
 #include "hw_crc.h"
 #include "hw_rng.h"
 #include "bootloader.h"
@@ -103,7 +104,7 @@ void boot_check_header(void)
         boot2_header_t *pstBoot2Ver = (boot2_header_t *)au32ReadBuffer;
 
         // 安全等级0不校验，直接执行，适用于开发调试阶段
-        if ((g_security_info.sta.safe_level == FW_SAFE_LEVEL0) || (g_security_info.sta.safe_level >= FW_SAFE_LEVEL_MAX)) {
+        if (g_security_info.sta.safe_level == FW_SAFE_LEVEL0) {
             return;
         }
 
@@ -149,25 +150,40 @@ void boot_identify_from_lowpower(void)
     //     rom_hw_flash_release_deep_power_down();
 }
 
+void boot_identify_from_rst(void)
+{
+    uint8_t rst_cause = 0;
+    rst_cause = rom_hw_sysctrl_get_reset_src();
+    rom_hw_sysctrl_set_boot_rst_flag(rst_cause);
+    // 如果是低功耗看门狗复位，需关闭看门狗
+    if (rst_cause == EN_RST_FROM_IWDT) {
+        rom_hw_wdt_deinit(IWDT);
+    }
+}
+
 void boot_set_flash_enc_by_security_info(void)
 {
     uint32_t fw_key = 0;
 
     rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, (uint8_t *)&g_security_info, BOOT_SECURITY_INFO_BUF_SIZE);
     dump_u8buf("security_info", (uint8_t *)&g_security_info, BOOT_SECURITY_INFO_BUF_SIZE);
-    // if (g_security_info.sta.fw_enc_status == 1) {
-    //     fw_key = rom_hw_crc_get_crc32_value(g_security_info.key.pub_key, 64);
-    //     // 写入flash加密密钥
-    //     SYS_CTRL->SEC_USRKEY = fw_key;
-    //     // 关闭SWD并打开flash加密
-    //     SYS_CTRL->SEC_CTRL = 0x3;
+    if (g_security_info.sta.safe_level == 0xFF) {
+        // 安全信息未初始化，默认安全等级为0
+        g_security_info.sta.safe_level = FW_SAFE_LEVEL0;
+    }
+    if ((g_security_info.sta.fw_enc_status == 1) && (g_security_info.sta.safe_level != FW_SAFE_LEVEL0)) {
+        fw_key = rom_hw_crc_get_crc32_value(g_security_info.key.pub_key, 64);
+        // 写入flash加密密钥
+        SYS_CTRL->Res3 = fw_key;
+        // 关闭SWD并打开flash加密
+        SYS_CTRL->Res2 = 0x3;
 
-    //     // flash加密依赖cache的使能
-    //     rom_hw_sysctrl_set_cache_mode(EN_CACHE_ENABLE);
-    //     rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+        // flash加密依赖cache的使能
+        rom_hw_sysctrl_set_cache_mode(EN_CACHE_ENABLE);
+        rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
 
-    //     rom_hw_update_rng_seed(fw_key);
-    // }
+        rom_hw_update_rng_seed(fw_key);
+    }
 }
 
 int rom_check_firmware(uint32_t u32Addr, uint32_t u32Len, uint8_t *pu8Hash, uint8_t *pu8Sign)
@@ -213,8 +229,14 @@ int rom_check_firmware(uint32_t u32Addr, uint32_t u32Len, uint8_t *pu8Hash, uint
             break;
 
         default:
+            check_hash = true;
+            check_ecc = true;
             break;
     }
+
+    // 调试时bypass校验
+    // check_hash = false;
+    // check_ecc = false;
 
     // 执行 Hash 校验
     if (check_hash) {
@@ -242,6 +264,18 @@ err:
     dump_u8buf("read fw sign", pu8Sign, SIGNATURE_MAX_LEN);
 
     return -1;
+}
+
+void boot_peripheral_deinit(void)
+{
+    rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_CRC32, false);
+    rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_CRC32);
+    rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_RAND, false);
+    rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_RAND);
+    rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_UART0, false);
+    rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_UART0);
+    rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_UART1, false);
+    rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_UART1);
 }
 
 void boot_from_boot2(void)
@@ -278,6 +312,7 @@ void boot_from_boot2(void)
 
     if (ret == 0) {
         PRINTF("[BL] Boot2 Check Success\n");
+        boot_peripheral_deinit();
         rom_utility_run_callback_noparam(flash_reset_addr);
     }
 

@@ -21,6 +21,7 @@
 #include "utility.h"
 #include "hw_sysctrl.h"
 #include "hw_aes.h"
+#include "compiler.h"
 
 static uint32_t rom_hw_data_to_be32(const uint8_t *data)
 {
@@ -219,14 +220,7 @@ EN_ERR_STA_T rom_hw_aes128_clear_interrupt_flag(uint8_t u8Flag)
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_aes128_enable_interrupt(uint8_t u8Flag)
-{
-    AES128->AES_INT_IER = u8Flag & AES_INT_IER_REG_MASK;
-
-    return EN_ERROR_STA_OK;
-}
-
-static uint32_t g_aes_total_len = 0;
+uint32_t g_aes_total_len __ROM_RAM_SHARED = 0;
 
 void rom_hw_aes128_init(EN_AES128_MODE_T mode, uint8_t *key, uint8_t *iv)
 {

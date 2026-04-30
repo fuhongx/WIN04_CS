@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 #include "utility.h"
-#include "qmx_systick.h"
+#include "hw_systick.h"
 
 /* 以下延时函数都为阻塞式，如需非阻塞的延时函数可自己实现 */
 /* delay by nop */
@@ -31,11 +31,11 @@ extern "C" {
 #define qmx_hal_nop_delay_s(s)          (rom_utility_delay_s(s))
 
 /* delay by systick */
-#define qmx_hal_systick_delay_us(us)    (qmx_systick_delay_us(us))
-#define qmx_hal_systick_delay_ms(ms)    (qmx_systick_delay_ms(ms))
-#define qmx_hal_systick_delay_s(s)      (qmx_systick_delay_s(s))
-#define qmx_hal_systick_enable_irq()    (qmx_systick_enable_interrupt())
-#define qmx_hal_systick_disable_irq()   (qmx_systick_disable_interrupt())
+#define qmx_hal_systick_delay_us(us)    (rom_hw_systick_delay_us(us))
+#define qmx_hal_systick_delay_ms(ms)    (rom_hw_systick_delay_ms(ms))
+#define qmx_hal_systick_delay_s(s)      (rom_hw_systick_delay_s(s))
+#define qmx_hal_systick_enable_irq()    (rom_hw_systick_enable_interrupt())
+#define qmx_hal_systick_disable_irq()   (rom_hw_systick_disable_interrupt())
 
 #ifdef __cplusplus
 }

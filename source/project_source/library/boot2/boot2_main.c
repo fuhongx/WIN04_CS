@@ -82,16 +82,23 @@ void boot2_peripheral_deinit(void)
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_CRC32);
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_RAND, false);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_RAND);
+#if APP_DEBUG_ENABLED
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_UART0, false);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_UART0);
+#endif
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_UART1, false);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_UART1);
-}
 
+    rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+}
+// #include "hw_timer.h"
 void boot2_main(void)
 {
-    peripheral_init();
+    // uint32_t time = 0;
+    // rom_hw_timer_get_counter(TIM0, &time);
 
+    peripheral_init();
+    // PRINTF("[BL2] Boot2 Start, timer = %d us\n", (0xFFFFFFFF - time) / 50);
     uint32_t u32Boot2Buffer[BOOT2HEADER_LEN / 4] = {0};
 
     rom_hw_flash_read_data_u32(FLASH_BOOT2_HEADER_ADDR, u32Boot2Buffer, BOOT2HEADER_LEN);
@@ -118,7 +125,7 @@ void boot2_main(void)
     uint32_t u32LoadAddr = *(volatile uint32_t*)(pstFirm->u32FirmwareAddr);
     PRINTF("[BL2]------BOOT2 Done, jump to 0x%X------\n\n", u32LoadAddr);
 
-    rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+    boot2_peripheral_deinit();
     rom_utility_run_callback_noparam(u32LoadAddr);
 
     while (1);

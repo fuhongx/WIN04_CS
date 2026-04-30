@@ -19,15 +19,13 @@
 
 typedef enum
 {
-    EN_FIRMWARE_DEBUG           =   0xAA,  // Debug mode, Firmware will not be checked.
-
     EN_FIRMWARE_UPGRADE         =   0xC1,  // Code will be covered when version upgrade.
 }EN_FIRMWARE_T;
 
 #define HASH_MAX_LEN            (32U)
 #define SIGNATURE_MAX_LEN       (64U)
 
-#define FIRMWARE_FLAG           (EN_FIRMWARE_DEBUG)
+#define FIRMWARE_FLAG           (EN_FIRMWARE_UPGRADE)
 #define FIRMWARE_VERSION        (0x0004)        // V0004
 #define FIRMWARE_HEADER_LEN     (FLASH_BOOT2_FIRMWARE_HEADER_SIZE)
 

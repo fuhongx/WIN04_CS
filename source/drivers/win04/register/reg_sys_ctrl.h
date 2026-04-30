@@ -34,14 +34,15 @@ typedef struct
     __IOM uint32_t LP_CDC_ICR;              // 0x2C
     __IOM uint32_t DEBUG_CTRL;              // 0x30
     __IOM uint32_t Res1;                    // 0x34
-    __IOM uint32_t SEC_CTRL;                // 0x38
-    __IOM uint32_t SEC_USRKEY;              // 0x3C
+    __IOM uint32_t Res2;                    // 0x38
+    __IOM uint32_t Res3;                    // 0x3C
     __IOM uint32_t CACHE_CTRL;              // 0x40
     __IOM uint32_t CACHE_TOTAL_REQ;         // 0x44
     __IOM uint32_t CACHE_HIT_CNT;           // 0x48
     __IOM uint32_t CACHE_PREFETCH_CNT;      // 0x4C
     __IOM uint32_t CACHE_DOWN_REQ;          // 0x50
     __IOM uint32_t CHIP_ID;                 // 0x54
+    __IOM uint32_t RST_SRC;                 // 0x58
 }stSysCtrlHandle_t, *pstSysCtrlHandle_t;
 
 

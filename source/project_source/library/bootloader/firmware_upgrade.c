@@ -38,6 +38,7 @@ uint32_t u32FlashReadBuffer[UNIT_PAGE/2] = {0};
 
 uint8_t au8FirmUartRxBuffer[BOOT_TRX_BUFFER_SIZE] = {0};
 uint8_t au8FirmRespBuffer[BOOT_TRX_BUFFER_SIZE];
+uint8_t g_boot_flash_devid[3] = {0};
 
 //------------------------------------------------------------------------------
 //Upgrade by cmd.
@@ -80,49 +81,6 @@ void firmware_change_baud(uint32_t u32Baud)
     boot_interface_change_baudrate(u32Baud);
 }
 
-uint32_t firmware_get_code_crc(uint32_t u32Addr, uint32_t u32Len, uint32_t u32CrcInit)
-{
-    
-    uint32_t u32InitCrc = u32CrcInit;
-    
-    uint32_t u32WriteLen = u32Len;
-    
-    uint16_t u16CrcLen = 0;
-    
-    uint8_t *pu8Buffer = (uint8_t *)u32FlashReadBuffer;
-    
-    if(u32Len%4)
-    {
-        u32WriteLen = u32Len/4 + 1;
-    }
-    
-    while(u32WriteLen)
-    {
-        if(u32WriteLen < UNIT_SECTOR)
-        {
-            memset(u32FlashReadBuffer, 0, sizeof(u32FlashReadBuffer));
-            rom_hw_flash_read_data_u32(u32Addr, u32FlashReadBuffer, u32WriteLen/4);
-            u32Addr += u32WriteLen;
-            u32WriteLen = 0;
-            u16CrcLen = u32Len;
-        }
-        else
-        {
-            memset(u32FlashReadBuffer, 0, sizeof(u32FlashReadBuffer));
-            //Copy by sector
-            rom_hw_flash_read_data_u32(u32Addr, u32FlashReadBuffer, UNIT_SECTOR/4);
-            u32WriteLen-=UNIT_SECTOR;
-            u32Len-=UNIT_SECTOR;
-            u16CrcLen =UNIT_SECTOR;
-            u32Addr += UNIT_SECTOR;
-            
-        }
-        // u32InitCrc = rom_utility_get_soft_crc32_wo_output_xor((uint8_t *)u32FlashReadBuffer, u16CrcLen, u32InitCrc);
-    }
-    return u32InitCrc ^ 0xFFFFFFFF;
-}
-
-
 bool firmware_upgrade_is_cmd_valid(uint8_t* pu8Buffer, uint16_t u16Len)
 {
     // Check header
@@ -158,6 +116,8 @@ bool firmware_upgrade_is_cmd_valid(uint8_t* pu8Buffer, uint16_t u16Len)
 void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16Len)
 {
     uint8_t u8Sta = EN_FIRM_STA_OK;
+    // uint32_t flash_size = 1 << g_boot_flash_devid[2];
+    uint32_t flash_size = FLASH_SIZE_MAX;   // 当前芯片限制仅可支持256K，超过256K不可读写
 
     switch (u8Cmd)
     {
@@ -264,7 +224,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
     case EN_FIRM_CMD_GET_FLASH_ID:
         {
             uint8_t au8Buffer[8] = {0};
-            rom_hw_flash_read_uid(&au8Buffer[1], 8);
+            rom_hw_flash_read_uid(&au8Buffer[0], 8);
             firmware_send_resp(EN_FIRM_RESP_FLASH_ID, au8Buffer, 8);
 
             break;
@@ -279,30 +239,12 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
             break;
         }
 
-    case EN_FIRM_CMD_FLASH_INIT:
-        {
-            rom_hw_flash_init();
-            rom_hw_flash_set_type(pu8Data[0]);
-            u8Sta = EN_FIRM_STA_OK;
-            firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_FLASH_INIT, &u8Sta, 1);
-            PRINTF("[BL CMD] EN_FIRM_CMD_FLASH_INIT\n");
-            break;
-        }
     case EN_FIRM_CMD_DOWNBIN_END:
         {
             bDownbinFlag = false;
             u8Sta = EN_FIRM_STA_OK;
             firmware_send_resp(EN_FIRM_RESP_DOWNBIN_END, &u8Sta, 1);
             PRINTF("[BL CMD] EN_FIRM_CMD_DOWNBIN_END\n");
-            break;
-        }
-
-    case EN_FIRM_CMD_FLASH_MODE_CFG:
-        {
-            
-            u8Sta = rom_hw_flash_config_read_write_mode(pu8Data[0]);
-            firmware_send_resp(EN_FIRM_CMD_FLASH_MODE_CFG | FIRM_UPGRADE_RESP_FORMAT, &u8Sta, 1);
-             PRINTF("[BL CMD] EN_FIRM_CMD_FLASH_MODE_CFG\n");
             break;
         }
 
@@ -323,14 +265,6 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
         break;
     }
 
-    case EN_FIRM_CMD_SET_FLASH_DIV:
-    {
-        u8Sta = rom_hw_flash_ctrl_set_clk_div(pu8Data[0]);
-        firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_SET_FLASH_DIV, &u8Sta, 1);
-        PRINTF("[BL CMD] EN_FIRM_CMD_SET_FLASH_DIV\n");
-        break;
-    }
-
     case EN_FIRM_CMD_READ_SEC_REG:
     {
         // 0 - MemIdx , 1-2 offset, 3-4 Len
@@ -345,11 +279,24 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
 
     case EN_FIRM_CMD_WRITE_SEC_REG:
     {
-        // 0 - Idx , 1-2 0ffset, 3-4 Len 
+        // 0 - Idx , 1-2 0ffset, 3-4 Len
+        uint8_t *pu8Resp = (uint8_t*) u32FlashReadBuffer;
         uint16_t u16addrOffset = rom_utility_little_endian_read_16(pu8Data, 1);
         uint16_t u16Len = rom_utility_little_endian_read_16(pu8Data, 3);
-        rom_hw_flash_write_security_mem(pu8Data[0], u16addrOffset, &pu8Data[5], u16Len);
-        u8Sta = EN_ERROR_STA_OK;
+
+        // 写之前需确保写入区域已被擦除为0xFF，即避免写入失败，同时防止恶意破坏密钥存储区导致启动异常
+        rom_hw_flash_read_security_mem(pu8Data[0], u16addrOffset, pu8Resp, u16Len);
+        for (uint32_t i = 0; i < u16Len; i++) {
+            if (pu8Resp[i] != 0xFF) {
+                u8Sta = EN_ERROR_STA_ERROR;
+                break;
+            }
+        }
+        if (u8Sta == EN_FIRM_STA_OK) {
+            rom_hw_flash_write_security_mem(pu8Data[0], u16addrOffset, &pu8Data[5], u16Len);
+            u8Sta = EN_ERROR_STA_OK;
+        }
+
         firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_WRITE_SEC_REG, &u8Sta, 1);
         PRINTF("[BL CMD] EN_FIRM_CMD_WRITE_SEC_REG\n");
         break;
@@ -357,29 +304,37 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
 
     case EN_FIRM_CMD_ERASE_SEC_REG:
     {
-        rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
-        u8Sta = EN_ERROR_STA_OK;
+        u8Sta = EN_FIRM_STA_OK;
+
+        // mem0用作安全信息存储，擦除必须先确认CHIP已擦除，以防止安全信息被恶意破坏导致设备无法启动
+        if (pu8Data[0] == EN_FLASH_SEC_MEM0) {
+            uint8_t *pu8Resp = (uint8_t*) u32FlashReadBuffer;
+            for (uint32_t i = 0; i < flash_size; i+=4) {
+                if (read32(FLASH_BASE_ADDR + i) != 0xFFFFFFFF) {
+                    u8Sta = EN_ERROR_STA_INVALID;
+                    break;
+                }
+            }
+            if (u8Sta == EN_FIRM_STA_OK) {
+                rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
+                rom_hw_flash_read_security_mem(pu8Data[0], 0, pu8Resp, 256);
+                for (uint32_t i = 0; i < 256; i++) {
+                    if (pu8Resp[i] != 0xFF) {
+                        u8Sta = EN_ERROR_STA_ERROR;
+                        break;
+                    }
+                }
+                if (u8Sta == EN_FIRM_STA_OK) {
+                    SYS_CTRL->Res2 = 0x0;   // disable security
+                    rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+                }
+            }
+        } else {
+            rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
+        }
+
         firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_ERASE_SEC_REG, &u8Sta, 1);
         PRINTF("[BL CMD] EN_FIRM_CMD_ERASE_SEC_REG\n");
-        break;
-    }
-
-    case EN_FIRM_CMD_WRITE_CTRL_REG:
-    {
-        uint32_t u32Addr = rom_utility_little_endian_read_32(pu8Data, 0);
-        uint32_t u32Data = rom_utility_little_endian_read_32(pu8Data, 4);
-        *((volatile uint32_t *) u32Addr) = u32Data;
-        firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_WRITE_CTRL_REG, &u8Sta, 1);
-        PRINTF("[BL CMD] EN_FIRM_CMD_WRITE_CTRL_REG\n");
-        break;
-    }
-
-    case EN_FIRM_CMD_READ_CTRL_REG:
-    {
-        uint32_t u32Addr = rom_utility_little_endian_read_32(pu8Data, 0);
-        uint32_t u32Data = *((volatile uint32_t *) u32Addr);
-        firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_READ_CTRL_REG, (uint8_t *)&u32Data, 4);
-        PRINTF("[BL CMD] EN_FIRM_CMD_READ_CTRL_REG\n");
         break;
     }
 
@@ -387,7 +342,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
     {
         u8Sta = EN_FIRM_STA_OK;
         u8Sta = rom_hw_flash_erase(EN_FLASH_ERASE_CHIP, 0);
-        for (uint32_t i = 0; i < FLASH_SIZE_MAX; i+=4) {
+        for (uint32_t i = 0; i < flash_size; i+=4) {
             if (read32(FLASH_BASE_ADDR + i) != 0xFFFFFFFF) {
                 u8Sta = EN_ERROR_STA_ERROR;
                 break;
@@ -397,6 +352,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
         PRINTF("[BL CMD] EN_FIRM_CMD_FLASH_INIT\n");
         break;
     }
+
     default:
         firmware_upgrade_send_error(u8Cmd, EN_FIRM_STA_CMD_ERROR);
         break;

@@ -16,6 +16,7 @@
 
 #include "utility.h"
 #include "hw_sysctrl.h"
+#include "compiler.h"
 
 volatile uint32_t SystemCoreClock __ROM_RAM_SHARED = SYS_CLK_FREQ_50M;
 
@@ -302,4 +303,22 @@ void rom_hw_sysctrl_reset_phy(void)
     SYS_CTRL->PHY_SW_RST = 1;
     rom_utility_delay_us(100);
     SYS_CTRL->PHY_SW_RST = 0;
+}
+
+uint8_t rom_hw_sysctrl_get_reset_src(void)
+{
+    return (uint8_t)(SYS_CTRL->RST_SRC & 0x7);
+}
+
+volatile uint8_t g_boot_rst_src __ROM_RAM_SHARED = 0;
+EN_ERR_STA_T rom_hw_sysctrl_set_boot_rst_flag(uint8_t rst_flag)
+{
+    g_boot_rst_src = rst_flag;
+    return EN_ERROR_STA_OK;
+}
+
+EN_ERR_STA_T rom_hw_sysctrl_get_boot_rst_flag(uint8_t *rst_flag)
+{
+    *rst_flag = g_boot_rst_src;
+    return EN_ERROR_STA_OK;
 }

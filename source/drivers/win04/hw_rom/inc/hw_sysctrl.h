@@ -125,6 +125,14 @@ typedef enum
     EN_CACHE_FLUSH = 2,
 } EN_SYSCTRL_CACHE_MODE_T;
 
+typedef enum
+{
+    EN_NORMAL_POWERUP   = 0,
+    EN_RST_FROM_WDT     = 1,
+    EN_RST_FROM_IWDT    = 2,
+    EN_RST_FROM_SOFT    = 3, // software reset, NVIC_SystemReset
+} EN_SYSCTRL_RST_SRC_T;
+
 /**
  * @brief 初始化系统时钟
  *
@@ -190,5 +198,11 @@ EN_ERR_STA_T rom_hw_sysctrl_set_cache_mode(EN_SYSCTRL_CACHE_MODE_T enMode);
 EN_ERR_STA_T rom_hw_cdc_delay(uint32_t u32Delay);
 
 void rom_hw_sysctrl_set_lp_clk(bool xtal);
+
+uint8_t rom_hw_sysctrl_get_reset_src(void);
+
+EN_ERR_STA_T rom_hw_sysctrl_set_boot_rst_flag(uint8_t rst_flag);
+
+EN_ERR_STA_T rom_hw_sysctrl_get_boot_rst_flag(uint8_t *rst_flag);
 
 #endif

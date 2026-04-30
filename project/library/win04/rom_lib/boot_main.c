@@ -12,14 +12,23 @@
 #include "utility.h"
 #include "bootloader.h"
 #include "app_cfg.h"
+// #include "hw_timer.h"
 
+extern uint8_t g_boot_flash_devid[3];
 int main(void)
 {
-    uint8_t dev_id[3] = {0};
-
+    boot_identify_from_rst();
     boot_identify_from_lowpower();
 
     rom_hw_sysctrl_system_clock_init(EN_SYS_CLK_RC50M, EN_SYS_CLK_MCLK_DIV_NONE);
+
+    // rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_TIM0, true);
+    // rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_TIM0);
+    // rom_hw_timer_stop_counter(TIM0);
+    // rom_hw_timer_set_conter_reload_value(TIM0, 0xFFFFFFFF);
+    // rom_hw_timer_set_interrupt_mask(TIM0, true);
+    // rom_hw_timer_disable_interrupt(TIM0);
+    // rom_hw_timer_start_counter(TIM0);
 
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_CRC32, true);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_CRC32);
@@ -40,8 +49,8 @@ int main(void)
     rom_hw_flash_init();
 
     // 3 Get device id, set flash type
-    rom_hw_flash_read_dev_id(dev_id, 3);
-    if (dev_id[0] == EN_FLASH_TYPE_PY) {
+    rom_hw_flash_read_dev_id(g_boot_flash_devid, 3);
+    if (g_boot_flash_devid[0] == EN_FLASH_TYPE_PY) {
         rom_hw_flash_set_type(EN_FLASH_TYPE_PY);
     } else {
         rom_hw_flash_set_type(EN_FLASH_TYPE_GT);

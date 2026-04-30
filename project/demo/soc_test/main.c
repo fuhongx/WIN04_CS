@@ -93,7 +93,7 @@ void flash_read_id_test(void)
     rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
     dump_u8buf("flash sec mem0", buffer, 256);
 
-    // buffer[36] = 0x1;
+    // buffer[36] = 0x2;
     // rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM0, FLASH_ERASE_SECURITY_MEM_KEY);
     // rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
 

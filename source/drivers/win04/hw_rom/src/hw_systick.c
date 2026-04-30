@@ -23,11 +23,11 @@
 #include "error_def.h"
 #include "utility.h"
 #include "hw_sysctrl.h"
-#include "qmx_systick.h"
+#include "hw_systick.h"
 
 #define SYSTICK_MAX_MS_DELAY    300
 
-void qmx_systick_delay_us(uint32_t us)
+void rom_hw_systick_delay_us(uint32_t us)
 {
     uint32_t reload_cnt = (SystemCoreClock / 1000000) * us;
 
@@ -42,7 +42,7 @@ void qmx_systick_delay_us(uint32_t us)
     SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
 }
 
-void qmx_systick_delay_ms(uint32_t ms)
+void rom_hw_systick_delay_ms(uint32_t ms)
 {
     uint32_t reload_cnt = 0;
 
@@ -68,18 +68,18 @@ once:
     }
 }
 
-void qmx_systick_delay_s(uint32_t s)
+void rom_hw_systick_delay_s(uint32_t s)
 {
     while (s--)
-        qmx_systick_delay_ms(1000);
+        rom_hw_systick_delay_ms(1000);
 }
 
-void qmx_systick_enable_interrupt(void)
+void rom_hw_systick_enable_interrupt(void)
 {
     SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 }
 
-void qmx_systick_disable_interrupt(void)
+void rom_hw_systick_disable_interrupt(void)
 {
     SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 }

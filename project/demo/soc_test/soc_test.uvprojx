@@ -435,19 +435,9 @@
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cali.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_intc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_intc.c</FilePath>
-            </File>
-            <File>
               <FileName>qmx_lpwr_ctrl.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_lpwr_ctrl.c</FilePath>
-            </File>
-            <File>
-              <FileName>qmx_systick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_systick.c</FilePath>
             </File>
             <File>
               <FileName>qmx_rf.c</FileName>
@@ -476,6 +466,13 @@
         </Group>
         <Group>
           <GroupName>patch</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_intc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\patch\src\qmx_intc.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>nt_shell</GroupName>
@@ -584,6 +581,11 @@
               <FileName>qmx_hal_spi.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1018,19 +1020,9 @@
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cali.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_intc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_intc.c</FilePath>
-            </File>
-            <File>
               <FileName>qmx_lpwr_ctrl.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_lpwr_ctrl.c</FilePath>
-            </File>
-            <File>
-              <FileName>qmx_systick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_systick.c</FilePath>
             </File>
             <File>
               <FileName>qmx_rf.c</FileName>
@@ -1059,6 +1051,13 @@
         </Group>
         <Group>
           <GroupName>patch</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_intc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\patch\src\qmx_intc.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>nt_shell</GroupName>
@@ -1167,6 +1166,11 @@
               <FileName>qmx_hal_spi.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1601,19 +1605,9 @@
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cali.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_intc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_intc.c</FilePath>
-            </File>
-            <File>
               <FileName>qmx_lpwr_ctrl.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_lpwr_ctrl.c</FilePath>
-            </File>
-            <File>
-              <FileName>qmx_systick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_systick.c</FilePath>
             </File>
             <File>
               <FileName>qmx_rf.c</FileName>
@@ -1642,6 +1636,13 @@
         </Group>
         <Group>
           <GroupName>patch</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_intc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\patch\src\qmx_intc.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>nt_shell</GroupName>
@@ -1819,6 +1820,11 @@
               <FileName>qmx_hal_spi.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2253,19 +2259,9 @@
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cali.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_intc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_intc.c</FilePath>
-            </File>
-            <File>
               <FileName>qmx_lpwr_ctrl.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_lpwr_ctrl.c</FilePath>
-            </File>
-            <File>
-              <FileName>qmx_systick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_systick.c</FilePath>
             </File>
             <File>
               <FileName>qmx_rf.c</FileName>
@@ -2294,6 +2290,13 @@
         </Group>
         <Group>
           <GroupName>patch</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_intc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\patch\src\qmx_intc.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>nt_shell</GroupName>
@@ -2402,6 +2405,11 @@
               <FileName>qmx_hal_spi.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_spi.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
             </File>
           </Files>
         </Group>

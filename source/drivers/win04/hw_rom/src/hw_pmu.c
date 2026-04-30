@@ -27,12 +27,6 @@ EN_ERR_STA_T rom_hw_pmu_set_lp_mode(EN_PMU_LP_MODE_T enMode)
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_pmu_get_lp_mode(uint8_t *enMode)
-{
-    *enMode = PMU->LP_MODE & PMU_LP_MODE_REG_MASK;
-    return EN_ERROR_STA_OK;
-}
-
 EN_ERR_STA_T rom_hw_pmu_get_phy_power_status(uint8_t *pu8Sta)
 {
     if (NULL == pu8Sta)
@@ -48,18 +42,6 @@ EN_ERR_STA_T rom_hw_pmu_get_phy_power_status(uint8_t *pu8Sta)
 EN_ERR_STA_T rom_hw_pmu_set_wakeup_source(uint8_t u8Mask)
 {
     PMU->WKP_MSK = u8Mask & PMU_WKP_MSK_REG_MASK;
-
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_pmu_get_wakeup_source_flag(uint8_t *pu8Flag)
-{
-    if (NULL == pu8Flag)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    *pu8Flag = PMU->WKP_MSK & PMU_WKP_MSK_REG_MASK;
 
     return EN_ERROR_STA_OK;
 }

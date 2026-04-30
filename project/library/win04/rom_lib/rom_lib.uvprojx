@@ -543,6 +543,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\source\drivers\win04\hw_rom\src\hw_wdt.c</FilePath>
             </File>
+            <File>
+              <FileName>hw_systick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\source\drivers\win04\hw_rom\src\hw_systick.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

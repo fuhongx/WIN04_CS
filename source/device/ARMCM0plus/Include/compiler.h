@@ -22,6 +22,7 @@ extern "C"
 #define __ALIGN4            __attribute__((aligned(4)))
 #define __ALIGN8            __attribute__((aligned(8)))
 
+#define __MAYBE_USED        __attribute__((used))
 #define __MAYBE_UNUSED      __attribute__((unused))
 
 #ifdef ROM_LIB_PROJECT

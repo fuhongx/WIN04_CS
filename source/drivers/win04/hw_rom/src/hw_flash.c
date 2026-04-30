@@ -1057,7 +1057,7 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
-        if (enType == EN_FLASH_SEC_MEM3) {
+        if (enType >= EN_FLASH_SEC_MEM3) {
             return EN_ERROR_STA_INVALID;
         } else {
             enType += 1;
@@ -1087,8 +1087,10 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
         {
             return EN_ERROR_STA_TIMEOUT;
         }
-        rom_utility_delay_ms(1);
+        // TODO: 手册未写等待时间，待仿真查看下，该延时会影响启动时间，不能随便增加
+        // rom_utility_delay_ms(1);
         rom_hw_flash_ctrl_get_read_data(&pu8Buffer[u8Idx], u8ReadLen);
+
         u32Addr += u8ReadLen;
         u8Idx += u8ReadLen;
         u16Len -= u8ReadLen;
@@ -1111,6 +1113,11 @@ EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
+        if (enType >= EN_FLASH_SEC_MEM3) {
+            return EN_ERROR_STA_INVALID;
+        } else {
+            enType += 1;
+        }
         u32Addr = ((enType & 0x3) << 12) | u16Offset;
     }
 
@@ -1163,6 +1170,11 @@ EN_ERR_STA_T rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM_T enType, uint32_t
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
+        if (enType >= EN_FLASH_SEC_MEM3) {
+            return EN_ERROR_STA_INVALID;
+        } else {
+            enType += 1;
+        }
         u32Addr = ((enType & 0x3) << 12);
     }
 

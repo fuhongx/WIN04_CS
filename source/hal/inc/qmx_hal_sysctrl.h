@@ -92,6 +92,14 @@ typedef enum
     HAL_CACHE_FLUSH = 2,
 } hal_cache_mode_e;
 
+typedef enum
+{
+    HAL_MORMAL_POWERUP  = 0,
+    HAL_RST_FROM_WDT    = 1,
+    HAL_RST_FROM_IWDT   = 2,
+    HAL_RST_FROM_SOFT   = 4, // software reset, NVIC_SystemReset
+} hal_rst_src_e;
+
 /**
  * @brief System clock source, 系统时钟选择和分频配置
  * 
@@ -135,6 +143,20 @@ void qmx_hal_sysctrl_cache_mode_set(hal_cache_mode_e mode);
  * @param clk_src 低功耗时钟源选择，参考 hal_sysctrl_lp_src_e 枚举
  */
 void qmx_hal_sysctrl_set_lp_clk(hal_sysctrl_lp_src_e clk_src);
+
+/**
+ * @brief Get reset source, 获取复位源
+ * 
+ * @return uint8_t 参考 hal_rst_src_e 枚举
+ */
+uint8_t qmx_hal_sysctrl_get_reset_src(void);
+
+/**
+ * @brief Get reset source, 获取复位源, 软件设置的复位源，区别于qmx_hal_sysctrl_get_reset_src，后者为硬件复位源
+ * 
+ * @return uint8_t 参考 hal_rst_src_e 枚举
+ */
+uint8_t qmx_hal_sysctrl_sw_get_reset_src(void);
 
 void qmx_hal_sysctrl_reset_phy(void);
 

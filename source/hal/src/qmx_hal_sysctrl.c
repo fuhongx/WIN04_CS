@@ -64,3 +64,15 @@ void qmx_hal_sysctrl_reset_phy(void)
 {
     rom_hw_sysctrl_reset_phy();
 }
+
+uint8_t qmx_hal_sysctrl_get_reset_src(void)
+{
+    return rom_hw_sysctrl_get_reset_src();
+}
+
+uint8_t qmx_hal_sysctrl_sw_get_reset_src(void)
+{
+    uint8_t reset_src = 0;
+    rom_hw_sysctrl_get_boot_rst_flag(&reset_src);
+    return reset_src;
+}
