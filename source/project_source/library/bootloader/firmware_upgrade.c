@@ -26,6 +26,7 @@
 #include "hw_crc.h"
 #include "hw_flash.h"
 #include "hw_uart.h"
+#include "hw_rng.h"
 #include "hw_sysctrl.h"
 #include "firmware_upgrade.h"
 #include "app_cfg.h"
@@ -273,7 +274,6 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
         uint16_t u16Len = rom_utility_little_endian_read_16(pu8Data, 3);
         rom_hw_flash_read_security_mem(pu8Data[0], u16addrOffset, pu8Resp, u16Len);
         firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_READ_SEC_REG, pu8Resp, u16Len);
-        PRINTF("[BL CMD] EN_FIRM_CMD_READ_SEC_REG\n");
         break;
     }
 
@@ -305,33 +305,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
     case EN_FIRM_CMD_ERASE_SEC_REG:
     {
         u8Sta = EN_FIRM_STA_OK;
-
-        // mem0用作安全信息存储，擦除必须先确认CHIP已擦除，以防止安全信息被恶意破坏导致设备无法启动
-        if (pu8Data[0] == EN_FLASH_SEC_MEM0) {
-            uint8_t *pu8Resp = (uint8_t*) u32FlashReadBuffer;
-            for (uint32_t i = 0; i < flash_size; i+=4) {
-                if (read32(FLASH_BASE_ADDR + i) != 0xFFFFFFFF) {
-                    u8Sta = EN_ERROR_STA_INVALID;
-                    break;
-                }
-            }
-            if (u8Sta == EN_FIRM_STA_OK) {
-                rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
-                rom_hw_flash_read_security_mem(pu8Data[0], 0, pu8Resp, 256);
-                for (uint32_t i = 0; i < 256; i++) {
-                    if (pu8Resp[i] != 0xFF) {
-                        u8Sta = EN_ERROR_STA_ERROR;
-                        break;
-                    }
-                }
-                if (u8Sta == EN_FIRM_STA_OK) {
-                    SYS_CTRL->Res2 = 0x0;   // disable security
-                    rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
-                }
-            }
-        } else {
-            rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
-        }
+        rom_hw_flash_erase_security_mem(pu8Data[0], FLASH_ERASE_SECURITY_MEM_KEY);
 
         firmware_send_resp(FIRM_UPGRADE_RESP_FORMAT | EN_FIRM_CMD_ERASE_SEC_REG, &u8Sta, 1);
         PRINTF("[BL CMD] EN_FIRM_CMD_ERASE_SEC_REG\n");
@@ -344,12 +318,59 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
         u8Sta = rom_hw_flash_erase(EN_FLASH_ERASE_CHIP, 0);
         for (uint32_t i = 0; i < flash_size; i+=4) {
             if (read32(FLASH_BASE_ADDR + i) != 0xFFFFFFFF) {
-                u8Sta = EN_ERROR_STA_ERROR;
+                u8Sta = EN_ERROR_STA_INVALID;
                 break;
             }
         }
         firmware_send_resp(EN_FIRM_RESP_FLASH_ERASE_CHIP, &u8Sta, 1);
-        PRINTF("[BL CMD] EN_FIRM_CMD_FLASH_INIT\n");
+        PRINTF("[BL CMD] EN_FIRM_CMD_FLASH_ERASE_CHIP\n");
+        break;
+    }
+
+    case EN_FIRM_CMD_ENC:
+    {
+        u8Sta = EN_FIRM_STA_OK;
+        uint32_t fw_key = 0;
+        uint8_t *pu8Resp = (uint8_t*) u32FlashReadBuffer;
+        rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, pu8Resp, 256);
+        fw_key = rom_hw_crc_get_crc32_value(&pu8Resp[64], 64);
+        // 写入flash加密密钥
+        SYS_CTRL->Res3 = fw_key;
+        // 关闭SWD并打开flash加密
+        SYS_CTRL->Res2 = 0x3;
+
+        // flash加密依赖cache的使能
+        rom_hw_sysctrl_set_cache_mode(EN_CACHE_ENABLE);
+        rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+
+        rom_hw_update_rng_seed(fw_key);
+        firmware_send_resp(EN_FIRM_RESP_ENC, &u8Sta, 1);
+        break;
+    }
+
+    case EN_FIRM_CMD_DEC:
+    {
+        u8Sta = EN_FIRM_STA_OK;
+        uint8_t *pu8Resp = (uint8_t *)u32FlashReadBuffer;
+        for (uint32_t i = 0; i < flash_size; i+=4) {
+            if (read32(FLASH_BASE_ADDR + i) != 0xFFFFFFFF) {
+                u8Sta = EN_ERROR_STA_INVALID;
+                break;
+            }
+        }
+
+        if (u8Sta == EN_FIRM_STA_OK) {
+            rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, pu8Resp, 256);
+            if ((pu8Resp[32] == 0) && (pu8Resp[36] == 0)) {
+                SYS_CTRL->Res2 = 0x0;   // disable security
+                rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
+                rom_hw_sysctrl_set_cache_mode(EN_CACHE_DISABLE);
+            } else {
+                u8Sta = EN_ERROR_STA_ERROR;
+            }
+        }
+
+        firmware_send_resp(EN_FIRM_RESP_DEC, &u8Sta, 1);
         break;
     }
 
