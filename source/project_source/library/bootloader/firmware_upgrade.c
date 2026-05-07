@@ -18,7 +18,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "string.h"
+#include <string.h>
+#include <stdlib.h>
 #include "reg_Dev.h"
 #include "error_def.h"
 #include "utility.h"
@@ -37,7 +38,7 @@
 bool bDownbinFlag = false;
 uint32_t u32FlashReadBuffer[UNIT_PAGE/2] = {0};
 
-uint8_t au8FirmUartRxBuffer[BOOT_TRX_BUFFER_SIZE] = {0};
+// uint8_t au8FirmUartRxBuffer[BOOT_TRX_BUFFER_SIZE] = {0};
 uint8_t au8FirmRespBuffer[BOOT_TRX_BUFFER_SIZE];
 uint8_t g_boot_flash_devid[3] = {0};
 
@@ -397,13 +398,15 @@ void firmware_upgrade_cmd_process(uint8_t* pu8Buffer, uint16_t u16Len)
 void firmware_upgrade_main(void)
 {
     volatile uint16_t u16RxLen = 0;
+    uint8_t *au8FirmUartRxBuffer = malloc(FIRM_UPGRADE_UART_RX_LEN);
+    memset(au8FirmUartRxBuffer, 0, FIRM_UPGRADE_UART_RX_LEN);
 
     while(1) {
         u16RxLen = boot_interface_get_rx_data(au8FirmUartRxBuffer);
         if(u16RxLen) {
             firmware_upgrade_cmd_process(au8FirmUartRxBuffer, u16RxLen);
             u16RxLen = 0;
-            memset(au8FirmUartRxBuffer, 0, sizeof(au8FirmUartRxBuffer));
+            memset(au8FirmUartRxBuffer, 0, FIRM_UPGRADE_UART_RX_LEN);
         }
     }
 

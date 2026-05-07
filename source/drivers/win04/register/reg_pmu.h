@@ -26,6 +26,7 @@ typedef struct
     __IOM uint32_t  PWR_DWN;
     __IOM uint32_t  LP_MAN;
     __IOM uint32_t  LPIO_EN;
+    __IOM uint32_t  LP_FAIL_FLAG;
 }stPmuHandle_t;
 
 #define PMU_LP_MODE_NORMAL                          (0x0)

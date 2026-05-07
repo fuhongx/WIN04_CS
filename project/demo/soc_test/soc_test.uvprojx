@@ -424,6 +424,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\component\private_spi\qmx_private_spi_frame.c</FilePath>
             </File>
+            <File>
+              <FileName>sw_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\crc\sw_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>sw_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\aes\sw_aes.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -449,10 +459,172 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy.c</FilePath>
             </File>
+            <File>
+              <FileName>qmx_afc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_afc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_debug_ila.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_debug_ila.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_trx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy_trx.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_sf_search.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_sf_search.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_subg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_subg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>soc_test</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_aes_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_aes_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rng_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_rng_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_crc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_crc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_dma_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\DMA\qmx_dma_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_flash_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\flash\qmx_flash_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_gpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\gpio\qmx_gpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IIC\qmx_iic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iwdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IWDT\qmx_iwdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_low_power_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lowpower\qmx_low_power_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpio\qmx_lpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpuart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpuart\qmx_lpuart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_mem_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\mem\qmx_mem_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_nvic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\NVIC\qmx_nvic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\phy\qmx_phy_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rtc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\RTC\qmx_rtc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_soc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_soc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master_slave_common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master_slave_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_slave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_slave.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_cmd_process.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_uart_cmd_process.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_spi_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\spi\qmx_spi_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_systick_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\systick\qmx_systick_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_pwm_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_pwm_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_timer_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_timer_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\uart\qmx_uart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_wdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\WDT\qmx_wdt_test.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>main</GroupName>
@@ -586,6 +758,46 @@
               <FileName>qmx_hal_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iwdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iwdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lptimer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lptimer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lpuart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lpuart.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_wdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_wdt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -923,7 +1135,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>-Wno-empty-body</MiscControls>
-              <Define>WIN04,NT_SHELL,QMX_PHYTEST,QMX_ILATEST</Define>
+              <Define>WIN04,NT_SHELL,QMX_PHYTEST,QMX_ILATEST,QMX_FPGA</Define>
               <Undefine></Undefine>
               <IncludePath>.\config;..\..\..\library;..\..\..\source\device\ARMCM0plus\Include;..\..\..\source\device\CMSIS_Core\Include;..\..\..\source\device\reg_device;..\..\..\source\device\win04;..\..\..\source\mem_cfg\flash;..\..\..\source\mem_cfg\win04;..\..\..\source\component\error_def;..\..\..\source\component\utility;..\..\..\source\component\debug;..\..\..\source\component\private_spi;..\..\..\source\drivers\win04\register;..\..\..\source\drivers\win04\hw_rom\inc;..\..\..\source\drivers\win04\hw_flash\inc;..\..\..\source\drivers\win04\patch\inc;..\..\..\source\hal\inc;..\..\..\source\component\nt_shell\core\inc;..\..\..\source\component\nt_shell\util\inc;..\..\..\source\component\nt_shell;..\..\..\source\project_source\soc_test\algo;..\..\..\source\project_source\soc_test\DMA;..\..\..\source\project_source\soc_test\flash;..\..\..\source\project_source\soc_test\IIC;..\..\..\source\project_source\soc_test\IWDT;..\..\..\source\project_source\soc_test\lowpower;..\..\..\source\project_source\soc_test\mem;..\..\..\source\project_source\soc_test\NVIC;..\..\..\source\project_source\soc_test\phy;..\..\..\source\project_source\soc_test\RTC;..\..\..\source\project_source\soc_test\soc_test;..\..\..\source\project_source\soc_test\systick;..\..\..\source\project_source\soc_test\timer;..\..\..\source\project_source\soc_test\WDT;..\..\..\source\project_source\soc_test\gpio;..\..\..\source\component\crypto\aes;..\..\..\source\component\crypto\crc;..\..\..\source\project_source\soc_test\uart;..\..\..\source\project_source\soc_test\gpio;..\..\..\source\project_source\soc_test\lpio;..\..\..\source\project_source\soc_test\lpuart;..\..\..\source\project_source\soc_test\spi</IncludePath>
             </VariousControls>
@@ -1009,6 +1221,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\component\private_spi\qmx_private_spi_frame.c</FilePath>
             </File>
+            <File>
+              <FileName>sw_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\crc\sw_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>sw_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\aes\sw_aes.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1034,10 +1256,172 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy.c</FilePath>
             </File>
+            <File>
+              <FileName>qmx_afc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_afc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_debug_ila.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_debug_ila.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_trx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy_trx.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_sf_search.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_sf_search.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_subg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_subg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>soc_test</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_aes_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_aes_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rng_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_rng_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_crc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_crc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_dma_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\DMA\qmx_dma_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_flash_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\flash\qmx_flash_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_gpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\gpio\qmx_gpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IIC\qmx_iic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iwdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IWDT\qmx_iwdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_low_power_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lowpower\qmx_low_power_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpio\qmx_lpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpuart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpuart\qmx_lpuart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_mem_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\mem\qmx_mem_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_nvic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\NVIC\qmx_nvic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\phy\qmx_phy_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rtc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\RTC\qmx_rtc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_soc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_soc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master_slave_common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master_slave_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_slave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_slave.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_cmd_process.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_uart_cmd_process.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_spi_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\spi\qmx_spi_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_systick_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\systick\qmx_systick_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_pwm_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_pwm_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_timer_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_timer_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\uart\qmx_uart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_wdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\WDT\qmx_wdt_test.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>main</GroupName>
@@ -1171,6 +1555,46 @@
               <FileName>qmx_hal_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iwdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iwdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lptimer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lptimer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lpuart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lpuart.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_wdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_wdt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1594,6 +2018,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\component\private_spi\qmx_private_spi_frame.c</FilePath>
             </File>
+            <File>
+              <FileName>sw_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\crc\sw_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>sw_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\aes\sw_aes.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1619,10 +2053,172 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy.c</FilePath>
             </File>
+            <File>
+              <FileName>qmx_afc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_afc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_debug_ila.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_debug_ila.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_trx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy_trx.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_sf_search.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_sf_search.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_subg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_subg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>soc_test</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_aes_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_aes_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rng_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_rng_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_crc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_crc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_dma_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\DMA\qmx_dma_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_flash_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\flash\qmx_flash_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_gpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\gpio\qmx_gpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IIC\qmx_iic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iwdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IWDT\qmx_iwdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_low_power_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lowpower\qmx_low_power_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpio\qmx_lpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpuart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpuart\qmx_lpuart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_mem_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\mem\qmx_mem_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_nvic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\NVIC\qmx_nvic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\phy\qmx_phy_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rtc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\RTC\qmx_rtc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_soc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_soc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master_slave_common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master_slave_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_slave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_slave.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_cmd_process.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_uart_cmd_process.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_spi_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\spi\qmx_spi_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_systick_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\systick\qmx_systick_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_pwm_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_pwm_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_timer_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_timer_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\uart\qmx_uart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_wdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\WDT\qmx_wdt_test.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>main</GroupName>
@@ -1825,6 +2421,46 @@
               <FileName>qmx_hal_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iwdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iwdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lptimer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lptimer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lpuart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lpuart.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_wdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_wdt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2248,6 +2884,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\component\private_spi\qmx_private_spi_frame.c</FilePath>
             </File>
+            <File>
+              <FileName>sw_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\crc\sw_crc.c</FilePath>
+            </File>
+            <File>
+              <FileName>sw_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\component\crypto\aes\sw_aes.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2273,10 +2919,172 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy.c</FilePath>
             </File>
+            <File>
+              <FileName>qmx_afc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_afc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_debug_ila.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_debug_ila.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_trx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_phy_trx.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_sf_search.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_sf_search.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_subg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\drivers\win04\hw_flash\src\qmx_subg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>soc_test</GroupName>
+          <Files>
+            <File>
+              <FileName>qmx_aes_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_aes_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rng_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_rng_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_crc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\algo\qmx_crc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_dma_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\DMA\qmx_dma_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_flash_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\flash\qmx_flash_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_gpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\gpio\qmx_gpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IIC\qmx_iic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_iwdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\IWDT\qmx_iwdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_low_power_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lowpower\qmx_low_power_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpio_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpio\qmx_lpio_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_lpuart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\lpuart\qmx_lpuart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_mem_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\mem\qmx_mem_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_nvic_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\NVIC\qmx_nvic_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_phy_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\phy\qmx_phy_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_rtc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\RTC\qmx_rtc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_soc_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_soc_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_master_slave_common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_master_slave_common.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_test_slave.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_test_slave.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_cmd_process.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\soc_test\qmx_uart_cmd_process.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_spi_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\spi\qmx_spi_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_systick_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\systick\qmx_systick_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_pwm_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_pwm_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_timer_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\timer\qmx_timer_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_uart_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\uart\qmx_uart_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_wdt_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\WDT\qmx_wdt_test.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>main</GroupName>
@@ -2410,6 +3218,46 @@
               <FileName>qmx_hal_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\hal\src\qmx_hal_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iic.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_iwdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_iwdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lptimer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lptimer.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_lpuart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_lpuart.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_pwm.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>qmx_hal_wdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\hal\src\qmx_hal_wdt.c</FilePath>
             </File>
           </Files>
         </Group>

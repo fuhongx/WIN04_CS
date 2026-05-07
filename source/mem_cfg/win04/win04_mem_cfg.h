@@ -117,7 +117,7 @@ extern "C"
 
 // rom STACK and HEAP
 #define RAM_ROM_STACK_SIZE_MAX                      (8 * UNIT_1K) // @ref startup_ARMCM0plus.s
-#define RAM_ROM_HEAP_SIZE_MAX                       (4 * UNIT_1K) // @ref startup_ARMCM0plus.s
+#define RAM_ROM_HEAP_SIZE_MAX                       (8 * UNIT_1K) // @ref startup_ARMCM0plus.s
 #define RAM_ROM_STACK_HEAP_ADDR                     (RAM_ADDR_MAX - RAM_ROM_STACK_SIZE_MAX - RAM_ROM_HEAP_SIZE_MAX)
 #define RAM_ROM_STACK_HEAP_SIZE_MAX                 (RAM_ROM_STACK_SIZE_MAX + RAM_ROM_HEAP_SIZE_MAX)
 #define RAM_ROM_STACK_HEAP_MAX_ADDR                 (RAM_ADDR_MAX)

@@ -103,6 +103,23 @@ EN_ERR_STA_T rom_hw_sysctrl_system_clock_init(EN_SYSCTRL_SYS_CLK_T enClk, EN_SYS
         return EN_ERROR_STA_INVALID;
     }
 
+    uint32_t timeout = 0;
+    // XTAL25M/FDB50M need wait for TCXO ready
+    if (enClk != EN_SYS_CLK_RC50M) {
+        do {
+            if (SYS_CTRL->MCLK_CFG & SYSCTRL_MCLK_CFG_XO_RDY_MASK) {
+                break;
+            }
+
+            rom_utility_delay_us(10);
+            timeout += 10;
+        } while (timeout < 100000);
+
+        if (timeout >= 100000) {
+            return EN_ERROR_STA_TIMEOUT;
+        }
+    }
+
     SYS_CTRL->MCLK_CFG = (enClk & SYSCTRL_MCLK_CFG_CLK_SRC_SEL_MAKS) << SYSCTRL_MCLK_CFG_CLK_SRC_SEL_SHIFT;
 
     uint32_t u32Cfg = SYS_CTRL->SYS_CLK_CFG;
@@ -298,9 +315,24 @@ void rom_hw_sysctrl_set_lp_clk(bool xtal)
     }
 }
 
+void rom_hw_sysctrl_set_phy_fft_clk(bool xtal)
+{
+    SYS_CTRL->LP_CLK_SEL &= ~SYSCTRL_PHY_FFT_CLK_MASK;
+    if (xtal) {
+        SYS_CTRL->LP_CLK_SEL |= SYSCTRL_PHY_FFT_CLK_VAL(1);
+    }
+}
+
 void rom_hw_sysctrl_reset_phy(void)
 {
     SYS_CTRL->PHY_SW_RST = 1;
+    rom_utility_delay_us(100);
+    SYS_CTRL->PHY_SW_RST = 0;
+}
+
+void rom_hw_sysctrl_reset_rffe(void)
+{
+    SYS_CTRL->PHY_SW_RST = 0x2;
     rom_utility_delay_us(100);
     SYS_CTRL->PHY_SW_RST = 0;
 }

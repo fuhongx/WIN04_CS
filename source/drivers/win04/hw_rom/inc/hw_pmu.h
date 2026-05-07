@@ -60,4 +60,6 @@ EN_ERR_STA_T rom_hw_pmu_get_boot_lpwr_flag(uint8_t *lpwr_flag);
 void rom_hw_pmu_force_flash_on(bool enable);
 void rom_hw_pmu_rf_lp_bypass(bool enable);
 
+uint8_t rom_hw_pmu_get_lp_fail_flag(void);
+
 #endif

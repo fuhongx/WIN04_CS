@@ -137,3 +137,8 @@ void rom_hw_pmu_force_flash_on(bool enable)
     else
         PMU->LP_MAN &= ~QMX_PMU_FORCE_FLASH_ON_MASK;
 }
+
+uint8_t rom_hw_pmu_get_lp_fail_flag(void)
+{
+    return PMU->LP_FAIL_FLAG;
+}

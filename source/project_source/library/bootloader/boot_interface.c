@@ -85,9 +85,9 @@ void boot_interface_uart_init(void)
 
 uint16_t boot_interface_get_rx_data(uint8_t *pu8Buffer)
 {
-    uint16_t u16RxNum = BOOT_TRX_BUFFER_SIZE;
+    uint16_t u16RxNum = FIRM_UPGRADE_UART_RX_LEN;
 
-    rom_hw_uart_recieve_bytes(BOOT_UART_UPDATE_HANDLE, pu8Buffer, &u16RxNum, 5000);
+    rom_hw_uart_recieve_bytes(BOOT_UART_UPDATE_HANDLE, pu8Buffer, &u16RxNum, 1000);
 
     return u16RxNum;
 }

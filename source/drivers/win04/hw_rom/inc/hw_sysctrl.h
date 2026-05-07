@@ -27,6 +27,10 @@
 #define SYSCTRL_APB1_LP_CLK_MASK        (0x1U << SYSCTRL_APB1_LP_CLK_SHIFT)
 #define SYSCTRL_APB1_LP_CLK_VAL(x)      (((x) << SYSCTRL_APB1_LP_CLK_SHIFT) & SYSCTRL_APB1_LP_CLK_MASK)
 
+#define SYSCTRL_PHY_FFT_CLK_SHIFT       (1U)
+#define SYSCTRL_PHY_FFT_CLK_MASK        (0x1U << SYSCTRL_PHY_FFT_CLK_SHIFT)
+#define SYSCTRL_PHY_FFT_CLK_VAL(x)      (((x) << SYSCTRL_PHY_FFT_CLK_SHIFT) & SYSCTRL_PHY_FFT_CLK_MASK)
+
 #define SYSCTRL_PHY_PMU_LP_CLK_SHIFT    (2U)
 #define SYSCTRL_PHY_PMU_LP_CLK_MASK     (0x1U << SYSCTRL_PHY_PMU_LP_CLK_SHIFT)
 #define SYSCTRL_PHY_PMU_LP_CLK_VAL(x)   (((x) << SYSCTRL_PHY_PMU_LP_CLK_SHIFT) & SYSCTRL_PHY_PMU_LP_CLK_MASK)
@@ -40,6 +44,7 @@ typedef enum
 {
     EN_SYS_CLK_RC50M = 0,
     EN_SYS_CLK_TCXO25M = 1,
+    EN_SYS_CLK_FDB50M = 2,
     EN_SYS_CLK_MAX,
 } EN_SYSCTRL_SYS_CLK_T;
 
@@ -174,6 +179,8 @@ EN_ERR_STA_T rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_PERIPHERAL_T enPer);
  */
 void rom_hw_sysctrl_reset_phy(void);
 
+void rom_hw_sysctrl_reset_rffe(void);
+
 /**
  * @brief 设置低功耗时钟
  *
@@ -198,6 +205,7 @@ EN_ERR_STA_T rom_hw_sysctrl_set_cache_mode(EN_SYSCTRL_CACHE_MODE_T enMode);
 EN_ERR_STA_T rom_hw_cdc_delay(uint32_t u32Delay);
 
 void rom_hw_sysctrl_set_lp_clk(bool xtal);
+void rom_hw_sysctrl_set_phy_fft_clk(bool xtal);
 
 uint8_t rom_hw_sysctrl_get_reset_src(void);
 

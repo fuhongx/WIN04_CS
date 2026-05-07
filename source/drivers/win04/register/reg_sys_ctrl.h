@@ -50,10 +50,14 @@ typedef struct
 //MCLK_CFG
 //------------------------------------------------------------------------------
 //BIT[0]
-#define SYSCTRL_MCLK_CFG_CLK_SRC_SEL_MAKS           (0x1)
+#define SYSCTRL_MCLK_CFG_CLK_SRC_SEL_MAKS           (0x3)
 #define SYSCTRL_MCLK_CFG_CLK_SRC_SEL_SHIFT          (0)
 
 #define SYSCTRL_MCLK_CFG_REG_MASK           (SYSCTRL_MCLK_CFG_CLK_SRC_SEL_MAKS << SYSCTRL_MCLK_CFG_CLK_SRC_SEL_SHIFT)
+
+#define SYSCTRL_MCLK_CFG_XO_RDY_MAKS                (0x1)
+#define SYSCTRL_MCLK_CFG_XO_RDY_SHIFT               (4)
+#define SYSCTRL_MCLK_CFG_XO_RDY_MASK                (SYSCTRL_MCLK_CFG_XO_RDY_MAKS << SYSCTRL_MCLK_CFG_XO_RDY_SHIFT)
 
 //------------------------------------------------------------------------------
 //SYS_CLK_CFG

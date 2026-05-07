@@ -18,13 +18,16 @@
 #include "reg_Dev.h"
 #include "hw_sysctrl.h"
 
-void qmx_hal_sysctrl_system_clock_init(hal_sysctrl_src_e clk_src, hal_sysctrl_div_e clk_div)
+int qmx_hal_sysctrl_system_clock_init(hal_sysctrl_src_e clk_src, hal_sysctrl_div_e clk_div)
 {
     if ((clk_src >= HAL_SYSCLK_MAX) || (clk_div >= HAL_SYSCLK_DIV_MAX))
-        return;
+        return -1;
 
-    rom_hw_sysctrl_system_clock_init((EN_SYSCTRL_SYS_CLK_T)clk_src,
+    int ret = 0;
+    ret = rom_hw_sysctrl_system_clock_init((EN_SYSCTRL_SYS_CLK_T)clk_src,
         (clk_div == HAL_SYSCLK_DIV_NONE) ? EN_SYS_CLK_MCLK_DIV_NONE : (EN_SYSCTRL_SYS_CLK_DIV_T)(clk_div + 7));
+
+    return ret;
 }
 
 void qmx_hal_sysctrl_peripheral_clk_enable(hal_peripheral_clk_e peripheral, bool enable)
@@ -60,9 +63,22 @@ void qmx_hal_sysctrl_set_lp_clk(hal_sysctrl_lp_src_e clk_src)
     rom_hw_sysctrl_set_lp_clk((clk_src == HAL_SYSCLK_LP_XTAL32K) ? true : false);
 }
 
+void qmx_hal_sysctrl_set_phy_fft_clk(hal_sysctrl_phy_fft_clk_e clk_src)
+{
+    if (clk_src >= HAL_SYSCLK_PHY_FFT_MAX)
+        return;
+
+    rom_hw_sysctrl_set_phy_fft_clk((clk_src == HAL_SYSCLK_PHY_FFT_XTAL25M) ? true : false);
+}
+
 void qmx_hal_sysctrl_reset_phy(void)
 {
     rom_hw_sysctrl_reset_phy();
+}
+
+void qmx_hal_sysctrl_reset_rffe(void)
+{
+    rom_hw_sysctrl_reset_rffe();
 }
 
 uint8_t qmx_hal_sysctrl_get_reset_src(void)

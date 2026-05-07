@@ -34,6 +34,7 @@ typedef enum
 {
     HAL_SYSCLK_RC50M = 0,
     HAL_SYSCLK_TCXO25M,
+    HAL_SYSCLK_FDB50M,
 
     HAL_SYSCLK_MAX,
 } hal_sysctrl_src_e;
@@ -45,6 +46,14 @@ typedef enum
 
     HAL_SYSCLK_LP_MAX,
 } hal_sysctrl_lp_src_e;
+
+typedef enum
+{
+    HAL_SYSCLK_PHY_FFT_FDB50M = 0,
+    HAL_SYSCLK_PHY_FFT_XTAL25M,
+
+    HAL_SYSCLK_PHY_FFT_MAX,
+} hal_sysctrl_phy_fft_clk_e;
 
 typedef enum
 {
@@ -105,8 +114,10 @@ typedef enum
  * 
  * @param clk_src 系统时钟源选择，参考 hal_sysctrl_src_e 枚举
  * @param clk_div 系统分频系数，参考 hal_sysctrl_div_e 枚举，最大仅支持64分频
+ 
+ * @retval 0 成功, 其他失败
  */
-void qmx_hal_sysctrl_system_clock_init(hal_sysctrl_src_e clk_src, hal_sysctrl_div_e clk_div);
+int qmx_hal_sysctrl_system_clock_init(hal_sysctrl_src_e clk_src, hal_sysctrl_div_e clk_div);
 
 /**
  * @brief Get system clock, 获取系统时钟

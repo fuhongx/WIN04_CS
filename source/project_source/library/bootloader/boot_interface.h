@@ -28,6 +28,7 @@
 #define BOOT_UART_GPIO_IOMUX_MODE       (EN_GPIO_IOMUX_MODE0)
 
 #define BOOT_TRX_BUFFER_SIZE            (300)
+#define FIRM_UPGRADE_UART_RX_LEN        (4096 + 32)
 
 extern void boot_interface_gpio_init(void);
 extern bool boot_interface_need_down_bin(void);

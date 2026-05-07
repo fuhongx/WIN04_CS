@@ -352,7 +352,6 @@ EN_ERR_STA_T rom_hw_lpio_enable_pull_mode(uint32_t u32Pin, bool bEnable)
     return EN_ERROR_STA_OK;
 }
 
-// 当前仅支持Pin18-19复用
 EN_ERR_STA_T rom_hw_lpio_enable_iomux(uint32_t u32Pin, bool bEnable)
 {
     if (bEnable)
