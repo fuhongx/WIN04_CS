@@ -166,6 +166,7 @@ uint32_t rom_hw_uart_get_cts_sta(stUartHandle_t *pstHandle);
 void rom_hw_uart_flow_control_enable(stUartHandle_t *pstHandle, bool enable);
 EN_ERR_STA_T rom_hw_uart_set_rs485_mode(stUartHandle_t *pstHandle, unRs485Mode_t unMode);
 EN_ERR_STA_T rom_hw_uart_set_rs485_software_data_enable(stUartHandle_t *pstHandle, bool bEnable);
+void rom_hw_uart_rs485_re_enable(stUartHandle_t *pstHandle, bool enable);
 EN_ERR_STA_T rom_hw_uart_set_rs485_data_enable_timing(stUartHandle_t *pstHandle, uint8_t u8AssertionTime, uint8_t u8DeAssertionTime);
 void rom_hw_uart_rs485_enable(stUartHandle_t *pstHandle, bool enable);
 

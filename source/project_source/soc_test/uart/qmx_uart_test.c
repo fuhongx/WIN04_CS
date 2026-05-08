@@ -526,8 +526,6 @@ void qmx_uart_rs485_irq_handler(void)
     qmx_hal_uart_receive_data(QMX_TEST_UART_HANDLE, rx_data, &rx_len, HAL_UART_TIMEOUT_US);
     if (rx_len > 0)
         dump_u8buf("rs485 rx data", rx_data, rx_len);
-    else
-        PRINTF("rs485 rx data len = 0, sta=0x%08X\n", sta);
 }
 
 int qmx_uart_rs485_test(void)
@@ -540,16 +538,16 @@ int qmx_uart_rs485_test(void)
 
     memset((void *)tx_data, 0x5a, sizeof(tx_data));
 
-    config.baudrate = 115200;
+    config.baudrate = 921600;
     config.parity = HAL_UART_PARITY_NONE;
     config.stopbit = HAL_UART_STOPBIT_1;
     config.databits = HAL_UART_DATA_8BIT;
     config.tx_fifo_thld = HAL_UART_TXFIFO_THLD_EMPTY;
     config.rx_fifo_thld = HAL_UART_RXFIFO_THLD_1BYTE;
     config.fifo_en = true;
-    config.flow_ctrl_en = true;
+    config.flow_ctrl_en = false;
 
-    rs485_cfg.mode = HAL_RS485_SW_DE;
+    rs485_cfg.mode = HAL_RS485_HW_DE;
     rs485_cfg.de_polarity = HAL_RS485_DE_HIGH;
     rs485_cfg.de_assertion_time = 0x10;
     rs485_cfg.de_deassertion_time = 0x10;
@@ -570,14 +568,7 @@ int qmx_uart_rs485_test(void)
     PRINTF("UART%u RS485 test start.\n", QMX_TEST_UART_HANDLE);
 
     while (1) {
-        qmx_hal_rs485_manual_set_de(QMX_TEST_UART_HANDLE, true);
         qmx_hal_uart_send_data(QMX_TEST_UART_HANDLE, tx_data, sizeof(tx_data), HAL_UART_TIMEOUT_US);
-        qmx_hal_nop_delay_ms(80);   // 确保fifo数据发完
-        qmx_hal_rs485_manual_set_de(QMX_TEST_UART_HANDLE, false);
-        rx_len = QMX_TEST_RX_MAX_LEN;
-        qmx_hal_uart_receive_data(QMX_TEST_UART_HANDLE, rx_data, &rx_len, HAL_UART_TIMEOUT_US);
-        if (rx_len > 0)
-            dump_u8buf("loop rs485 rx data", rx_data, rx_len);
         qmx_hal_nop_delay_s(5);
     }
 

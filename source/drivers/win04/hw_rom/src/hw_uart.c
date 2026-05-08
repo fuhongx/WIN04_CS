@@ -288,6 +288,14 @@ void rom_hw_uart_rs485_enable(stUartHandle_t *pstHandle, bool enable)
     }
 }
 
+void rom_hw_uart_rs485_re_enable(stUartHandle_t *pstHandle, bool enable)
+{
+    if (enable) {
+        pstHandle->RE_EN |= (UART_RE_EN_MASK << UART_RE_EN_SHIFT);
+    } else {
+        pstHandle->RE_EN &= ~(UART_RE_EN_MASK << UART_RE_EN_SHIFT);
+    }
+}
 
 EN_ERR_STA_T rom_hw_uart_init(stUartHandle_t *pstHandle, stUartInit_t *pstInit)
 {

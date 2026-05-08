@@ -50,6 +50,7 @@ regex_list = (
     "^__stack_limit$",
     "^__initial_sp$",
     "fputc",
+    "memcmp",
     "malloc",
     "free",
     "calloc",

@@ -179,6 +179,7 @@ void qmx_hal_rs485_config(hal_uart_id_e uart, hal_rs485_cfg_t *config)
     rom_hw_uart_set_rs485_data_enable_timing(uartHandle, config->de_assertion_time, config->de_deassertion_time);
 
     rom_hw_uart_set_rs485_software_data_enable(uartHandle, true);
+    rom_hw_uart_rs485_re_enable(uartHandle, true);
 }
 
 void qmx_hal_rs485_manual_set_de(hal_uart_id_e uart, bool enable)

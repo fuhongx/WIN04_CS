@@ -37,7 +37,7 @@ typedef struct
     __IOM uint32_t  DMA_SW_ACK;                 // 0xA8
     __IOM uint32_t  RSTX_CTRL;                    // 0xAC
     __IOM uint32_t  SW_DE_ENABLE;               // 0xB0
-    __IOM uint32_t  RES3[1];                    // 0xB4
+    __IOM uint32_t  RE_EN;                      // 0xB4
     __IOM uint32_t  DE_TIMING_CFG;              // 0xB8
     __IOM uint32_t  RES4[1];                    // 0xBC
     __IOM uint32_t  CLK_DIV_FRACTION;           // 0xC0
@@ -331,6 +331,12 @@ typedef struct
 //0xB0 SW_DE_ENABLE
 //------------------------------------------------------------------------------
 #define UART_SW_DE_ENABLE_REG_MASK          (0x1)
+
+//------------------------------------------------------------------------------
+//0xB4 RE_ENABLE
+//------------------------------------------------------------------------------
+#define UART_RE_EN_MASK      (0x1)
+#define UART_RE_EN_SHIFT     (0)
 
 //------------------------------------------------------------------------------
 //0xB8 DE_TIMING_CFG
