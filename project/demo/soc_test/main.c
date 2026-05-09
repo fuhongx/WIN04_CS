@@ -39,7 +39,6 @@ void qmx_debug_uart_irq_handler(void)
 void qmx_platform_init(void)
 {
     qmx_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
-    qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_GPIO);   // 复位boot内的PIN8管脚配置
 
 #ifndef QMX_FPGA
     // TODO: MPW规避standby起来后RF未复位的异常，待CS优化后删除
@@ -62,7 +61,7 @@ void qmx_platform_init(void)
     }
 #endif
     // 校准结束切换回RC50M，需重新进行UART初始化
-    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
+    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_FDB50M, HAL_SYSCLK_DIV_NONE);
 
 #if APP_DEBUG_ENABLED
     debug_printf_init();

@@ -14,8 +14,6 @@
 #ifndef __REG_SPI_H__
 #define __REG_SPI_H__
 
-
-
 typedef struct
 {
     __IOM uint32_t SPI_TCR;         // 0x00

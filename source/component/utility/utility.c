@@ -19,15 +19,6 @@
 #include "utility.h"
 #include "hw_sysctrl.h"
 
-void rom_utility_delay_cycles(uint32_t u32TimeUs)
-{
-    volatile uint32_t i = u32TimeUs;
-    while (i--)
-    {
-        __ASM volatile("nop");
-    }
-}
-
 void rom_utility_delay_us(uint32_t u32TimeUs)
 {
     uint32_t u32Cycles;
