@@ -26,6 +26,7 @@
 
 stFlashSelfCali_t gstCaliInfo;
 fw_security_info_t g_security_info = {0};
+chip_cap_t g_chip_cap = {0};
 
 void boot_load_code(uint32_t u32FlashAddr, uint32_t u32LoadLen, uint32_t u32LoadAddr)
 {
@@ -103,11 +104,6 @@ void boot_check_header(void)
         
         boot2_header_t *pstBoot2Ver = (boot2_header_t *)au32ReadBuffer;
 
-        // 安全等级0不校验，直接执行，适用于开发调试阶段
-        if (g_security_info.sta.safe_level == FW_SAFE_LEVEL0) {
-            return;
-        }
-
         uint32_t u32HeaderCrcValue = rom_hw_crc_get_crc32_value((uint8_t *)&au32ReadBuffer[0], BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
 
         if(u32HeaderCrcValue != pstBoot2Ver->u32Boot2HeaderCrc) {
@@ -119,6 +115,33 @@ void boot_check_header(void)
             bPassFlag = true;
         }
     }
+}
+
+void boot_set_chip_capability(void)
+{
+    uint32_t chip_cap_val = 0;
+    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM1, 0, (uint8_t *)&g_chip_cap, sizeof(g_chip_cap));
+    dump_u8buf("g_chip_cap", (uint8_t *)&g_chip_cap, sizeof(g_chip_cap));
+
+    g_chip_cap.tof_rang_limit_en = (g_chip_cap.tof_rang_limit_en & 0x1);
+    g_chip_cap.cad_limit_en = (g_chip_cap.cad_limit_en & 0x1);
+    g_chip_cap.buf_limit_en = (g_chip_cap.buf_limit_en & 0x1);
+    g_chip_cap.sfbw_limit_en = (g_chip_cap.sfbw_limit_en & 0x1);
+    g_chip_cap.buf_limit_val = (g_chip_cap.buf_limit_val < 0x1) ? 0x1 : g_chip_cap.buf_limit_val;
+    g_chip_cap.buf_limit_val = (g_chip_cap.buf_limit_val > 0x180) ? 0x180 : g_chip_cap.buf_limit_val;
+    g_chip_cap.bw_high_limit_val = (g_chip_cap.bw_high_limit_val > 0x6) ? 0x0 : g_chip_cap.bw_high_limit_val;
+    g_chip_cap.bw_low_limit_val = (g_chip_cap.bw_low_limit_val > 0x6) ? 0x6 : g_chip_cap.bw_low_limit_val;
+    g_chip_cap.sf_high_limit_val = (g_chip_cap.sf_high_limit_val < 0x5) ? 0x5 : g_chip_cap.sf_high_limit_val;
+    g_chip_cap.sf_high_limit_val = (g_chip_cap.sf_high_limit_val > 0xC) ? 0xC : g_chip_cap.sf_high_limit_val;
+    g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val < 0x5) ? 0x5 : g_chip_cap.sf_low_limit_val;
+    g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val > 0xC) ? 0x5 : g_chip_cap.sf_low_limit_val;
+    chip_cap_val = ((g_chip_cap.tof_rang_limit_en << 29) | (g_chip_cap.cad_limit_en << 28) |
+                    (g_chip_cap.buf_limit_en << 27) | (g_chip_cap.sfbw_limit_en << 26) |
+                    (g_chip_cap.buf_limit_val << 16) | (g_chip_cap.bw_high_limit_val << 12) |
+                    (g_chip_cap.bw_low_limit_val << 8) | (g_chip_cap.sf_high_limit_val << 4) |
+                    (g_chip_cap.sf_low_limit_val << 0));
+
+    write32(ADDR_SYS_CTRL_BASE + 0x5C, chip_cap_val);
 }
 
 uint8_t rom_get_safe_level(void)
@@ -331,6 +354,8 @@ void boot_selection(void)
     boot_interface_gpio_init();
 
     bool bBootSel = boot_interface_need_down_bin();
+
+    boot_set_chip_capability();
 
     if(bBootSel) {
         boot_interface_uart_init();

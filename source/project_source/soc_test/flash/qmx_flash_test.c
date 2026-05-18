@@ -13,6 +13,7 @@
 #include "utility.h"
 #include "qmx_flash_test.h"
 #include "qmx_hal_rng.h"
+#include "qmx_hal_delay.h"
 
 int qmx_flash_read_id_test(void)
 {
@@ -210,20 +211,23 @@ __RAM_FUNC int qmx_flash_security_register_test(void)
         return -1;
     }
 
-    rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM1, FLASH_ERASE_SECURITY_MEM_KEY);
-    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM1, 0, buffer, erase_len);
+    rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM2, FLASH_ERASE_SECURITY_MEM_KEY);
+    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM2, 0, buffer, erase_len);
     for (i = 0; i < erase_len; i++) {
         if (buffer[i] != 0xFF) {
-            PRINTF("EN_FLASH_SEC_MEM1 0x%X value: 0x%X is not oxFF after erase!\n", i, buffer[i]);
+            PRINTF("EN_FLASH_SEC_MEM2 0x%X value: 0x%X is not oxFF after erase!\n", i, buffer[i]);
+            dump_u8buf("EN_FLASH_SEC_MEM2", buffer, erase_len);
             return -1;
         }
     }
 
-    rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM1, 0, write_data, erase_len);
-    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM1, 0, buffer, erase_len);
+    rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM2, 0, write_data, erase_len);
+    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM2, 0, buffer, erase_len);
     for (i = 0; i < erase_len; i++) {
         if (buffer[i] != write_data[i]) {
-            PRINTF("EN_FLASH_SEC_MEM1 0x%X value: 0x%X is not equal to write data 0x%X!\n", i, buffer[i], write_data[i]);
+            PRINTF("EN_FLASH_SEC_MEM2 0x%X value: 0x%X is not equal to write data 0x%X!\n", i, buffer[i], write_data[i]);
+            dump_u8buf("EN_FLASH_SEC_MEM2", buffer, erase_len);
+            dump_u8buf("write_data", write_data, erase_len);
             return -1;
         }
     }

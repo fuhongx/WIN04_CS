@@ -327,7 +327,7 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_mode_bits(uint8_t u8ModeBits);
  *                    16 = 65535Bytes
  * @return EN_ERR_STA_T
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize);
+// EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize);
 
 /**
  * @brief Defines the block number of the address range to be protected.
@@ -336,7 +336,7 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize);
  * @param u32HiIdx High Area block number
  * @return EN_ERR_STA_T 
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowIdx, uint32_t u32HiIdx);
+// EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowIdx, uint32_t u32HiIdx);
 
 /**
  * @brief Enable write protection
@@ -345,7 +345,7 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowI
  *                False: disable write protection.
  * @return EN_ERR_STA_T 
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable);
+// EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable);
 
 /**
  * @brief Enable write protection reverse.
@@ -359,7 +359,7 @@ EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable);
  *               This bit is modified only if the write protection function (by the first bit of the write protection register) is 0.
  * @return EN_ERR_STA_T 
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_enbale_write_protection_reverse(bool bReverse);
+// EN_ERR_STA_T rom_hw_flash_ctrl_enbale_write_protection_reverse(bool bReverse);
 
 /**
  * @brief Send commands to Flash through QSPI.

@@ -40,7 +40,7 @@ int qmx_test_check_frame(void)
 void qmx_test_uart_irq_handler(void)
 {
     uint32_t sta = 0;
-    uint16_t rx_len = 0;
+    uint16_t rx_len = QMX_TEST_RX_MAX_LEN;
     sta = qmx_hal_uart_get_irq_status(QMX_TEST_UART_HANDLE);
 
     if (sta & (HAL_UART_STA_RX_READY | HAL_UART_STA_RX_NOT_EMPTY)) {
@@ -61,6 +61,7 @@ void qmx_test_uart_irq_handler(void)
 
     // clear irq status
     qmx_hal_uart_clear_irq_status(QMX_TEST_UART_HANDLE, sta);
+    // PRINTF("uart irq, status: 0x%08X\r\n", sta);
 }
 
 void qmx_test_common_init(void)

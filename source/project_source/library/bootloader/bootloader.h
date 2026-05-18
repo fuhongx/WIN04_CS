@@ -73,6 +73,20 @@ typedef struct
     fw_security_key_t key;      // security key, read write, 192 bytes
 } fw_security_info_t;
 
+typedef struct
+{
+    bool tof_rang_limit_en;
+    bool cad_limit_en;
+    bool buf_limit_en;
+    bool sfbw_limit_en;
+    uint8_t resv[28];
+    uint32_t buf_limit_val;
+    uint16_t bw_high_limit_val;
+    uint16_t bw_low_limit_val;
+    uint16_t sf_high_limit_val;
+    uint16_t sf_low_limit_val;
+} chip_cap_t;
+
 void boot_identify_from_rst(void);
 void boot_identify_from_lowpower(void);
 void boot_set_flash_enc_by_security_info(void);

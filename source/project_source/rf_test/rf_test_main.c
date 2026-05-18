@@ -244,7 +244,7 @@ void rf_test_main(void)
             {
                 if (rx_data == 0xF9)
                 {
-                    uint16_t u16RxLen = 0;
+                    uint16_t u16RxLen = 16;
                     rf_test_uart_get_data(au8RxBuffer, &u16RxLen);
                     for (int i = 0; i < u16RxLen; i++)
                     {

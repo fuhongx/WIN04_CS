@@ -49,7 +49,7 @@ int qmx_check_frame(void)
 void qmx_autotest_uart_irq_handler(void)
 {
     uint32_t sta __MAYBE_UNUSED = 0;
-    uint16_t rx_len = 0;
+    uint16_t rx_len = QMX_AUTOTEST_RX_MAX_LEN;
     sta = qmx_hal_uart_get_irq_status(QMX_AUTOTEST_UART_HANDLE);
 
     qmx_hal_uart_receive_data(QMX_AUTOTEST_UART_HANDLE, (uint8_t *)g_autotest_rx_data, (uint32_t *)&rx_len, HAL_UART_TIMEOUT_US);

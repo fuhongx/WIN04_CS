@@ -32,19 +32,24 @@ stSpiHandle_t *qmx_hal_spi_get_handle(hal_spi_id_e spi_id)
     }
 }
 
-static EN_SPI_CLK_POLARITY_PHASE_T qmx_hal_spi_get_clock_polarity_phase(hal_spi_polarity_phase_e polarity_phase)
+static void qmx_hal_spi_set_clock_polarity_phase(stSpiHandle_t *spi, hal_spi_polarity_phase_e polarity_phase)
 {
     switch (polarity_phase) {
         case HAL_SPI_CPOL0_CPHA0:
-            return EN_SPI_CLK_CPOL0_CPHA0;
+            rom_hw_spi_set_clock_polarity_phase(spi, false, false);
+            break;
         case HAL_SPI_CPOL0_CPHA1:
-            return EN_SPI_CLK_CPOL0_CPHA1;
+            rom_hw_spi_set_clock_polarity_phase(spi, false, true);
+            break;
         case HAL_SPI_CPOL1_CPHA0:
-            return EN_SPI_CLK_CPOL1_CPHA0;
+            rom_hw_spi_set_clock_polarity_phase(spi, true, false);
+            break;
         case HAL_SPI_CPOL1_CPHA1:
-            return EN_SPI_CLK_CPOL1_CPHA1;
+            rom_hw_spi_set_clock_polarity_phase(spi, true, true);
+            break;
         default:
-            return EN_SPI_CLK_CPOL0_CPHA0;
+            rom_hw_spi_set_clock_polarity_phase(spi, false, false);
+            break;
     }
 }
 
@@ -59,23 +64,33 @@ void qmx_hal_spi_init(hal_spi_id_e id, hal_spi_cfg_t *spi_cfg)
     {
         return;
     }
+    if ((spi_cfg->tx_fifo_pfull_th >= TX_FIFO_DEPTH) || (spi_cfg->tx_fifo_pempty_th >= TX_FIFO_DEPTH) ||
+        (spi_cfg->rx_fifo_pfull_th >= RX_FIFO_DEPTH) || (spi_cfg->rx_fifo_pempty_th >= RX_FIFO_DEPTH) ||
+        (spi_cfg->tx_fifo_pempty_th == 0) || (spi_cfg->rx_fifo_pempty_th == 0) ||
+        (spi_cfg->tx_fifo_pfull_th == 0) || (spi_cfg->rx_fifo_pfull_th == 0)) {
+        return;
+    }
+    if ((spi_cfg->cs_holding_time < 0x4) || (spi_cfg->cs_gap_time < 0x4)) {
+        return;
+    }
 
     spi_init.stSpiInit.ClkDiv = spi_cfg->clk_div;
     spi_init.stSpiInit.MasterMode = spi_cfg->mode;
     spi_init.stSpiInit.ClkAdjustEn = spi_cfg->clk_adjust_en;
     spi_init.stSpiInit.DataMode = spi_cfg->data_mode;
-    spi_init.stSpiInit.DataLen = spi_cfg->data_len;
     spi_init.stSpiInit.TxDmaEn = true;
     spi_init.stSpiInit.RxDmaEn = true;
     spi_init.stSpiInit.SwCsEn = spi_cfg->sw_cs_en;
-    spi_init.stSpiInit.AntiNoiseLevel = spi_cfg->anti_noise_level;
-    spi_init.stSpiInit.TxEmptyCheck = true;
-    spi_init.stSpiInit.TxDmaTiming = EN_SPI_DMA_TX_TIMING_FIRST_BIT;
+    spi_init.stSpiInit.snoise_mode = spi_cfg->anti_noise_level;
+    spi_init.stSpiInit.snoise_en = true;
+    spi_init.stSpiInit.cpol = false;
+    spi_init.stSpiInit.cpha = false;
 
     rom_hw_spi_init(spi, spi_init);
-    rom_hw_spi_enable_anti_noise(spi, true);
-    rom_hw_spi_set_clock_polarity_phase(spi, qmx_hal_spi_get_clock_polarity_phase(spi_cfg->polarity_phase));
-    rom_hw_spi_set_cs_min_holding_time(spi, spi_cfg->cs_holding_time);
+    qmx_hal_spi_set_clock_polarity_phase(spi, spi_cfg->polarity_phase);
+    rom_hw_spi_set_hold_gap_time(spi, spi_cfg->cs_holding_time, spi_cfg->cs_gap_time);
+    rom_hw_spi_set_fifo_threshold(spi, spi_cfg->tx_fifo_pempty_th, spi_cfg->rx_fifo_pempty_th,
+        spi_cfg->tx_fifo_pfull_th, spi_cfg->rx_fifo_pfull_th);
 }
 
 void qmx_hal_spi_deinit(hal_spi_id_e id)
@@ -161,8 +176,18 @@ uint32_t qmx_hal_spi_get_cur_sta(hal_spi_id_e id)
         return 0;
     }
 
-    rom_hw_spi_get_status(spi, (uint8_t *)&status);
+    rom_hw_spi_get_status(spi, &status);
     return status;
+}
+
+void qmx_hal_spi_set_irq_mask(hal_spi_id_e id, uint32_t irq_mask)
+{
+    stSpiHandle_t *spi = qmx_hal_spi_get_handle(id);
+    if (spi == NULL) {
+        return;
+    }
+
+    rom_hw_spi_set_interrupt_mask(spi, irq_mask);
 }
 
 void qmx_hal_spi_irq_enable(hal_spi_id_e id, uint32_t irq_mask)
@@ -173,7 +198,6 @@ void qmx_hal_spi_irq_enable(hal_spi_id_e id, uint32_t irq_mask)
     }
 
     rom_hw_spi_enable_interrupt(spi, irq_mask, true);
-    rom_hw_spi_set_interrupt_mask(spi, 0);
 }
 
 void qmx_hal_spi_irq_disable(hal_spi_id_e id, uint32_t irq_mask)
@@ -195,7 +219,7 @@ uint32_t qmx_hal_spi_get_irq_sta(hal_spi_id_e id)
         return 0;
     }
 
-    rom_hw_spi_get_interrupt_flag(spi, (uint8_t *)&status);
+    rom_hw_spi_get_interrupt_flag(spi, &status);
     return status;
 }
 
@@ -217,17 +241,10 @@ static uint8_t g_spi_dma_rxch[HAL_SPI_MAX] __RETENTION_DATA = {0};
 void qmx_hal_spi_dma_config(hal_spi_id_e id, hal_spi_dma_cfg_t *spi_dma_init)
 {
     hal_dma_init_t dma_config;
-    uint32_t data_len = 0;
     stSpiHandle_t *spi = qmx_hal_spi_get_handle(id);
     if (spi == NULL) {
         return;
     }
-
-    data_len = (spi->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-
-    rom_hw_spi_dma_mode(spi, (EN_SPI_DMA_TX_TIMING_T)spi_dma_init->tx_req_mode);
-
-    rom_hw_spi_set_dma_timeout(spi, spi_dma_init->spi_timeout);
 
     if (spi_dma_init->trx_dir == 0) {
         g_spi_dma_txch[id] = spi_dma_init->dma_ch;
@@ -241,25 +258,8 @@ void qmx_hal_spi_dma_config(hal_spi_id_e id, hal_spi_dma_cfg_t *spi_dma_init)
         dma_config.dst_addr_rise = true;
     }
 
-    switch (data_len) {
-        case HAL_SPI_DATA_LEN_8BIT:
-            dma_config.src_width = HAL_DMA_WIDTH_BYTE;
-            dma_config.dst_width = HAL_DMA_WIDTH_BYTE;
-            break;
-
-        case HAL_SPI_DATA_LEN_16BIT:
-            dma_config.src_width = HAL_DMA_WIDTH_HALFWORD;
-            dma_config.dst_width = HAL_DMA_WIDTH_HALFWORD;
-            break;
-
-        case HAL_SPI_DATA_LEN_32BIT:
-            dma_config.src_width = HAL_DMA_WIDTH_WORD;
-            dma_config.dst_width = HAL_DMA_WIDTH_WORD;
-            break;
-
-        default:
-            break;
-    }
+    dma_config.src_width = HAL_DMA_WIDTH_BYTE;
+    dma_config.dst_width = HAL_DMA_WIDTH_BYTE;
 
     dma_config.src_addr = 0;
     dma_config.dst_addr = 0;
@@ -276,18 +276,15 @@ void qmx_hal_spi_dma_config(hal_spi_id_e id, hal_spi_dma_cfg_t *spi_dma_init)
 int qmx_hal_spi_dma_send(hal_spi_id_e id, void *data, uint32_t len)
 {
     hal_dma_cfg_t dma_cfg;
-    uint32_t data_len = 0;
     stSpiHandle_t *spi = qmx_hal_spi_get_handle(id);
     if (spi == NULL) {
         return -1;
     }
 
-    data_len = (spi->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-
     dma_cfg.src_addr = (uint32_t)data;
     dma_cfg.dst_addr = (uint32_t)&(spi->SPI_THR);
-    dma_cfg.single_pkg_size = 1 << data_len;
-    dma_cfg.muli_trigger_num = len >> data_len;
+    dma_cfg.single_pkg_size = 1;
+    dma_cfg.muli_trigger_num = len;
     dma_cfg.src_addr_rise = true;
     dma_cfg.dst_addr_rise = false;
 
@@ -300,18 +297,15 @@ int qmx_hal_spi_dma_send(hal_spi_id_e id, void *data, uint32_t len)
 int qmx_hal_spi_dma_recv(hal_spi_id_e id, void *data, uint32_t len)
 {
     hal_dma_cfg_t dma_cfg;
-    uint32_t data_len = 0;
     stSpiHandle_t *spi = qmx_hal_spi_get_handle(id);
     if (spi == NULL) {
         return -1;
     }
 
-    data_len = (spi->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-
     dma_cfg.src_addr = (uint32_t)&(spi->SPI_RBR);
     dma_cfg.dst_addr = (uint32_t)data;
-    dma_cfg.single_pkg_size = 1 << data_len;
-    dma_cfg.muli_trigger_num = len >> data_len;
+    dma_cfg.single_pkg_size = 1;
+    dma_cfg.muli_trigger_num = len;
     dma_cfg.src_addr_rise = false;
     dma_cfg.dst_addr_rise = true;
 

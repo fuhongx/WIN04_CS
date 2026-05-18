@@ -23,13 +23,28 @@
 #include "utility.h"
 #include "hw_spi.h"
 
-#define SPI_TRANSMIT_TIMEOUT_US         (3000)
-
 #define SPI_HANDLE_INVALID_RETURN(pstHandle)    \
     if(NULL == pstHandle)   \
     {                       \
         return EN_ERROR_STA_INVALID;    \
     }                       \
+
+#define SPI_GET_TX_FIFO_CNT(status)     (((status) >> SPI_TSR_TX_FIFO_CNT_SHIFT) & SPI_TSR_TX_FIFO_CNT_MASK)
+#define SPI_GET_RX_FIFO_CNT(status)     (((status) >> SPI_TSR_RX_FIFO_CNT_SHIFT) & SPI_TSR_RX_FIFO_CNT_MASK)
+
+static void rom_hw_spi_flush_rx_fifo(stSpiHandle_t *pstHandle)
+{
+    uint32_t i = 0;
+    uint32_t rx_cnt = SPI_GET_RX_FIFO_CNT(pstHandle->SPI_TSR);
+
+    if(rx_cnt > RX_FIFO_DEPTH) {
+        rx_cnt = RX_FIFO_DEPTH;
+    }
+
+    for(i = 0; i < rx_cnt; i++) {
+        (void)pstHandle->SPI_RBR;
+    }
+}
 
 EN_ERR_STA_T rom_hw_spi_init(stSpiHandle_t *pstHandle, unSpiInit_t unInit)
 {
@@ -40,24 +55,14 @@ EN_ERR_STA_T rom_hw_spi_init(stSpiHandle_t *pstHandle, unSpiInit_t unInit)
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_get_status(stSpiHandle_t *pstHandle, uint8_t *pu8Flag)
+EN_ERR_STA_T rom_hw_spi_get_status(stSpiHandle_t *pstHandle, uint32_t *pu32Flag)
 {
-    if((NULL == pstHandle) | (NULL == pu8Flag))
+    if((NULL == pstHandle) | (NULL == pu32Flag))
     {
         return EN_ERROR_STA_INVALID;
     }
 
-    *pu8Flag = pstHandle->SPI_TSR & SPI_TSR_REG_MASK;
-
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_spi_clear_status(stSpiHandle_t *pstHandle, uint8_t u8Flag)
-{
-    SPI_HANDLE_INVALID_RETURN(pstHandle);
-
-    uint8_t u8Cfg = pstHandle->SPI_TSR & SPI_TSR_REG_MASK;
-    pstHandle->SPI_TSR = u8Cfg & u8Flag;
+    *pu32Flag = pstHandle->SPI_TSR;
 
     return EN_ERROR_STA_OK;
 }
@@ -79,66 +84,79 @@ EN_ERR_STA_T rom_hw_spi_master_transmit_receive(stSpiHandle_t *pstHandle, void *
 
     uint32_t cost_us = 0;
     uint32_t i = 0;
-    uint32_t data_len = (pstHandle->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-    uint32_t cnt = (len + (1 << data_len) - 1) / (1 << data_len);   // 不足位宽的向上取整
+    uint32_t tx_index = 0;
+    uint32_t rx_index = 0;
+    uint32_t req = len;
+    uint32_t rx_pending = 0;
+    uint32_t tx_once = 0;
+    uint32_t rx_once = 0;
+    uint32_t tx_free = 0;
+    uint32_t rx_free = 0;
+    uint32_t status = 0;
+    bool progressed = false;
 
-    cost_us = pstHandle->SPI_RBR;   // 清除初始的RX_NEW_DATA状态，避免第一次读空
-    cost_us = 0;
+    rom_hw_spi_flush_rx_fifo(pstHandle);
 
-    for (i = 0; i < cnt; i++) {
-        while(!(pstHandle->SPI_TSR & EN_SPI_STA_TX_BUFFER_EMPTY)) {
+    do {
+        progressed = false;
+
+        if (rx_pending > 0) {
+            rx_once = SPI_GET_RX_FIFO_CNT(pstHandle->SPI_TSR);
+            if(rx_once > RX_FIFO_DEPTH) {
+                rx_once = RX_FIFO_DEPTH;
+            }
+            rx_once = (rx_once > rx_pending) ? rx_pending : rx_once;
+            for (i = 0; i < rx_once; i++) {
+                uint32_t rx_data = pstHandle->SPI_RBR & SPI_RBR_REG_MASK;
+                if(rx_buf != NULL) {
+                    ((uint8_t *)rx_buf)[rx_index++] = (uint8_t)rx_data;
+                }
+            }
+            rx_pending -= rx_once;
+            progressed = (rx_once > 0);
+        }
+
+        if (req > 0) {
+            status = pstHandle->SPI_TSR;
+            tx_free = SPI_GET_TX_FIFO_CNT(status);
+            tx_free = (tx_free < TX_FIFO_DEPTH) ? (TX_FIFO_DEPTH - tx_free) : 0;
+            rx_free = SPI_GET_RX_FIFO_CNT(status);
+            rx_free = (rx_free < RX_FIFO_DEPTH) ? (RX_FIFO_DEPTH - rx_free) : 0;
+
+            tx_once = (tx_free > rx_free) ? rx_free : tx_free;
+            tx_once = (tx_once > req) ? req : tx_once;
+
+            for (i = 0; i < tx_once; i++) {
+                pstHandle->SPI_THR = (tx_buf != NULL) ? ((uint8_t *)tx_buf)[tx_index++] : 0;
+            }
+
+            req -= tx_once;
+            rx_pending += tx_once;
+            progressed = progressed || (tx_once > 0);
+        }
+
+        if (!progressed) {
             rom_utility_delay_us(1);
             cost_us += 1;
             if(cost_us >= timeout_us)
                 return EN_ERROR_STA_TIMEOUT;
-        }
-
-        switch (data_len) {
-            case EN_SPI_DATA_LEN_8BIT:
-                pstHandle->SPI_THR = (tx_buf != NULL) ? ((uint8_t *)tx_buf)[i] : 0;
-                break;
-
-            case EN_SPI_DATA_LEN_16BIT:
-                pstHandle->SPI_THR = (tx_buf != NULL) ? ((uint16_t *)tx_buf)[i] : 0;
-                break;
-
-            case EN_SPI_DATA_LEN_32BIT:
-                pstHandle->SPI_THR = (tx_buf != NULL) ? ((uint32_t *)tx_buf)[i] : 0;
-                break;
-
-            default:
-                break;
-        }
-
-        cost_us = 0;
-
-        if (rx_buf != NULL) {
-            while(!(pstHandle->SPI_TSR & EN_SPI_STA_RX_NEW_DATA)) {
-                rom_utility_delay_us(1);
-                cost_us += 1;
-                if(cost_us >= timeout_us)
-                    return EN_ERROR_STA_TIMEOUT;
-            }
-
-            switch (data_len) {
-                case EN_SPI_DATA_LEN_8BIT:
-                    ((uint8_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                    break;
-
-                case EN_SPI_DATA_LEN_16BIT:
-                    ((uint16_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                    break;
-
-                case EN_SPI_DATA_LEN_32BIT:
-                    ((uint32_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                    break;
-
-                default:
-                    break;
-            }
+        } else {
             cost_us = 0;
         }
-    }
+    } while ((req > 0) || (rx_pending > 0));
+
+    cost_us = 0;
+    do {
+        status = pstHandle->SPI_TSR;
+        if((status & (SPI_TSR_TX_FIFO_EMPTY_MASK << SPI_TSR_TX_FIFO_EMPTY_SHIFT)) &&
+           ((status & (SPI_TSR_SPI_BUSY_MASK << SPI_TSR_SPI_BUSY_SHIFT)) == 0)) {
+            break;
+        }
+        rom_utility_delay_us(1);
+        cost_us += 1;
+        if(cost_us >= timeout_us)
+            return EN_ERROR_STA_TIMEOUT;
+    } while (1);
 
     return EN_ERROR_STA_OK;
 }
@@ -150,198 +168,177 @@ EN_ERR_STA_T rom_hw_spi_slave_transmit(stSpiHandle_t *pstHandle, void *tx_buf, u
     }
 
     uint32_t cost_us = 0;
-    uint32_t temp = 0;
     uint32_t i = 0;
-    uint32_t data_len = (pstHandle->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-    uint32_t cnt = (len + (1 << data_len) - 1) / (1 << data_len);   // 不足位宽的向上取整
+    uint32_t index = 0;
+    uint32_t left = len;
+    uint32_t req = len;
+    uint32_t tx_once = 0;
+    uint32_t rx_once = 0;
+    uint32_t tx_free = 0;
+    uint32_t rx_free = 0;
+    uint32_t status = 0;
+    bool progressed = false;
 
-    for (i = 0; i < cnt; i++) {
-        while(!(pstHandle->SPI_TSR & EN_SPI_STA_TX_BUFFER_EMPTY)) {
+    rom_hw_spi_flush_rx_fifo(pstHandle);
+
+    do {
+        progressed = false;
+
+        if (left > 0) {
+            rx_once = SPI_GET_RX_FIFO_CNT(pstHandle->SPI_TSR);
+            if(rx_once > RX_FIFO_DEPTH) {
+                rx_once = RX_FIFO_DEPTH;
+            }
+            rx_once = (rx_once > left) ? left : rx_once;
+            for (i = 0; i < rx_once; i++) {
+                (void)pstHandle->SPI_RBR;
+            }
+            left -= rx_once;
+            progressed = (rx_once > 0);
+        }
+
+        if (req > 0) {
+            status = pstHandle->SPI_TSR;
+            tx_free = SPI_GET_TX_FIFO_CNT(status);
+            tx_free = (tx_free < TX_FIFO_DEPTH) ? (TX_FIFO_DEPTH - tx_free) : 0;
+            rx_free = SPI_GET_RX_FIFO_CNT(status);
+            rx_free = (rx_free < RX_FIFO_DEPTH) ? (RX_FIFO_DEPTH - rx_free) : 0;
+
+            tx_once = (tx_free > rx_free) ? rx_free : tx_free;
+            tx_once = (tx_once > req) ? req : tx_once;
+
+            for (i = 0; i < tx_once; i++) {
+                pstHandle->SPI_THR = ((uint8_t *)tx_buf)[index++];
+            }
+
+            req -= tx_once;
+            progressed = progressed || (tx_once > 0);
+        }
+
+        if (!progressed) {
             rom_utility_delay_us(1);
             cost_us += 1;
             if(cost_us >= timeout_us)
                 return EN_ERROR_STA_TIMEOUT;
+        } else {
+            cost_us = 0;
         }
-
-        switch (data_len) {
-            case EN_SPI_DATA_LEN_8BIT:
-                pstHandle->SPI_THR = ((uint8_t *)tx_buf)[i];
-                break;
-
-            case EN_SPI_DATA_LEN_16BIT:
-                pstHandle->SPI_THR = ((uint16_t *)tx_buf)[i];
-                break;
-
-            case EN_SPI_DATA_LEN_32BIT:
-                pstHandle->SPI_THR = ((uint32_t *)tx_buf)[i];
-                break;
-
-            default:
-                break;
-        }
-
-        cost_us = 0;
-
-        while(!(pstHandle->SPI_TSR & EN_SPI_STA_RX_NEW_DATA)) {
-            // 此处不用us接口，us太久，可能导致时序错乱，误清状态
-            rom_utility_delay_cycles(10);
-            cost_us += 1;
-            if(cost_us >= timeout_us)
-                break;
-        }
-
-        temp = pstHandle->SPI_RBR;   // 读取RBR寄存器以清除RX_NEW_DATA状态，避免下一轮循环读空
-
-        cost_us = 0;
-    }
+    } while ((req > 0) || (left > 0));
 
     return EN_ERROR_STA_OK;
 }
 
 EN_ERR_STA_T rom_hw_spi_slave_receive(stSpiHandle_t *pstHandle, void *rx_buf, uint32_t *len, uint32_t timeout_us)
 {
-    if((pstHandle == NULL) || (rx_buf == NULL) || (*len == 0)) {
+    if((pstHandle == NULL) || (rx_buf == NULL) || (len == NULL) || (*len == 0)) {
         return EN_ERROR_STA_INVALID;
     }
 
     uint32_t max_len = *len;
     uint32_t cost_us = 0;
     uint32_t i = 0;
-    uint32_t data_len = (pstHandle->SPI_TCR >> SPI_TCR_SPI_DATA_LEN_SHIFT) & SPI_TCR_SPI_DATA_LEN_MASK;
-    uint32_t cnt = (max_len + (1 << data_len) - 1) / (1 << data_len);   // 不足位宽的向上取整
+    uint32_t rx_index = 0;
+    uint32_t rx_once = 0;
+    uint32_t left = max_len;
 
     *len = 0;
 
-    for (i = 0; i < cnt; i++) {
-        while(!(pstHandle->SPI_TSR & EN_SPI_STA_RX_NEW_DATA)) {
+    while (left > 0) {
+        rx_once = SPI_GET_RX_FIFO_CNT(pstHandle->SPI_TSR);
+        if(rx_once > RX_FIFO_DEPTH) {
+            rx_once = RX_FIFO_DEPTH;
+        }
+        rx_once = (rx_once > left) ? left : rx_once;
+
+        if (rx_once > 0) {
+            for (i = 0; i < rx_once; i++) {
+                ((uint8_t *)rx_buf)[rx_index++] = pstHandle->SPI_RBR & SPI_RBR_REG_MASK;
+            }
+            left -= rx_once;
+            *len += rx_once;
+            cost_us = 0;
+        } else {
             rom_utility_delay_us(1);
             cost_us += 1;
             if(cost_us >= timeout_us)
                 return EN_ERROR_STA_TIMEOUT;
         }
-
-        switch (data_len) {
-            case EN_SPI_DATA_LEN_8BIT:
-                ((uint8_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                *len += 1;
-                break;
-
-            case EN_SPI_DATA_LEN_16BIT:
-                ((uint16_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                *len += 2;
-                break;
-
-            case EN_SPI_DATA_LEN_32BIT:
-                ((uint32_t *)rx_buf)[i] = pstHandle->SPI_RBR;
-                *len += 4;
-                break;
-
-            default:
-                break;
-        }
-
-        cost_us = 0;
     }
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_set_interrupt_mask(stSpiHandle_t *pstHandle, uint8_t u8Mask)
+EN_ERR_STA_T rom_hw_spi_set_interrupt_mask(stSpiHandle_t *pstHandle, uint32_t u32Mask)
 {
     SPI_HANDLE_INVALID_RETURN(pstHandle);
 
-    pstHandle->SPI_IMR = u8Mask & SPI_IMR_REG_MASK;
+    pstHandle->SPI_IMR = u32Mask;
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_enable_interrupt(stSpiHandle_t *pstHandle, uint8_t u8Mask, bool bEnable)
+EN_ERR_STA_T rom_hw_spi_enable_interrupt(stSpiHandle_t *pstHandle, uint32_t u32Mask, bool bEnable)
 {
     SPI_HANDLE_INVALID_RETURN(pstHandle);
 
     if(bEnable)
     {
-        pstHandle->SPI_IER = u8Mask & SPI_IER_REG_MASK;
+        pstHandle->SPI_IER |= u32Mask;
     }
     else
     {
-        pstHandle->SPI_IER = (~u8Mask) & SPI_IER_REG_MASK;
+        pstHandle->SPI_IER &= (~u32Mask);
     }
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_get_interrupt_flag(stSpiHandle_t *pstHandle, uint8_t *pu8Mask)
+EN_ERR_STA_T rom_hw_spi_get_interrupt_flag(stSpiHandle_t *pstHandle, uint32_t *u32Mask)
 {
-    if((NULL == pstHandle) | (NULL == pu8Mask))
+    if((NULL == pstHandle) | (NULL == u32Mask))
     {
         return EN_ERROR_STA_INVALID;
     }
 
-    *pu8Mask = pstHandle->SPI_ISR;
+    *u32Mask = pstHandle->SPI_ISR;
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_clear_interrupt_flag(stSpiHandle_t *pstHandle, uint8_t u8Mask)
+EN_ERR_STA_T rom_hw_spi_clear_interrupt_flag(stSpiHandle_t *pstHandle, uint32_t u32Mask)
 {
     SPI_HANDLE_INVALID_RETURN(pstHandle);
 
-    uint8_t u8Cfg = pstHandle->SPI_ISR;
-    pstHandle->SPI_ISR = u8Mask & u8Cfg;
+    uint32_t u32Cfg = pstHandle->SPI_ISR;
+    pstHandle->SPI_ISR = u32Mask & u32Cfg;
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_enable_anti_noise(stSpiHandle_t *pstHandle, bool bEnable)
+EN_ERR_STA_T rom_hw_spi_set_hold_gap_time(stSpiHandle_t *pstHandle, uint32_t hold_cycles, uint32_t gap_cycles)
 {
     SPI_HANDLE_INVALID_RETURN(pstHandle);
 
-    if(bEnable)
-    {
-        pstHandle->SPI_NSEN |= SPI_NESN_REG_MASK;
-    }
-    else
-    {
-        pstHandle->SPI_NSEN &= (~SPI_NESN_REG_MASK) & SPI_NESN_REG_MASK;
-    }
+    pstHandle->SPI_CTR = SPI_CTR_SETUP_HOLD_VAL(hold_cycles) | SPI_CTR_BYTE_GAP_VAL(gap_cycles);
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_set_dma_timeout(stSpiHandle_t *pstHandle, uint32_t u32Cnt)
+EN_ERR_STA_T rom_hw_spi_set_clock_polarity_phase(stSpiHandle_t *pstHandle, bool bCPOL, bool bCPHA)
 {
     SPI_HANDLE_INVALID_RETURN(pstHandle);
 
-    pstHandle->DMA_TIMEOUT = u32Cnt;
+    pstHandle->SPI_TCR &= ~((SPI_CLKMOD_CPOL_REG_MASK << SPI_CLKMOD_CPOL_REG_SHIFT) |
+                           (SPI_CLKMODE_CPHA_REG_MASK << SPI_CLKMODE_CPHA_REG_SHIFT));
+    pstHandle->SPI_TCR |= (SPI_CLKMOD_CPOL_REG_VAL(bCPOL) | SPI_CLKMODE_CPHA_REG_VAL(bCPHA));
 
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_spi_set_cs_min_holding_time(stSpiHandle_t *pstHandle, uint32_t u32Time)
+void rom_hw_spi_set_fifo_threshold(stSpiHandle_t *pstHandle,
+                                    uint32_t tx_empty_th, uint32_t rx_empty_th,
+                                    uint32_t tx_th, uint32_t rx_th)
 {
-    SPI_HANDLE_INVALID_RETURN(pstHandle);
-
-    pstHandle->SPI_CSHT = u32Time;
-
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_spi_set_clock_polarity_phase(stSpiHandle_t *pstHandle, EN_SPI_CLK_POLARITY_PHASE_T enMode)
-{
-    SPI_HANDLE_INVALID_RETURN(pstHandle);
-    if(enMode > EN_SPI_CLK_CPOL1_CPHA1)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    pstHandle->SPI_CLKMOD = enMode & SPI_CLKMOD_REG_MASK;
-
-    return EN_ERROR_STA_OK;
-}
-
-void rom_hw_spi_dma_mode(stSpiHandle_t *pstHandle, EN_SPI_DMA_TX_TIMING_T mode)
-{
-    pstHandle->SPI_TCR &= ~(SPI_TCR_DMA_TX_TIMING_MASK << SPI_TCR_DMA_TX_TIMING_SHIFT);
-    pstHandle->SPI_TCR |= (mode << SPI_TCR_DMA_TX_TIMING_SHIFT);
+    pstHandle->SPI_FTR = (SPI_FTR_TX_FIFO_PFULL_TH_VAL(tx_th) | SPI_FTR_RX_FIFO_PFULL_TH_VAL(rx_th) |
+                         SPI_FTR_TX_FIFO_PEMPTY_TH_VAL(tx_empty_th) | SPI_FTR_RX_FIFO_PEMPTY_TH_VAL(rx_empty_th));
 }

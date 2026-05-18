@@ -51,7 +51,12 @@ void rf_sub_spi_init(void)
     config.cs_holding_time = 0x100;
     config.clk_adjust_en = true;
     config.sw_cs_en = true;
+    config.cs_gap_time = 0;
     config.anti_noise_level = 0;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     qmx_hal_spi_init(SUBG_SPI_HANDLE, &config);
 }

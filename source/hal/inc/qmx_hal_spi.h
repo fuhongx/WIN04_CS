@@ -27,37 +27,48 @@ extern "C" {
 #include "compiler.h"
 
 // SPI DMA mode suppport, 1: support, 0: not support
-#define HAL_SPI_DMA_SUPPORT         (1)
+#define HAL_SPI_DMA_SUPPORT             (1)
 
-#define HAL_SPI_TIMEOUT_US          (200000)
+#define HAL_SPI_TIMEOUT_US              (200000)
+
+#define HAL_SPI_TX_FIFO_DEPTH           (16)
+#define HAL_SPI_RX_FIFO_DEPTH           (16)
 
 /* SPI中断使能MASK位 */
 #define HAL_SPI_IRQ_NONE                (0)         /*!< 关闭所有中断 */
-#define HAL_SPI_IRQ_TX_OVERFLOW         (1U << 0)   /*!< 发送缓冲区覆盖 */
-#define HAL_SPI_IRQ_TX_EMPTY            (1U << 1)   /*!< 发送缓冲区空 */
-#define HAL_SPI_IRQ_TX_DONE             (1U << 2)   /*!< 发送完成 */
-#define HAL_SPI_IRQ_SLV_RX_ERR          (1U << 3)   /*!< 从SPI接收错误 */
-#define HAL_SPI_IRQ_RX_OVERFLOW         (1U << 4)   /*!< 接收缓冲区覆盖 */
-#define HAL_SPI_IRQ_RX_DONE             (1U << 5)   /*!< 接收完成 */
-#define HAL_SPI_IRQ_SLV_FRAME_END       (1U << 6)   /*!< 从SPI帧结束 */
-#define HAL_SPI_IRQ_TX_EMPTY_ERR        (1U << 7)   /*!< 发送缓冲区空错误 */
+#define HAL_SPI_IRQ_TX_EMPTY            (1U << 0)   /*!< 发送缓冲区空 */
+#define HAL_SPI_IRQ_TX_PEMPTY           (1U << 1)   /*!< 发送缓冲区接近空 */
+#define HAL_SPI_IRQ_RX_FULL             (1U << 2)   /*!< 接收缓冲区满 */
+#define HAL_SPI_IRQ_RX_PFULL            (1U << 3)   /*!< 接收缓冲区接近满 */
+#define HAL_SPI_IRQ_TX_OVERWRITE        (1U << 4)   /*!< 发送缓冲区溢出 */
+#define HAL_SPI_IRQ_TX_DONE             (1U << 5)   /*!< 发送完成 */
+#define HAL_SPI_IRQ_SLV_RX_FRAME_ERR    (1U << 6)   /*!< 从SPI接收错误 */
+#define HAL_SPI_IRQ_SLV_RX_DONE         (1U << 7)   /*!< 从SPI帧结束 */
+#define HAL_SPI_IRQ_RX_OVERWRITE        (1U << 8)   /*!< 接收缓冲区溢出 */
 
 /* SPI中断状态位 */
-#define HAL_SPI_IRQ_STA_TX_OVERFLOW     (1U << 0)   /*!< 发送缓冲区覆盖 */
-#define HAL_SPI_IRQ_STA_TX_EMPTY        (1U << 1)   /*!< 发送缓冲区空 */
-#define HAL_SPI_IRQ_STA_TX_DONE         (1U << 2)   /*!< 发送完成 */
-#define HAL_SPI_IRQ_STA_SLV_RX_ERR      (1U << 3)   /*!< 从SPI接收错误 */
-#define HAL_SPI_IRQ_STA_RX_OVERFLOW     (1U << 4)   /*!< 接收缓冲区覆盖 */
-#define HAL_SPI_IRQ_STA_RX_DONE         (1U << 5)   /*!< 接收完成 */
-#define HAL_SPI_IRQ_STA_SLV_FRAME_END   (1U << 6)   /*!< 从SPI帧结束 */
-#define HAL_SPI_IRQ_STA_TX_EMPTY_ERR    (1U << 7)   /*!< 发送缓冲区空错误 */
+#define HAL_SPI_IRQ_STA_TX_EMPTY        (1U << 0)   /*!< 发送缓冲区空 */
+#define HAL_SPI_IRQ_STA_TX_PEMPTY       (1U << 1)   /*!< 发送缓冲区接近空 */
+#define HAL_SPI_IRQ_STA_RX_FULL         (1U << 2)   /*!< 接收缓冲区满 */
+#define HAL_SPI_IRQ_STA_RX_PFULL        (1U << 3)   /*!< 接收缓冲区接近满 */
+#define HAL_SPI_IRQ_STA_TX_OVERWRITE    (1U << 4)   /*!< 发送缓冲区溢出 */
+#define HAL_SPI_IRQ_STA_TX_DONE         (1U << 5)   /*!< 发送完成 */
+#define HAL_SPI_IRQ_STA_SLV_RX_FRAME_ERR    (1U << 6)   /*!< 从SPI接收错误 */
+#define HAL_SPI_IRQ_STA_SLV_RX_DONE     (1U << 7)   /*!< 从SPI帧结束 */
+#define HAL_SPI_IRQ_STA_RX_OVERWRITE    (1U << 8)   /*!< 接收缓冲区溢出 */
 
 /* SPI当前状态位 */
-#define HAL_SPI_STA_RX_VALID            (1U << 0)   /*!< 接收有效 */
-#define HAL_SPI_STA_RX_OVERFLOW         (1U << 1)   /*!< 接收数据被覆盖 */
-#define HAL_SPI_STA_SLV_RX_ERROR        (1U << 2)   /*!< 从SPI接收错误 */
-#define HAL_SPI_STA_TX_EMPTY            (1U << 3)   /*!< 发送缓冲区空 */
-#define HAL_SPI_STA_BUSY                (1U << 4)   /*!< SPI忙闲标志 */
+#define HAL_SPI_STA_BUSY                (1U << 0)       /*!< SPI忙闲标志 */
+#define HAL_SPI_STA_TX_CNT              (0xFFU << 8)    /*!< 发送缓冲区中数据个数 */
+#define HAL_SPI_STA_RX_CNT              (0xFFU << 16)   /*!< 接收缓冲区中数据个数 */
+#define HAL_SPI_STA_TX_EMPTY            (1U << 24)      /*!< 发送缓冲区空 */
+#define HAL_SPI_STA_TX_PEMPTY           (1U << 25)      /*!< 发送缓冲区接近空 */
+#define HAL_SPI_STA_TX_FULL             (1U << 26)      /*!< 发送缓冲区满 */
+#define HAL_SPI_STA_TX_PFULL            (1U << 27)      /*!< 发送缓冲区接近满 */
+#define HAL_SPI_STA_RX_EMPTY            (1U << 28)      /*!< 接收缓冲区空 */
+#define HAL_SPI_STA_RX_PEMPTY           (1U << 29)      /*!< 接收缓冲区接近空 */
+#define HAL_SPI_STA_RX_FULL             (1U << 30)      /*!< 接收缓冲区满 */
+#define HAL_SPI_STA_RX_PFULL            (1U << 31)      /*!< 接收缓冲区接近满 */
 
 typedef enum
 {
@@ -106,8 +117,6 @@ typedef enum
 typedef enum
 {
     HAL_SPI_DATA_LEN_8BIT = 0,
-    HAL_SPI_DATA_LEN_16BIT,
-    HAL_SPI_DATA_LEN_32BIT,
 
     HAL_SPI_DATA_LEN_MAX,
 } hal_spi_data_len_e;
@@ -125,25 +134,22 @@ typedef struct
     hal_spi_polarity_phase_e polarity_phase;
     hal_spi_data_mode_e data_mode;
     hal_spi_data_len_e data_len;
-    uint32_t cs_holding_time;   // unit: 20.8ns, master时SPI CS持续时间
-    bool clk_adjust_en;
+    uint32_t cs_holding_time;   // unit: 1个系统时钟, CS建立和释放时间，即CS拉低到第一个时钟产生的时间，以及最后一个时钟结束到CS拉高的时间
+    uint32_t cs_gap_time;       // unit: 1个系统时钟, 连续数据之间间隔时间，即最后一个时钟结束到下一个时钟产生的时间
+    uint8_t tx_fifo_pfull_th;   // TX FIFO阈值，当FIFO中数据个数大于等于该值时，pfull信号拉高
+    uint8_t tx_fifo_pempty_th;  // TX FIFO阈值，当FIFO中数据个数小于等于该值时，pempty信号拉高
+    uint8_t rx_fifo_pfull_th;   // RX FIFO阈值，当FIFO中数据个数大于等于该值时，pfull信号拉高
+    uint8_t rx_fifo_pempty_th;  // RX FIFO阈值，当FIFO中数据个数小于等于该值时，pempty信号拉高
+    bool clk_adjust_en;         // 时钟调整使能，主要兼容STM32的SPI，建议打开
     bool sw_cs_en;
-    uint8_t anti_noise_level; // 0: 可以消除小于20ns的噪声; 1: 可以消除小于30ns的噪声
+    uint8_t anti_noise_level;   // 0: 可以消除小于20ns的噪声; 1: 可以消除小于30ns的噪声
 } hal_spi_cfg_t;
 
 #if HAL_SPI_DMA_SUPPORT
 #include "qmx_hal_dma.h"
 
-typedef enum
-{
-    HAL_SPI_DMA_TX_REQ_BY_LAST_BIT = 0,
-    HAL_SPI_DMA_TX_REQ_BY_FIRST_BIT,
-} hal_spi_dma_tx_req_e;
-
 typedef struct
 {
-    hal_spi_dma_tx_req_e tx_req_mode;
-    uint32_t spi_timeout;       // SPI传输超时时间，unit: SPI工作周期
     hal_dma_ch_e dma_ch;        // DMA通道
     uint32_t dma_irq_enable;    // DMA中断使能，见 HAL_DMA_IRQ_ENABLE_XXX 宏定义
     uint32_t dma_timeout;       // DMA超时时间, 单位: 1个AHB时钟周期
@@ -239,6 +245,14 @@ int qmx_hal_spi_slave_receive(hal_spi_id_e id, void *rx_buf, uint32_t *len, uint
  * @return uint32_t SPI状态，具体见HAL_SPI_STA_XXX宏定义
  */
 uint32_t qmx_hal_spi_get_cur_sta(hal_spi_id_e id);
+
+/**
+ * @brief 设置SPI中断屏蔽位
+ * 
+ * @param id    SPI设备ID，具体见hal_spi_id_e
+ * @param irq_mask 中断mask位，具体见HAL_SPI_IRQ_XXX宏定义
+ */
+void qmx_hal_spi_set_irq_mask(hal_spi_id_e id, uint32_t irq_mask);
 
 /**
  * @brief 使能SPI中断

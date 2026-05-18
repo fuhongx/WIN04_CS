@@ -1,8 +1,20 @@
 import os
 import sys
 import hashlib
+import hmac
+import secrets
 
 BOOT2_HEAR_SIZE_BYTE = 120
+HASH_OFFSET = 20
+HASH_SIZE = 32
+SIGNATURE_SIZE = 64
+SIGNATURE_OFFSET = HASH_OFFSET + HASH_SIZE
+ECC256K1_PRIVATE_KEY_HEX = '91D75732443B75AC2A3CBECDFCE3D29826C726C8EF1E1D81DC5002874D0D5DB9'
+
+SECP256K1_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+SECP256K1_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+SECP256K1_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
 
 #Record Boot info
 Size = 0
@@ -71,6 +83,165 @@ def crc32_ieee(data):
 
     return crc ^ 0xFFFFFFFF  # 结果异或值
 
+def extended_gcd(a, b):
+    if a == 0:
+        return b, 0, 1
+
+    g, x, y = extended_gcd(b % a, a)
+    return g, y - (b // a) * x, x
+
+def inverse_mod(value, modulo):
+    value %= modulo
+    if value == 0:
+        raise ZeroDivisionError('division by zero')
+
+    g, x, _ = extended_gcd(value, modulo)
+    if g != 1:
+        raise ValueError('Mod inverse does not exist')
+
+    return x % modulo
+
+def secp256k1_point_add(point_a, point_b):
+    if point_a is None:
+        return point_b
+    if point_b is None:
+        return point_a
+
+    x1, y1 = point_a
+    x2, y2 = point_b
+
+    if x1 == x2 and y1 != y2:
+        return None
+
+    if x1 == x2 and y1 == 0:
+        return None
+
+    if point_a == point_b:
+        slope = (3 * x1 * x1) * inverse_mod(2 * y1, SECP256K1_P) % SECP256K1_P
+    else:
+        slope = (y2 - y1) * inverse_mod(x2 - x1, SECP256K1_P) % SECP256K1_P
+
+    x3 = (slope * slope - x1 - x2) % SECP256K1_P
+    y3 = (slope * (x1 - x3) - y1) % SECP256K1_P
+
+    return (x3, y3)
+
+def secp256k1_point_mul(scalar, point):
+    result = None
+    addend = point
+
+    while scalar:
+        if scalar & 1:
+            result = secp256k1_point_add(result, addend)
+        addend = secp256k1_point_add(addend, addend)
+        scalar >>= 1
+
+    return result
+
+def bits2int(data):
+    value = int.from_bytes(data, 'big')
+    bit_len = len(data) * 8
+    n_bit_len = SECP256K1_N.bit_length()
+    if bit_len > n_bit_len:
+        value >>= (bit_len - n_bit_len)
+    return value
+
+def int2octets(value):
+    return value.to_bytes(32, 'big')
+
+def bits2octets(data):
+    z1 = bits2int(data)
+    z2 = z1 - SECP256K1_N
+    if z2 < 0:
+        z2 = z1
+    return int2octets(z2)
+
+def deterministic_k(private_key, digest):
+    key = int2octets(private_key)
+    data = bits2octets(digest)
+    v = b'\x01' * 32
+    k = b'\x00' * 32
+
+    k = hmac.new(k, v + b'\x00' + key + data, hashlib.sha256).digest()
+    v = hmac.new(k, v, hashlib.sha256).digest()
+    k = hmac.new(k, v + b'\x01' + key + data, hashlib.sha256).digest()
+    v = hmac.new(k, v, hashlib.sha256).digest()
+
+    while True:
+        candidate = b''
+        while len(candidate) < 32:
+            v = hmac.new(k, v, hashlib.sha256).digest()
+            candidate += v
+
+        secret = bits2int(candidate)
+        if 1 <= secret < SECP256K1_N:
+            return secret
+
+        k = hmac.new(k, v + b'\x00', hashlib.sha256).digest()
+        v = hmac.new(k, v, hashlib.sha256).digest()
+
+def secp256k1_sign_digest(digest):
+    private_key = int(ECC256K1_PRIVATE_KEY_HEX, 16)
+    if not 1 <= private_key < SECP256K1_N:
+        raise ValueError('Invalid ECC private key')
+
+    z = int.from_bytes(digest, 'big')
+
+    while True:
+        nonce = secrets.randbelow(SECP256K1_N - 1) + 1
+        point = secp256k1_point_mul(nonce, (SECP256K1_GX, SECP256K1_GY))
+        r = point[0] % SECP256K1_N
+        if r == 0:
+            continue
+
+        s = (inverse_mod(nonce, SECP256K1_N) * (z + r * private_key)) % SECP256K1_N
+        if s == 0:
+            continue
+
+        return int2octets(r) + int2octets(s)
+
+def secp256k1_public_key_bytes():
+    private_key = int(ECC256K1_PRIVATE_KEY_HEX, 16)
+    if not 1 <= private_key < SECP256K1_N:
+        raise ValueError('Invalid ECC private key')
+
+    point = secp256k1_point_mul(private_key, (SECP256K1_GX, SECP256K1_GY))
+    if point is None:
+        raise ValueError('Invalid ECC public key')
+
+    return int2octets(point[0]) + int2octets(point[1])
+
+def secp256k1_verify_digest(public_key, digest, signature):
+    if len(public_key) != SIGNATURE_SIZE or len(signature) != SIGNATURE_SIZE:
+        return False
+
+    x = int.from_bytes(public_key[:32], 'big')
+    y = int.from_bytes(public_key[32:], 'big')
+    r = int.from_bytes(signature[:32], 'big')
+    s = int.from_bytes(signature[32:], 'big')
+
+    if not (0 <= x < SECP256K1_P and 0 <= y < SECP256K1_P):
+        return False
+
+    if ((y * y - (x * x * x + 7)) % SECP256K1_P) != 0:
+        return False
+
+    if not (1 <= r < SECP256K1_N and 1 <= s < SECP256K1_N):
+        return False
+
+    z = int.from_bytes(digest, 'big')
+    w = inverse_mod(s, SECP256K1_N)
+    u1 = (z * w) % SECP256K1_N
+    u2 = (r * w) % SECP256K1_N
+    point_g = secp256k1_point_mul(u1, (SECP256K1_GX, SECP256K1_GY))
+    point_q = secp256k1_point_mul(u2, (x, y))
+    point = secp256k1_point_add(point_g, point_q)
+
+    if point is None:
+        return False
+
+    return (point[0] % SECP256K1_N) == r
+
 def get_bin_size(file):
     binfile = open(file, 'rb')  # 打开二进制文件
     size = os.path.getsize(file)  # 获得文件大小
@@ -138,9 +309,19 @@ def make_header_info(data,size):
     sha256_digest = hashlib.sha256(code_bytes).digest() # 使用 digest() 获取字节串，而不是 hexdigest()
     # 3. 将计算出的 32 字节 Hash 填充到 HeaderData 偏移 20 开始的位置
     # HeaderData[20] 到 HeaderData[51] 将被填充
-    for i in range(32):
-        HeaderData[20 + i] = sha256_digest[i]
+    for i in range(HASH_SIZE):
+        HeaderData[HASH_OFFSET + i] = sha256_digest[i]
     print("SHA256 Value = " + sha256_digest.hex())
+
+    signature = secp256k1_sign_digest(sha256_digest)
+    public_key = secp256k1_public_key_bytes()
+    for i in range(SIGNATURE_SIZE):
+        HeaderData[SIGNATURE_OFFSET + i] = signature[i]
+    print("ECC256K1 Public Key = " + public_key.hex())
+    print("ECC256K1 Signature = " + signature.hex())
+    if not secp256k1_verify_digest(public_key, sha256_digest, signature):
+        raise ValueError('ECC256K1 local verify failed')
+    print("ECC256K1 Local Verify = OK")
 
     #print("Header CRC32 Value = " + hex(Crc))
 

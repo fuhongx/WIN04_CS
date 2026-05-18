@@ -690,17 +690,20 @@ int qmx_dma_spi_master_test(void)
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_mode = HAL_SPI_DATA_LSB;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_SPI1, true);
     qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_SPI1);
     qmx_hal_spi_init(HAL_SPI1, &config);
 
-    dma_cfg.tx_req_mode = HAL_SPI_DMA_TX_REQ_BY_FIRST_BIT;
-    dma_cfg.spi_timeout = 0xFFFFFFFF;
     dma_cfg.dma_ch = rx_chx;
     dma_cfg.dma_irq_enable = HAL_DMA_IRQ_ENABLE_ALL;
     dma_cfg.dma_timeout = 0;
@@ -764,17 +767,20 @@ int qmx_dma_spi_slave_test(void)
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_mode = HAL_SPI_DATA_LSB;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_SPI1, true);
     qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_SPI1);
     qmx_hal_spi_init(HAL_SPI1, &config);
 
-    dma_cfg.tx_req_mode = HAL_SPI_DMA_TX_REQ_BY_FIRST_BIT;
-    dma_cfg.spi_timeout = 0xFFFFFFFF;
     dma_cfg.dma_ch = rx_chx;
     dma_cfg.dma_irq_enable = HAL_DMA_IRQ_ENABLE_ALL;
     dma_cfg.dma_timeout = 0;

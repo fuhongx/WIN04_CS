@@ -260,16 +260,16 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_mode_bits(uint8_t u8ModeBits)
  *                    16 = 65535Bytes
  * @return EN_ERR_STA_T
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize)
-{
-    uint32_t u32Cfg = FLASH_CTRL->DEV_SIZE_CFG;
-    // No need recheck
-    u32Cfg &= ~(FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_MASK << FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_SHIFT);
-    u32Cfg |= (u8BlockSize << FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_SHIFT);
-    FLASH_CTRL->DEV_SIZE_CFG = u32Cfg;
+// EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize)
+// {
+//     uint32_t u32Cfg = FLASH_CTRL->DEV_SIZE_CFG;
+//     // No need recheck
+//     u32Cfg &= ~(FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_MASK << FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_SHIFT);
+//     u32Cfg |= (u8BlockSize << FLASH_CTRL_DEV_SIZE_CFG_BLOCK_SIZE_SHIFT);
+//     FLASH_CTRL->DEV_SIZE_CFG = u32Cfg;
 
-    return EN_ERROR_STA_OK;
-}
+//     return EN_ERROR_STA_OK;
+// }
 
 /**
  * @brief Defines the block number of the address range to be protected.
@@ -278,12 +278,12 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_protect_block_size(uint8_t u8BlockSize)
  * @param u32HiIdx High Area block number
  * @return EN_ERR_STA_T
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowIdx, uint32_t u32HiIdx)
-{
-    FLASH_CTRL->LOW_WRITE_PROTECT = u32LowIdx;
-    FLASH_CTRL->UPPER_WRITE_PROTECT = u32HiIdx;
-    return EN_ERROR_STA_OK;
-}
+// EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowIdx, uint32_t u32HiIdx)
+// {
+//     FLASH_CTRL->LOW_WRITE_PROTECT = u32LowIdx;
+//     FLASH_CTRL->UPPER_WRITE_PROTECT = u32HiIdx;
+//     return EN_ERROR_STA_OK;
+// }
 
 /**
  * @brief Enable write protection.
@@ -292,14 +292,14 @@ EN_ERR_STA_T rom_hw_flash_ctrl_set_write_protection_block_index(uint32_t u32LowI
  *                False: disable write protection.
  * @return EN_ERR_STA_T
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable)
-{
-    uint32_t u32Cfg = FLASH_CTRL->WRITE_PROTECT;
-    u32Cfg &= ~(FLASH_CTRL_WRITE_PROTECT_EN_MASK << FLASH_CTRL_WRITE_PROTECT_EN_SHIFT);
-    u32Cfg |= (bEnable << FLASH_CTRL_WRITE_PROTECT_EN_SHIFT);
-    FLASH_CTRL->WRITE_PROTECT = u32Cfg;
-    return EN_ERROR_STA_OK;
-}
+// EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable)
+// {
+//     uint32_t u32Cfg = FLASH_CTRL->WRITE_PROTECT;
+//     u32Cfg &= ~(FLASH_CTRL_WRITE_PROTECT_EN_MASK << FLASH_CTRL_WRITE_PROTECT_EN_SHIFT);
+//     u32Cfg |= (bEnable << FLASH_CTRL_WRITE_PROTECT_EN_SHIFT);
+//     FLASH_CTRL->WRITE_PROTECT = u32Cfg;
+//     return EN_ERROR_STA_OK;
+// }
 
 /**
  * @brief Enable write protection reverse.
@@ -313,14 +313,14 @@ EN_ERR_STA_T rom_hw_flash_ctrl_enable_write_protecion(bool bEnable)
  *               This bit is modified only if the write protection function (by the first bit of the write protection register) is 0.
  * @return EN_ERR_STA_T
  */
-EN_ERR_STA_T rom_hw_flash_ctrl_enbale_write_protection_reverse(bool bReverse)
-{
-    uint32_t u32Cfg = FLASH_CTRL->WRITE_PROTECT;
-    u32Cfg &= ~(FLASH_CTRL_WRITE_PROTECT_REVERSE_MASK << FLASH_CTRL_WRITE_PROTECT_REVERSE_SHIFT);
-    u32Cfg |= (bReverse << FLASH_CTRL_WRITE_PROTECT_REVERSE_SHIFT);
-    FLASH_CTRL->WRITE_PROTECT = u32Cfg;
-    return EN_ERROR_STA_OK;
-}
+// EN_ERR_STA_T rom_hw_flash_ctrl_enbale_write_protection_reverse(bool bReverse)
+// {
+//     uint32_t u32Cfg = FLASH_CTRL->WRITE_PROTECT;
+//     u32Cfg &= ~(FLASH_CTRL_WRITE_PROTECT_REVERSE_MASK << FLASH_CTRL_WRITE_PROTECT_REVERSE_SHIFT);
+//     u32Cfg |= (bReverse << FLASH_CTRL_WRITE_PROTECT_REVERSE_SHIFT);
+//     FLASH_CTRL->WRITE_PROTECT = u32Cfg;
+//     return EN_ERROR_STA_OK;
+// }
 
 /**
  * @brief Send commands to Flash through QSPI.
@@ -1053,7 +1053,7 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
         return EN_ERROR_STA_INVALID;
     }
 
-    uint32_t u32Addr = ((enType & 0x3) << 8) | u16Offset;
+    uint32_t u32Addr = ((enType & 0x3) << 8) | (u16Offset & 0xFF);
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
     {
@@ -1062,11 +1062,11 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
         } else {
             enType += 1;
         }
-        u32Addr = ((enType & 0x3) << 12) | u16Offset;
+        u32Addr = ((enType & 0x3) << 12) | (u16Offset & 0x1FF);
     }
 
     uint32_t u32Cmd = 0;
-    uint8_t u8Idx = 0;
+    uint16_t u16Idx = 0;
     uint8_t u8ReadLen = 0;
 
     while (u16Len)
@@ -1089,10 +1089,10 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
         }
         // TODO: 手册未写等待时间，待仿真查看下，该延时会影响启动时间，不能随便增加
         // rom_utility_delay_ms(1);
-        rom_hw_flash_ctrl_get_read_data(&pu8Buffer[u8Idx], u8ReadLen);
+        rom_hw_flash_ctrl_get_read_data(&pu8Buffer[u16Idx], u8ReadLen);
 
         u32Addr += u8ReadLen;
-        u8Idx += u8ReadLen;
+        u16Idx += u8ReadLen;
         u16Len -= u8ReadLen;
     }
 
@@ -1101,14 +1101,14 @@ EN_ERR_STA_T rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t 
 
 EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t u16Offset, uint8_t *pu8Buffer, uint16_t u16Len)
 {
-    if ((NULL == pu8Buffer) | ((u16Offset + u16Len) > 256))
+    if ((NULL == pu8Buffer) | ((u16Offset + u16Len) > 512))
     {
         return EN_ERROR_STA_INVALID;
     }
 
-    uint32_t u32Addr = ((enType & 0x3) << 8) | u16Offset;
+    uint32_t u32Addr = ((enType & 0x3) << 8) | (u16Offset & 0xFF);
     uint32_t u32Cmd = 0;
-    uint8_t u8Idx = 0;
+    uint16_t u16Idx = 0;
     uint8_t u8ReadLen = 0;
 
     if (gu8FlashType == EN_FLASH_TYPE_PY)
@@ -1118,7 +1118,7 @@ EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t
         } else {
             enType += 1;
         }
-        u32Addr = ((enType & 0x3) << 12) | u16Offset;
+        u32Addr = ((enType & 0x3) << 12) | (u16Offset & 0x1FF);
     }
 
     while (u16Len)
@@ -1135,7 +1135,7 @@ EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t
         u32Cmd = FLASH_CTRL_WRITE_SECURITY_REG_CMD(u8ReadLen - 1);
         rom_hw_flash_write_enable_cmd();
         rom_hw_flash_ctrl_set_cmd_addr(u32Addr);
-        rom_hw_flash_ctrl_set_write_data(&pu8Buffer[u8Idx], u8ReadLen);
+        rom_hw_flash_ctrl_set_write_data(&pu8Buffer[u16Idx], u8ReadLen);
         rom_hw_flash_ctrl_send_cmd(u32Cmd);
         if (!rom_hw_flash_ctrl_wait_flash_cmd_done())
         {
@@ -1143,7 +1143,7 @@ EN_ERR_STA_T rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM_T enType, uint16_t
         }
         rom_utility_delay_ms(3);
         u32Addr += u8ReadLen;
-        u8Idx += u8ReadLen;
+        u16Idx += u8ReadLen;
         u16Len -= u8ReadLen;
     }
 
@@ -1188,7 +1188,12 @@ EN_ERR_STA_T rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM_T enType, uint32_t
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    rom_utility_delay_us(GT_FLASH_TIMING_SECTOR_ERASE_US);
+    if (gu8FlashType == EN_FLASH_TYPE_PY) {
+        rom_utility_delay_us(PY_FLASH_TIMING_SE_US);
+    } else {
+        rom_utility_delay_us(GT_FLASH_TIMING_SECTOR_ERASE_US);
+    }
+
     return EN_ERROR_STA_OK;
 }
 

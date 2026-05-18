@@ -16,6 +16,8 @@
 #include "qmx_hal_rng.h"
 #include "qmx_test_master.h"
 
+#define SPI_TEST_START_ID   HAL_SPI1
+
 void qmx_spi_test_init(void)
 {
     qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_RAND, true);
@@ -87,15 +89,6 @@ int qmx_spi_test_master_trx_common(hal_spi_id_e spi_id)
         return ret;
     }
 
-    /*
-     * TODO: 临时规避，先发1字节让slave响应（cache缓存），否则会出现丢失第一字节的问题
-     * 原因：
-     *   1）中断函数以及收发函数在flash内，第一次跳转中断时cache需要从flash读取指令，导致时延较大
-     *   2）由于cache miss，导致第一字节数据已经发送出去了，但slave端无法及时跳转至接收函数接收，从而丢失数据
-     */
-    qmx_hal_spi_master_transmit(spi_id, cmd, 1, HAL_SPI_TIMEOUT_US);
-    qmx_hal_nop_delay_ms(2000);
-
     cmd[1] = 0;
     cmd[2] = 0;
     cmd[3] = 0;
@@ -103,6 +96,7 @@ int qmx_spi_test_master_trx_common(hal_spi_id_e spi_id)
     // 1、master先发送数据给slave，slave端已提前准备好，在中断内接收数据
     cmd[0] = QMX_SPI_TEST_TX_CMD;
     qmx_hal_spi_master_transmit(spi_id, cmd, 4, HAL_SPI_TIMEOUT_US);
+    qmx_hal_nop_delay_ms(5);    // 确保slave端已经准备好
     qmx_hal_spi_master_transmit(spi_id, tx_data, QMX_SPI_TEST_TRX_LEN, HAL_SPI_TIMEOUT_US);
     // 2、确保slave端处理完数据
     qmx_hal_nop_delay_ms(2000);
@@ -141,23 +135,28 @@ int qmx_spi_master_div_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_MASTER;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_mode = HAL_SPI_DATA_MSB;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[2] = config.polarity_phase;
     tx_data[3] = config.data_mode;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -169,10 +168,12 @@ start:
     if ((ret != 0) || (rx_data[0] != 0)) {
         PRINTF("SPI%u slave cfg failed.\n", test_id);
         return -1;
+    } else {
+        PRINTF("SPI%u slave cfg success.\n", test_id);
     }
 
-    // slave端最大输入时钟只有6.25MHz，但是使用CPU时，slave端在2.5M以上时钟时来不及准备数据，存在性能瓶颈
-    for (i = HAL_SPI_DIV_20; i < HAL_SPI_DIV_MAX; i++) {
+    // slave端最大输入时钟只有6.25MHz
+    for (i = HAL_SPI_DIV_8; i < HAL_SPI_DIV_MAX; i++) {
         rx_len = 0;
         memset(rx_data, 0, QMX_TEST_RX_MAX_LEN);
 
@@ -218,23 +219,28 @@ int qmx_spi_master_polarity_phase_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_MASTER;
     config.clk_div = HAL_SPI_DIV_20;
     config.data_mode = HAL_SPI_DATA_MSB;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[3] = config.data_mode;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -295,23 +301,28 @@ int qmx_spi_master_data_mode_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_MASTER;
     config.clk_div = HAL_SPI_DIV_20;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -372,23 +383,28 @@ int qmx_spi_master_data_len_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_MASTER;
     config.clk_div = HAL_SPI_DIV_20;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_mode = HAL_SPI_DATA_MSB;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[3] = config.data_mode;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -512,23 +528,28 @@ int qmx_spi_salve_polarity_phase_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_SLAVE;
     config.clk_div = HAL_SPI_DIV_20;
     config.data_mode = HAL_SPI_DATA_MSB;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[3] = config.data_mode;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -589,23 +610,28 @@ int qmx_spi_slave_data_mode_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_SLAVE;
     config.clk_div = HAL_SPI_DIV_20;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 0x8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;
@@ -666,23 +692,28 @@ int qmx_spi_slave_data_len_test(void)
     uint8_t tx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     uint8_t rx_len = 0;
-    hal_spi_id_e test_id = HAL_SPI0;
+    hal_spi_id_e test_id = SPI_TEST_START_ID;
 
     config.mode = HAL_SPI_SLAVE;
     config.clk_div = HAL_SPI_DIV_20;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_mode = HAL_SPI_DATA_MSB;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x8;
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
+    config.cs_gap_time = 8;
+    config.tx_fifo_pfull_th = 12;
+    config.rx_fifo_pfull_th = 12;
+    config.rx_fifo_pempty_th = 4;
+    config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
     tx_data[1] = config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[3] = config.data_mode;
     tx_data[5] = config.cs_holding_time;
-    tx_data[6] = (config.cs_holding_time >> 8) & 0xFF;
+    tx_data[6] = config.cs_gap_time;
     tx_data[7] = config.clk_adjust_en;
     tx_data[8] = config.sw_cs_en;
     tx_data[9] = config.anti_noise_level;

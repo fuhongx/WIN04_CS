@@ -279,7 +279,7 @@ int qmx_uart_parity_test(void)
 void qmx_uart_test_databit_irq(void)
 {
     uint32_t sta = 0;
-    uint32_t rx_len = 0;
+    uint32_t rx_len = QMX_TEST_RX_MAX_LEN;
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     sta = qmx_hal_uart_get_irq_status(QMX_TEST_UART_HANDLE);
 
@@ -452,7 +452,7 @@ fifo_detect:
     qmx_hal_nop_delay_ms(120);
 
     memset(rx_data, 0, QMX_TEST_RX_MAX_LEN);
-    rx_len = 0;
+    rx_len = QMX_TEST_RX_MAX_LEN;
     qmx_hal_uart_receive_data(QMX_TEST_UART_HANDLE, rx_data, &rx_len, HAL_UART_TIMEOUT_US);
 
     for (i = 0; i < rx_len; i++) {
@@ -485,7 +485,7 @@ int qmx_uart_rts_cts_test(void)
 {
     char tx_data[] = "test rts cts\n";
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
-    uint32_t rx_len = 0;
+    uint32_t rx_len = QMX_TEST_RX_MAX_LEN;
     uint32_t timeout = 20;
 
     qmx_hal_gpio_set_iomux(QMX_TEST_UART_RTS_DE_PIN, QMX_TEST_UART_RTS_IOMUX);
@@ -508,6 +508,7 @@ int qmx_uart_rts_cts_test(void)
         PRINTF("RTS default voltage is low(0V)\n");
         PRINTF("slave send data(%u bytes) to master, RTS will pull up, after 5s will pull down.\n", QMX_TEST_UART_RX_FIFO_THLD);
         qmx_hal_nop_delay_s(5);
+        rx_len = QMX_TEST_RX_MAX_LEN;
         qmx_hal_uart_receive_data(DEBUG_UART_HANDLE, rx_data, &rx_len, HAL_UART_TIMEOUT_US);
     }
 
@@ -519,7 +520,7 @@ int qmx_uart_rts_cts_test(void)
 void qmx_uart_rs485_irq_handler(void)
 {
     uint32_t sta = 0;
-    uint32_t rx_len = 0;
+    uint32_t rx_len = QMX_TEST_RX_MAX_LEN;
     uint8_t rx_data[QMX_TEST_RX_MAX_LEN] = {0};
     sta = qmx_hal_uart_get_irq_status(QMX_TEST_UART_HANDLE);
 

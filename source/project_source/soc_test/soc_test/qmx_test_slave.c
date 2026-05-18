@@ -20,21 +20,23 @@ void qmx_test_slave_spi_irq(void)
 {
     uint32_t sta = qmx_hal_spi_get_irq_sta(g_spi_slave_id);
     uint8_t cmd[4] = {0};
+    int ret = 0;
 
     g_spi_slave_rx_len = 4;
-    qmx_hal_spi_slave_receive(g_spi_slave_id, (void *)cmd, (uint32_t *)&g_spi_slave_rx_len, HAL_SPI_TIMEOUT_US);
+    ret += qmx_hal_spi_slave_receive(g_spi_slave_id, (void *)cmd, (uint32_t *)&g_spi_slave_rx_len, 1000);
 
     if ((cmd[0] == QMX_SPI_TEST_TX_CMD) && (g_spi_slave_rx_len == 4)) {
         g_spi_slave_rx_len = QMX_SPI_TEST_TRX_LEN;
-        qmx_hal_spi_slave_receive(g_spi_slave_id, (void *)g_spi_slave_rx_buf, (uint32_t *)&g_spi_slave_rx_len, HAL_SPI_TIMEOUT_US);
+        ret += qmx_hal_spi_slave_receive(g_spi_slave_id, (void *)g_spi_slave_rx_buf, (uint32_t *)&g_spi_slave_rx_len, HAL_SPI_TIMEOUT_US);
         dump_u8buf("SPI rx data", (uint8_t *)g_spi_slave_rx_buf, g_spi_slave_rx_len);
     } else if ((cmd[0] == QMX_SPI_TEST_RX_CMD) && (g_spi_slave_rx_len == 4)) {
-        qmx_hal_spi_slave_transmit(g_spi_slave_id, (void *)g_spi_slave_rx_buf, QMX_SPI_TEST_TRX_LEN, HAL_SPI_TIMEOUT_US);
+        ret += qmx_hal_spi_slave_transmit(g_spi_slave_id, (void *)g_spi_slave_rx_buf, QMX_SPI_TEST_TRX_LEN, HAL_SPI_TIMEOUT_US);
         dump_u8buf("SPI tx data", (uint8_t *)g_spi_slave_rx_buf, QMX_SPI_TEST_TRX_LEN);
     }
 
     qmx_hal_spi_clear_irq_sta(g_spi_slave_id, sta);
-    // PRINTF("SPI irq: 0x%08x, len=%u\n", sta, g_spi_slave_rx_len);
+    PRINTF("SPI irq: 0x%08x, len=%u, ret %d cur 0x%x, sta 0x%x\n",
+        sta, g_spi_slave_rx_len, ret, qmx_hal_spi_get_irq_sta(g_spi_slave_id), qmx_hal_spi_get_cur_sta(g_spi_slave_id));
     // if (g_spi_slave_rx_len != 0) {
     //     dump_u8buf("SPI data", (uint8_t *)cmd, 4);
     // }
@@ -54,11 +56,16 @@ int qmx_test_slave_spi_cfg(qmx_test_common_frame_t *rx_frame)
     config.polarity_phase = rx_frame->data[2];
     config.data_mode = rx_frame->data[3];
     config.data_len = rx_frame->data[4];
-    config.cs_holding_time = rx_frame->data[5] | (rx_frame->data[6] << 8);
+    config.cs_holding_time = rx_frame->data[5];
+    config.cs_gap_time = rx_frame->data[6];
     config.clk_adjust_en = rx_frame->data[7];
     config.sw_cs_en = false;
     config.anti_noise_level = rx_frame->data[9];
     g_spi_slave_id = rx_frame->data[10];
+    config.tx_fifo_pfull_th = 12;
+    config.tx_fifo_pempty_th = 4;
+    config.rx_fifo_pfull_th = 4;
+    config.rx_fifo_pempty_th = 2;
 
     if (g_spi_slave_id == HAL_SPI0) {
         qmx_hal_gpio_set_iomux(HAL_GPIO_PIN8, HAL_IOMUX_MODE2); // SPI0 CS
@@ -70,6 +77,7 @@ int qmx_test_slave_spi_cfg(qmx_test_common_frame_t *rx_frame)
         qmx_hal_gpio_set_mode(HAL_GPIO_PIN10, HAL_GPIO_PULL_UP);
         qmx_hal_gpio_set_mode(HAL_GPIO_PIN11, HAL_GPIO_PULL_UP);
 
+        QMX_HAL_DISABLE_PERIPHERAL_IRQ(SPI0_IRQ);
         qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_SPI0, true);
         qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_SPI0);
     } else {
@@ -82,11 +90,14 @@ int qmx_test_slave_spi_cfg(qmx_test_common_frame_t *rx_frame)
         qmx_hal_gpio_set_mode(HAL_GPIO_PIN6, HAL_GPIO_PULL_UP);
         qmx_hal_gpio_set_mode(HAL_GPIO_PIN7, HAL_GPIO_PULL_UP);
 
+        QMX_HAL_DISABLE_PERIPHERAL_IRQ(SPI1_IRQ);
         qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_SPI1, true);
         qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_SPI1);
     }
 
     qmx_hal_spi_init(g_spi_slave_id, &config);
+    // qmx_hal_spi_set_irq_mask(g_spi_slave_id, HAL_SPI_IRQ_TX_EMPTY | HAL_SPI_IRQ_TX_PEMPTY);
+    qmx_hal_spi_clear_irq_sta(g_spi_slave_id, 0x1F);
 
     if (config.mode == HAL_SPI_SLAVE) {
         if (g_spi_slave_id == HAL_SPI0) {
@@ -97,7 +108,8 @@ int qmx_test_slave_spi_cfg(qmx_test_common_frame_t *rx_frame)
             QMX_HAL_ENABLE_PERIPHERAL_IRQ(SPI1_IRQ, 0x3);
         }
 
-        qmx_hal_spi_irq_enable(g_spi_slave_id, HAL_SPI_IRQ_RX_DONE);
+        qmx_hal_spi_clear_irq_sta(g_spi_slave_id, 0x1F);
+        qmx_hal_spi_irq_enable(g_spi_slave_id, HAL_SPI_IRQ_RX_PFULL);
     }
 
     PRINTF("SPI%d slave config done\n", g_spi_slave_id);
