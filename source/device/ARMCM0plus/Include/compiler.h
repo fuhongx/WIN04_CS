@@ -1,12 +1,12 @@
 /**
  * ****************************************************************************
  * @file complier.h
- * @author QMX software team. 
+ * @author SLC software team. 
  * @brief 
  * @version  1.0
  * ****************************************************************************
  * 
- * Copyright (c) 2026 QMX Semiconductor all rights reserved.
+ * Copyright (c) 2026 SLC Semiconductor all rights reserved.
  * 
  * ****************************************************************************
  */

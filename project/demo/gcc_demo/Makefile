@@ -26,7 +26,7 @@ GCC_STARTUP_ASM_FILE =  $(ROOT_DIR)/source/device/ARMCM0plus/startup_gcc/startup
 
 PRJ_C_MICRO_DEFINES :=   \
 WIN04  \
-QMX_FPGA \
+SLC_FPGA \
 NT_SHELL \
 
 
@@ -43,7 +43,7 @@ $(ROOT_DIR)/library/boot2.c \
 $(ROOT_DIR)/source/component/debug/debug.c \
 $(ROOT_DIR)/source/component/crypto/aes/sw_aes.c \
 $(ROOT_DIR)/source/component/crypto/crc/sw_crc.c \
-$(ROOT_DIR)/source/component/private_spi/qmx_private_spi_frame.c \
+$(ROOT_DIR)/source/component/private_spi/slc_private_spi_frame.c \
 $(ROOT_DIR)/source/component/nt_shell/nttop.c \
 $(ROOT_DIR)/source/component/nt_shell/core/src/ntlibc.c \
 $(ROOT_DIR)/source/component/nt_shell/core/src/ntshell.c \
@@ -53,59 +53,59 @@ $(ROOT_DIR)/source/component/nt_shell/core/src/vtrecv.c \
 $(ROOT_DIR)/source/component/nt_shell/core/src/vtsend.c \
 $(ROOT_DIR)/source/component/nt_shell/util/src/ntopt.c \
 $(ROOT_DIR)/source/component/nt_shell/util/src/ntstdio.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_afc.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_cad.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_phy_trx.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_phy.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_rf.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_sf_search.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_subg.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_cali.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_debug_ila.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_lpwr_ctrl.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_intc.c \
-$(ROOT_DIR)/source/drivers/win04/hw_flash/src/qmx_systick.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_aes.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_dma.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_gpio.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_pmu.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_rtc.c \
-$(ROOT_DIR)/source/drivers/win04/patch/src/qmx_uart.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_gpio.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_intc.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_uart.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_iwdt.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_wdt.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_pmu.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_rtc.c \
-$(ROOT_DIR)/source/hal/src/qmx_hal_sysctrl.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_afc.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_cad.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_phy_trx.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_phy.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_rf.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_sf_search.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_subg.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_cali.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_debug_ila.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_lpwr_ctrl.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_intc.c \
+$(ROOT_DIR)/source/drivers/win04/hw_flash/src/slc_systick.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_aes.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_dma.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_gpio.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_pmu.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_rtc.c \
+$(ROOT_DIR)/source/drivers/win04/patch/src/slc_uart.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_gpio.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_intc.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_uart.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_iwdt.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_wdt.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_pmu.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_rtc.c \
+$(ROOT_DIR)/source/hal/src/slc_hal_sysctrl.c \
 ./main.c
 
-ifneq ($(findstring QMX_SOCTEST,$(PRJ_C_MICRO_DEFINES)),)
+ifneq ($(findstring SLC_SOCTEST,$(PRJ_C_MICRO_DEFINES)),)
 PRJ_C_SRC_FILES += \
-$(ROOT_DIR)/source/project_source/soc_test/algo/qmx_aes_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/algo/qmx_crc_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/algo/qmx_rng_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/gpio/qmx_gpio_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/NVIC/qmx_nvic_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/RTC/qmx_rtc_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/uart/qmx_uart_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/WDT/qmx_wdt_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/DMA/qmx_dma_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/flash/qmx_flash_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/IIC/qmx_iic_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/IWDT/qmx_iwdt_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/lowpower/qmx_low_power_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/mem/qmx_mem_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/phy/qmx_phy_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/soc_test/qmx_soc_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/soc_test/qmx_test_master_slave_common.c \
-$(ROOT_DIR)/source/project_source/soc_test/soc_test/qmx_test_master.c \
-$(ROOT_DIR)/source/project_source/soc_test/soc_test/qmx_test_slave.c \
-$(ROOT_DIR)/source/project_source/soc_test/soc_test/qmx_uart_cmd_process.c \
-$(ROOT_DIR)/source/project_source/soc_test/systick/qmx_systick_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/timer/qmx_timer_test.c \
-$(ROOT_DIR)/source/project_source/soc_test/timer/qmx_pwm_test.c
+$(ROOT_DIR)/source/project_source/soc_test/algo/slc_aes_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/algo/slc_crc_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/algo/slc_rng_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/gpio/slc_gpio_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/NVIC/slc_nvic_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/RTC/slc_rtc_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/uart/slc_uart_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/WDT/slc_wdt_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/DMA/slc_dma_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/flash/slc_flash_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/IIC/slc_iic_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/IWDT/slc_iwdt_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/lowpower/slc_low_power_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/mem/slc_mem_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/phy/slc_phy_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/soc_test/slc_soc_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/soc_test/slc_test_master_slave_common.c \
+$(ROOT_DIR)/source/project_source/soc_test/soc_test/slc_test_master.c \
+$(ROOT_DIR)/source/project_source/soc_test/soc_test/slc_test_slave.c \
+$(ROOT_DIR)/source/project_source/soc_test/soc_test/slc_uart_cmd_process.c \
+$(ROOT_DIR)/source/project_source/soc_test/systick/slc_systick_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/timer/slc_timer_test.c \
+$(ROOT_DIR)/source/project_source/soc_test/timer/slc_pwm_test.c
 endif
 
 ########################################## Here add h index ##############################################
@@ -132,7 +132,7 @@ $(ROOT_DIR)/source/mem_cfg/win04 \
 $(ROOT_DIR)/source/hal/inc \
 ./config
 
-ifneq ($(findstring QMX_SOCTEST,$(PRJ_C_MICRO_DEFINES)),)
+ifneq ($(findstring SLC_SOCTEST,$(PRJ_C_MICRO_DEFINES)),)
 PRJ_C_INCLUDE_PATH += \
 $(ROOT_DIR)/source/project_source/soc_test/algo \
 $(ROOT_DIR)/source/project_source/soc_test/gpio \

@@ -16,7 +16,7 @@
 
 #define RF_TEST_UART_BAUDRATE                   (115200)
 
-#ifndef QMX_FPGA
+#ifndef SLC_FPGA
 //Using UART0
 #define RF_TEST_UART_HANDLE                  (HAL_UART0)
 #define RF_TEST_UART_TX_PIN                  (HAL_GPIO_PIN12)

@@ -15,7 +15,7 @@
 #define __APP_CFG_H__
 
 //DEBUG Config
-#ifdef QMX_FPGA
+#ifdef SLC_FPGA
 #define DEBUG_UART_TX_PIN                   (HAL_GPIO_PIN0)
 #define DEBUG_UART_RX_PIN                   (HAL_GPIO_PIN1)
 #define DEBUG_UART_IOMUX                    (HAL_IOMUX_MODE0)
@@ -30,7 +30,7 @@
 #define DUBUG_UART_CLK_GATE                 (HAL_CLK_UART0)
 #define DEBUG_UART_BAUDRATE                 (921600)
 
-#ifdef QMX_AUTOTEST
+#ifdef SLC_AUTOTEST
 #define APP_DEBUG_ENABLED                   (0)
 #else
 #define APP_DEBUG_ENABLED                   (1)

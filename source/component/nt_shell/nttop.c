@@ -12,32 +12,32 @@
 #include "reg_Dev.h"
 #include "error_def.h"
 #include "utility.h"
-#include "qmx_hal_sysctrl.h"
-#include "qmx_hal_uart.h"
+#include "slc_hal_sysctrl.h"
+#include "slc_hal_uart.h"
 #include "app_cfg.h"
-#include "qmx_hal_intc.h"
-#include "qmx_hal_delay.h"
+#include "slc_hal_intc.h"
+#include "slc_hal_delay.h"
 
-#include "qmx_hal_pmu.h"
-#include "qmx_phy.h"
-#include "qmx_rf.h"
-#include "qmx_phy_trx.h"
-#include "qmx_subg.h"
-#include "qmx_cad.h"
-#include "qmx_afc.h"
-#include "qmx_sf_search.h"
-#include "qmx_debug_ila.h"
+#include "slc_hal_pmu.h"
+#include "slc_phy.h"
+#include "slc_rf.h"
+#include "slc_phy_trx.h"
+#include "slc_subg.h"
+#include "slc_cad.h"
+#include "slc_afc.h"
+#include "slc_sf_search.h"
+#include "slc_debug_ila.h"
 
-#include "qmx_private_spi_frame.h"
-#include "qmx_hal_rng.h"
-#include "qmx_cali.h"
+#include "slc_private_spi_frame.h"
+#include "slc_hal_rng.h"
+#include "slc_cali.h"
 
-#ifdef QMX_SOCTEST
-#include "qmx_soc_test.h"
+#ifdef SLC_SOCTEST
+#include "slc_soc_test.h"
 #endif
 
-#ifdef QMX_PHYTEST
-#include "qmx_phy_test.h"
+#ifdef SLC_PHYTEST
+#include "slc_phy_test.h"
 #endif
 
 #define NT_SHELL_UART_ID        DEBUG_UART_HANDLE
@@ -57,7 +57,7 @@ ntshell_t ntshell;
 static void nt_shell_printf(char *str)
 {
     uint16_t len = ntlibc_strlen(str);
-    qmx_hal_uart_send_data(NT_SHELL_UART_ID, (uint8_t *)str, len, NT_SHELL_UART_TIMEOUT);
+    slc_hal_uart_send_data(NT_SHELL_UART_ID, (uint8_t *)str, len, NT_SHELL_UART_TIMEOUT);
 }
 
 static int usrcmd_help(int argc, char **argv)
@@ -156,7 +156,7 @@ static int usrcmd_subg_write(int argc, char **argv)
     data = ntlibc_atoi(argv[2], 16);
 
     if (argc == 3) {
-        qmx_rf_spi_write32_cmd(addr, data);
+        slc_rf_spi_write32_cmd(addr, data);
         PRINTF("SUBG WR: 0x%x 0x%x\r\n", addr, data);
         return 0;
     }
@@ -169,7 +169,7 @@ static int usrcmd_subg_write(int argc, char **argv)
 
     start_bit = (uint8_t)ntlibc_atoi(argv[3], 10);
     end_bit = (uint8_t)ntlibc_atoi(argv[4], 10);
-    qmx_rf_spi_set_bits(addr, start_bit, end_bit, data);
+    slc_rf_spi_set_bits(addr, start_bit, end_bit, data);
     PRINTF("SUBG WR bits: 0x%X[%d:%d]=0x%X\r\n", addr, end_bit, start_bit, data);
 
     return 0;
@@ -188,7 +188,7 @@ static int usrcmd_subg_read(int argc, char **argv)
     addr = ntlibc_atoi(argv[1], 16);
 
     if (argc == 2) {
-        data = qmx_rf_spi_read32_cmd(addr);
+        data = slc_rf_spi_read32_cmd(addr);
         PRINTF("SUBG RD: 0x%X=0x%X\r\n", addr, data);
         return 0;
     }
@@ -201,19 +201,19 @@ static int usrcmd_subg_read(int argc, char **argv)
 
     start_bit = (uint8_t)ntlibc_atoi(argv[2], 10);
     end_bit = (uint8_t)ntlibc_atoi(argv[3], 10);
-    data = qmx_rf_spi_get_bits(addr, start_bit, end_bit);
+    data = slc_rf_spi_get_bits(addr, start_bit, end_bit);
     PRINTF("SUBG RD bits: 0x%X[%d:%d]=0x%X\r\n", addr, end_bit, start_bit, data);
 
     return 0;
 }
 
-#ifdef QMX_PHYTEST
+#ifdef SLC_PHYTEST
 uint8_t phy_tx_buf[256];
 static int usrcmd_phy_trx_cfg(int argc, char **argv)
 {
     phy_cfg_trx_e trx_mode;
     phy_cfg_tx_mode_e tx_mode;
-    qmx_rf_flo_e flo;
+    slc_rf_flo_e flo;
     phy_cfg_t cfg;
     uint16_t netid;
     uint32_t freq;
@@ -225,7 +225,7 @@ static int usrcmd_phy_trx_cfg(int argc, char **argv)
     }
 
     // FPGA上CAD休眠后会复位PHY寄存器，需重新使能PHY中断
-    qmx_phy0_irq_enable(PHY_IRQ_ALL_MASK);
+    slc_phy0_irq_enable(PHY_IRQ_ALL_MASK);
 
     for (uint16_t i = 0; i < sizeof(phy_tx_buf); i++) {
         phy_tx_buf[i] = (uint8_t)((i & 0xFF) + 0x55);
@@ -242,7 +242,7 @@ static int usrcmd_phy_trx_cfg(int argc, char **argv)
         tx_mode = PHY_TX_POLAR;
     }
 
-    flo = (qmx_rf_flo_e)ntlibc_atoi(argv[2], 10);
+    flo = (slc_rf_flo_e)ntlibc_atoi(argv[2], 10);
     freq = ntlibc_atoi(argv[3], 10);
     netid = (uint16_t)ntlibc_atoi(argv[4], 10);
     cfg.sf = (uint16_t)ntlibc_atoi(argv[5], 10);
@@ -257,9 +257,9 @@ static int usrcmd_phy_trx_cfg(int argc, char **argv)
            trx_mode == PHY_RX_EN ? "rx" : "tx", flo, freq, netid,
            cfg.sf, cfg.bw, cfg.header, cfg.crc, cfg.coderate, cfg.payload_len, cfg.preamble_num);
 
-    qmx_phy_trx_config(&cfg, netid, trx_mode, flo, freq, tx_mode);
+    slc_phy_trx_config(&cfg, netid, trx_mode, flo, freq, tx_mode);
 
-    qmx_phy_write_tx_buffer(phy_tx_buf, cfg.payload_len);
+    slc_phy_write_tx_buffer(phy_tx_buf, cfg.payload_len);
 
     return 0;
 }
@@ -318,41 +318,41 @@ static int usrcmd_phy_trigger_trx(int argc, char **argv)
             afc_en ? "enable" : "disable");
 
     if (trx_mode == PHY_TX_EN)
-        qmx_phy_start_trans_tx_data(tx_mode, power);
+        slc_phy_start_trans_tx_data(tx_mode, power);
 
 start:
-    qmx_phy_test_set_flag(0);
+    slc_phy_test_set_flag(0);
     if (trx_mode == PHY_TX_EN) {
         if (afc_en)
-            qmx_afc_adjust(PHY_TX_EN, tx_mode);
+            slc_afc_adjust(PHY_TX_EN, tx_mode);
 
         if (phy_test_mode == PHY_MODE_CAD)
-            qmx_cad_mode_enable(CAD_NORMAL_MODE);
+            slc_cad_mode_enable(CAD_NORMAL_MODE);
         else if (phy_test_mode == PHY_MODE_DUTY_CYCLE)
-            qmx_cad_mode_enable(CAD_DUTY_CYCLE_MODE);
+            slc_cad_mode_enable(CAD_DUTY_CYCLE_MODE);
 
-        qmx_phy_tx_trigger_single();
+        slc_phy_tx_trigger_single();
     } else {
         if (afc_en)
-            qmx_afc_adjust(PHY_RX_EN, tx_mode);
+            slc_afc_adjust(PHY_RX_EN, tx_mode);
 
-        qmx_phy_start_get_rx_data();
+        slc_phy_start_get_rx_data();
 
         if (phy_test_mode == PHY_MODE_CAD)
-            qmx_cad_mode_enable(CAD_NORMAL_MODE);
+            slc_cad_mode_enable(CAD_NORMAL_MODE);
         else if (phy_test_mode == PHY_MODE_DUTY_CYCLE)
-            qmx_cad_mode_enable(CAD_DUTY_CYCLE_MODE);
+            slc_cad_mode_enable(CAD_DUTY_CYCLE_MODE);
     }
 
     tx_pkg_num--;
     // SF搜索的测试需求，确保phy中断优先级高于uart
     if (tx_pkg_num > 0) {
-        qmx_hal_get_random_u32(&tx_delay, 4, 1000);
+        slc_hal_get_random_u32(&tx_delay, 4, 1000);
         tx_delay = (tx_delay < 100) ? (tx_delay+100) : (tx_delay % 1000);
         if (trx_mode == PHY_RX_EN)
             tx_delay = 10;  // 确保小于发送的间隔，大于收包的时长
-        while (qmx_phy_test_get_flag() == 0);
-        qmx_hal_nop_delay_ms(tx_delay);
+        while (slc_phy_test_get_flag() == 0);
+        slc_hal_nop_delay_ms(tx_delay);
         goto start;
     }
 
@@ -383,7 +383,7 @@ static int usrcmd_phy_cad_cfg(int argc, char **argv)
             (cad_type == 0) ? "CAD" : "PRE_CAD", check_symbol_num, duty_cycle_period);
 
     if (cad_type == 0) {
-        qmx_cad_cfg(check_symbol_num, duty_cycle_period, NULL);
+        slc_cad_cfg(check_symbol_num, duty_cycle_period, NULL);
         return 0;
     }
 
@@ -404,21 +404,21 @@ static int usrcmd_phy_cad_cfg(int argc, char **argv)
     PRINTF("pre cad config: pre_addr=0x%X, pre_num=%d, cycle_num=%d, matchaddr_wide=%d, marker=%d, nosleep_cycle=%d\r\n",
            cfg.pre_addr, cfg.pre_num, cfg.cycle_num, cfg.matchaddr_wide, cfg.marker, cfg.nosleep_cycle);
 
-    qmx_cad_cfg(check_symbol_num, duty_cycle_period, &cfg);
+    slc_cad_cfg(check_symbol_num, duty_cycle_period, &cfg);
 
     return 0;
 }
 
 static int usrcmd_phy_total_cnt(int argc, char **argv)
 {
-    qmx_phy_test_display_cnt();
+    slc_phy_test_display_cnt();
 
     return 0;
 }
 
 static int usrcmd_phy_single_tone(int argc, char **argv)
 {
-    qmx_phy_single_tone();
+    slc_phy_single_tone();
     return 0;
 }
 
@@ -426,7 +426,7 @@ static int usrcmd_phy_cad_exit(int argc, char **argv)
 {
     PRINTF("cad exit duty cycle\r\n");
 
-    qmx_cad_duty_cycle_disable();
+    slc_cad_duty_cycle_disable();
 
     return 0;
 }
@@ -436,16 +436,16 @@ static int usrcmd_phy_wakeup(int argc, char **argv)
     int ret = 0;
 
     // 上升沿唤醒
-    qmx_hal_pmu_phy_power_enable(false);
+    slc_hal_pmu_phy_power_enable(false);
 
-    ret = qmx_hal_pmu_phy_power_enable(true);
+    ret = slc_hal_pmu_phy_power_enable(true);
     if (ret != 0) {
         PRINTF("phy wakeup failed\r\n");
         return -1;
     }
-    ret += qmx_clk_cali(QMX_CALI_DCDC1M);
-    ret += qmx_clk_cali(QMX_CALI_RC32K);
-    ret += qmx_clk_cali(QMX_CALI_RC50M);
+    ret += slc_clk_cali(SLC_CALI_DCDC1M);
+    ret += slc_clk_cali(SLC_CALI_RC32K);
+    ret += slc_clk_cali(SLC_CALI_RC50M);
     if (ret != 0) {
         PRINTF("clk cali failed\r\n");
         return -1;
@@ -488,7 +488,7 @@ static int usrcmd_sfsearch_cfg(int argc, char **argv)
         sf1 = (float)atof(argv[3]);
         sf2 = (float)atof(argv[4]);
         sf3 = (float)atof(argv[5]);
-        qmx_sf_search_cfg(sf_num, sf1, sf2, sf3);
+        slc_sf_search_cfg(sf_num, sf1, sf2, sf3);
         PRINTF("sfsearch config: sf_num=%d, beishu1=%.03f, beishu2=%.03f, beishu3=%.03f\r\n",
                 sf_num, sf1, sf2, sf3);
     }
@@ -496,13 +496,13 @@ static int usrcmd_sfsearch_cfg(int argc, char **argv)
     PRINTF("sfsearch status: %s\r\n",
            (sf_en==0) ? "disable" : "enable");
 
-    qmx_sf_search_enable(sf_en);
+    slc_sf_search_enable(sf_en);
 
     return 0;
 }
 #endif
 
-#ifdef QMX_SOCTEST
+#ifdef SLC_SOCTEST
 static int usrcmd_soctest_cfg(int argc, char **argv)
 {
     uint32_t val;
@@ -535,14 +535,14 @@ static int usrcmd_soctest_cfg(int argc, char **argv)
 }
 #endif
 
-#ifdef QMX_ILATEST
+#ifdef SLC_ILATEST
 uint32_t g_ila_data __attribute__((aligned(4), section(".ram.ila")));
 #define RAM_ILA_START_ADDR  ((uint32_t)&g_ila_data)
 #define RAM_ILA_SIZE        (RAM_APP_DATA_MAX_ADDR - RAM_ILA_START_ADDR)
 
-void qmx_debug_ila_test_irq(void)
+void slc_debug_ila_test_irq(void)
 {
-    qmx_debug_ila_clear_status();
+    slc_debug_ila_clear_status();
     PRINTF("ILA irq\n");
 }
 
@@ -559,10 +559,10 @@ static int usrcmd_ila_cfg(int argc, char **argv)
     }
 
     if (ntlibc_strcmp((const char *)argv[1], "end") == 0) {
-        qmx_hal_gpio_set_iomux(HAL_GPIO_PIN2, HAL_IOMUX_MODE0);
-        qmx_hal_gpio_set_iomux(HAL_GPIO_PIN3, HAL_IOMUX_MODE0);
-        qmx_hal_sysctrl_peripheral_clk_enable(HAL_CLK_UART1, true);
-        qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_UART1);
+        slc_hal_gpio_set_iomux(HAL_GPIO_PIN2, HAL_IOMUX_MODE0);
+        slc_hal_gpio_set_iomux(HAL_GPIO_PIN3, HAL_IOMUX_MODE0);
+        slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_UART1, true);
+        slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_UART1);
 
         config.baudrate = 921600;
         config.parity = HAL_UART_PARITY_NONE;
@@ -574,10 +574,10 @@ static int usrcmd_ila_cfg(int argc, char **argv)
         config.fifo_en = true;
         config.flow_ctrl_en = false;
 
-        qmx_hal_uart_init(HAL_UART1, &config);
+        slc_hal_uart_init(HAL_UART1, &config);
 
-        qmx_debug_ila_start(false);
-        qmx_hal_uart_send_data(HAL_UART1, (uint8_t *)RAM_ILA_START_ADDR, RAM_ILA_SIZE, HAL_UART_TIMEOUT_US);
+        slc_debug_ila_start(false);
+        slc_hal_uart_send_data(HAL_UART1, (uint8_t *)RAM_ILA_START_ADDR, RAM_ILA_SIZE, HAL_UART_TIMEOUT_US);
         return 0;
     }
 
@@ -599,13 +599,13 @@ static int usrcmd_ila_cfg(int argc, char **argv)
 
     memset((void *)RAM_ILA_START_ADDR, 0, ila_cfg.size);
 
-    qmx_debug_ila_init(&ila_cfg);
+    slc_debug_ila_init(&ila_cfg);
 
-    qmx_hal_register_irq_handler(ILA_IRQ, qmx_debug_ila_test_irq);
-    qmx_debug_ila_interrupt_enable(true);
-    QMX_HAL_ENABLE_PERIPHERAL_IRQ(ILA_IRQ, 0x3);
+    slc_hal_register_irq_handler(ILA_IRQ, slc_debug_ila_test_irq);
+    slc_debug_ila_interrupt_enable(true);
+    SLC_HAL_ENABLE_PERIPHERAL_IRQ(ILA_IRQ, 0x3);
 
-    qmx_debug_ila_start(true);
+    slc_debug_ila_start(true);
 
     return 0;
 }
@@ -632,7 +632,7 @@ static int ntshell_func_read(char *buf, int cnt, void *extobj)
     uint32_t len = cnt;
     UNUSED_VARIABLE(extobj);
 
-    qmx_hal_uart_receive_data(NT_SHELL_UART_ID, (uint8_t *)buf, &len, NT_SHELL_UART_TIMEOUT);
+    slc_hal_uart_receive_data(NT_SHELL_UART_ID, (uint8_t *)buf, &len, NT_SHELL_UART_TIMEOUT);
 
     return len;
 }
@@ -642,7 +642,7 @@ static int ntshell_func_write(const char *buf, int cnt, void *extobj)
     uint16_t len = cnt;
     UNUSED_VARIABLE(extobj);
 
-    qmx_hal_uart_send_data(NT_SHELL_UART_ID, (uint8_t *)buf, len, NT_SHELL_UART_TIMEOUT);
+    slc_hal_uart_send_data(NT_SHELL_UART_ID, (uint8_t *)buf, len, NT_SHELL_UART_TIMEOUT);
 
     return len;
 }
@@ -695,12 +695,12 @@ int ntshell_top_init(void)
     ntshell_cmd_register("help", "help.", usrcmd_help);
     ntshell_cmd_register("wr", "write", usrcmd_write);
     ntshell_cmd_register("rd", "read", usrcmd_read);
-#ifdef QMX_FPGA
+#ifdef SLC_FPGA
     ntshell_cmd_register("subg_wr", "subg write", usrcmd_subg_write);
     ntshell_cmd_register("subg_rd", "subg read", usrcmd_subg_read);
 #endif
 
-#ifdef QMX_PHYTEST
+#ifdef SLC_PHYTEST
     ntshell_cmd_register("phy_cfg", "phy_cfg", usrcmd_phy_trx_cfg);
     ntshell_cmd_register("cad_cfg", "cad_cfg", usrcmd_phy_cad_cfg);
     ntshell_cmd_register("phy_trigger", "phy_trigger tx/rx", usrcmd_phy_trigger_trx);
@@ -712,11 +712,11 @@ int ntshell_top_init(void)
     ntshell_cmd_register("cpu_reset", "cpu_reset", usrcmd_cpu_reset);
 #endif
 
-#ifdef QMX_ILATEST
+#ifdef SLC_ILATEST
     ntshell_cmd_register("ila_cfg", "ila cfg", usrcmd_ila_cfg);
 #endif
 
-#ifdef QMX_SOCTEST
+#ifdef SLC_SOCTEST
     ntshell_cmd_register("soctest", "soctest cfg", usrcmd_soctest_cfg);
 #endif
 

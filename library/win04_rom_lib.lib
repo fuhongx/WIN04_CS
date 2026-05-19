@@ -1,4 +1,4 @@
-#<SYMDEFS># ARM Linker, 6220000: Last Updated: Tue May 19 10:02:49 2026
+#<SYMDEFS># ARM Linker, 6220000: Last Updated: Tue May 19 15:00:53 2026
 0x000005ed T rom_check_firmware
 0x000006b9 T rom_get_safe_level
 0x000006c5 T rom_utility_delay_cycles

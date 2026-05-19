@@ -160,7 +160,7 @@ extern "C"
 #define IIC0        ((stIicHandle_t *)ADDR_I2C0_BASE)
 #define IIC1        ((stIicHandle_t *)ADDR_I2C1_BASE)
 
-#define ILA         ((qmx_ila_reg_t *)ADDR_ILA_BASE)
+#define ILA         ((slc_ila_reg_t *)ADDR_ILA_BASE)
 
 #define DMA         ((stDMAHandle_t *)ADDR_DMA_BASE)
 #define DMA_CH0     ((stDMAChannel_t *)(ADDR_DMA_BASE + 0x00)) // APB0 + D00

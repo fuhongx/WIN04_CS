@@ -309,7 +309,7 @@ def get_boot2_info(Header):
 def write_c_file_build_info(cfile):
     cfile.write('/******************************************************************************\n')
     cfile.write(
-        '* Note: This content is used for QMX series chip Boot2 code loading and is not required if the chip category is non-boot2 mode.\n')
+        '* Note: This content is used for SLC series chip Boot2 code loading and is not required if the chip category is non-boot2 mode.\n')
     cfile.write('* \n')
     cfile.write('* -----------------------------Build info--------------------------------------\n')
     cfile.write('* Boot2.hex Build Time       : [' + HexLastBuildTime  + '].\n')
@@ -322,9 +322,9 @@ def write_c_file_build_info(cfile):
     cfile.write(
         '* THIS CODE IS LIMITED TO GUIDE APPLICATION DEVELOPMENT AND INCREASE DEVELOPMENT SPEED.\n')
     cfile.write(
-        '* AS A RESULT, QMX IS NOT RESPONSIBLE FOR ANY CLAIMS ARISING DIRECTLY OR INDIRECTLY FROM SUCH FIRMWARE AND/OR CONTENT.\n')
+        '* AS A RESULT, SLC IS NOT RESPONSIBLE FOR ANY CLAIMS ARISING DIRECTLY OR INDIRECTLY FROM SUCH FIRMWARE AND/OR CONTENT.\n')
     cfile.write('* \n')
-    cfile.write('* Copyright (c) 2025 QMX Semiconductor all rights reserved.\n')
+    cfile.write('* Copyright (c) 2025 SLC Semiconductor all rights reserved.\n')
     cfile.write('******************************************************************************/\n')
     cfile.write('\n\n')
 

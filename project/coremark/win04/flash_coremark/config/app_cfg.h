@@ -19,7 +19,7 @@
 
 
 //DEBUG Config
-#ifdef QMX_FPGA
+#ifdef SLC_FPGA
 #define DEBUG_UART_TX_PIN                   (HAL_GPIO_PIN0)
 #define DEBUG_UART_RX_PIN                   (HAL_GPIO_PIN1)
 #define DEBUG_UART_IOMUX                    (HAL_IOMUX_MODE0)

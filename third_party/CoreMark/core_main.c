@@ -28,7 +28,7 @@ Original Author: Shay Gal-on
 #include "utility.h"
 
 #include "coremark.h"
-#include "qmx_hal_sysctrl.h"
+#include "slc_hal_sysctrl.h"
 
 
 
@@ -437,7 +437,7 @@ for (i = 0; i < MULTITHREAD; i++)
 #endif
             ee_printf("\n");
             ee_printf("Coremarks/MHz: %f\r\n", default_num_contexts * results[0].iterations
-                          / time_in_secs(total_time)/((float)(qmx_hal_sysctrl_get_system_clock()/1000000)));
+                          / time_in_secs(total_time)/((float)(slc_hal_sysctrl_get_system_clock()/1000000)));
         }
 #endif
     }

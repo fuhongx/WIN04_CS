@@ -1,15 +1,15 @@
 /**
  * ****************************************************************************
- * @file qmx_systick.c
- * @author QMX software team.
+ * @file slc_systick.c
+ * @author SLC software team.
  * @brief
  * @version  1.0
  * ****************************************************************************
  *
  * THIS CODE IS LIMITED TO GUIDE THE APPLICATION AND IMPROVE THE EFFICIENCY OF RESEARCH AND DEVELOPMENT.
- * AS A RESULT, QMX IS NOT RESPONSIBLE FOR ANY CLAIMS ARISING DIRECTLY OR INDIRECTLY FROM SUCH FIRMWARE AND/OR CONTENT.
+ * AS A RESULT, SLC IS NOT RESPONSIBLE FOR ANY CLAIMS ARISING DIRECTLY OR INDIRECTLY FROM SUCH FIRMWARE AND/OR CONTENT.
  *
- * Copyright (c) 2025 QMX Semiconductor all rights reserved.
+ * Copyright (c) 2025 SLC Semiconductor all rights reserved.
  *
  * ****************************************************************************
  */

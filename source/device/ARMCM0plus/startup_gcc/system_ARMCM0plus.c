@@ -27,14 +27,14 @@
 //This file only can use in example project. Don't use this file in Rom lib.
 //------------------------------------------------------------------------------
 
-#include "qmx_hal_intc.h"
+#include "slc_hal_intc.h"
 
 /**
  * @brief  System initialization function.
  */
 void SystemInit(void)
 {
-    qmx_hal_intc_init();
+    slc_hal_intc_init();
 }
 
 __NO_RETURN void Reset_Handler(void)

@@ -11,9 +11,9 @@
 #include "hw_flash.h"
 #include "hw_gpio.h"
 #include "hw_dma.h"
-#include "qmx_hal_sysctrl.h"
-#include "qmx_hal_pmu.h"
-#include "qmx_cali.h"
+#include "slc_hal_sysctrl.h"
+#include "slc_hal_pmu.h"
+#include "slc_cali.h"
 #include "app_cfg.h"
 
 extern void rf_test_main(void);
@@ -24,27 +24,27 @@ uint32_t u32PutNum = 0;
 
 void system_init(void)
 {
-    qmx_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
-    qmx_hal_sysctrl_peripheral_mod_reset(HAL_CLK_GPIO);   // 复位boot内的PIN8管脚配置
+    slc_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_GPIO);   // 复位boot内的PIN8管脚配置
 
-    qmx_hal_pmu_phy_power_enable(true);
+    slc_hal_pmu_phy_power_enable(true);
 
-#ifndef QMX_FPGA
+#ifndef SLC_FPGA
     write32(0x4001403C, 0x637);
     // 校准时切换到TCXO25M，可正常使用外设等，否则时钟波动可能导致打印等异常
-    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_TCXO25M, HAL_SYSCLK_DIV_NONE);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_TCXO25M, HAL_SYSCLK_DIV_NONE);
 
-    // qmx_hal_pmu_phy_power_enable(true);
+    // slc_hal_pmu_phy_power_enable(true);
 
 #if APP_DEBUG_ENABLED
     debug_printf_init();
 #endif
     PRINTF("FW start to CALI\n");
-    qmx_cali_init(QMX_CALI_DC_IQ);
+    slc_cali_init(SLC_CALI_DC_IQ);
 #endif
 
     // 校准结束切换回RC50M，需重新进行UART初始化
-    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
 
 #if APP_DEBUG_ENABLED
     debug_printf_init();

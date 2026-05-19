@@ -22,11 +22,11 @@ Original Author: Shay Gal-on
 
 #include "reg_Dev.h"
 #include "error_def.h"
-#include "qmx_hal_sysctrl.h"
-#include "qmx_hal_intc.h"
-#include "qmx_hal_pmu.h"
-#include "qmx_rf.h"
-#include "qmx_cali.h"
+#include "slc_hal_sysctrl.h"
+#include "slc_hal_intc.h"
+#include "slc_hal_pmu.h"
+#include "slc_rf.h"
+#include "slc_cali.h"
 
 #include "app_cfg.h"
 #include "utility.h"
@@ -111,7 +111,7 @@ void SysTick_Handler(void)
 void start_time(void)
 {
     systick_count = 0;
-    SysTick_Config(qmx_hal_sysctrl_get_system_clock()/10);
+    SysTick_Config(slc_hal_sysctrl_get_system_clock()/10);
 }
 /* Function : stop_time
         This function will be called right after ending the timed portion of the
@@ -161,25 +161,25 @@ ee_u32 default_num_contexts = 1;
 void
 portable_init(core_portable *p, int *argc, char *argv[])
 {
-    qmx_hal_intc_init();
+    slc_hal_intc_init();
 
-#ifndef QMX_FPGA
-    qmx_hal_pmu_phy_power_enable(true);
+#ifndef SLC_FPGA
+    slc_hal_pmu_phy_power_enable(true);
     // vtcxo bypass，使用vBAT供电，切25M之前配置，防止TCXO未工作，切换后CPU卡死
-    qmx_rf_tcxo_bypass(true);
+    slc_rf_tcxo_bypass(true);
 
     // 校准时切换到TCXO25M，可正常使用外设等，否则时钟波动可能导致打印等异常
-    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_TCXO25M, HAL_SYSCLK_DIV_NONE);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_TCXO25M, HAL_SYSCLK_DIV_NONE);
 
     debug_printf_init();
 
     PRINTF("FW start to CALI\n");
-    if (qmx_cali_init(QMX_CALI_DC_IQ) != 0) {
+    if (slc_cali_init(SLC_CALI_DC_IQ) != 0) {
         PRINTF("FW CALI fail\n");
     }
 #endif
 
-    qmx_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
     debug_printf_init();
 
     // rom_hw_flash_config_read_write_mode(EN_FLASH_RW_MODE_SPI);
@@ -187,8 +187,8 @@ portable_init(core_portable *p, int *argc, char *argv[])
     // rom_hw_flash_config_read_write_mode(EN_FLASH_RW_MODE_QSPI);
     rom_hw_flash_config_read_write_mode(EN_FLASH_RW_MODE_FQSPI);
 
-    qmx_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
-    // qmx_hal_sysctrl_cache_mode_set(HAL_CACHE_DISABLE);
+    slc_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
+    // slc_hal_sysctrl_cache_mode_set(HAL_CACHE_DISABLE);
 
     PRINTF("CoreMark Init...\n");
     if (sizeof(ee_ptr_int) != sizeof(ee_u8 *))

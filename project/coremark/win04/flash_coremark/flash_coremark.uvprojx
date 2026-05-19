@@ -486,49 +486,49 @@
           <GroupName>drivers</GroupName>
           <Files>
             <File>
-              <FileName>qmx_intc.c</FileName>
+              <FileName>slc_intc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\qmx_intc.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\slc_intc.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_gpio.c</FileName>
+              <FileName>slc_gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\patch\src\qmx_gpio.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\patch\src\slc_gpio.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_dma.c</FileName>
+              <FileName>slc_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\patch\src\qmx_dma.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\patch\src\slc_dma.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_uart.c</FileName>
+              <FileName>slc_uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\patch\src\qmx_uart.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\patch\src\slc_uart.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_cali.c</FileName>
+              <FileName>slc_cali.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\qmx_cali.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\slc_cali.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_rf.c</FileName>
+              <FileName>slc_rf.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\qmx_rf.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\slc_rf.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_phy.c</FileName>
+              <FileName>slc_phy.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\qmx_phy.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\hw_flash\src\slc_phy.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_pmu.c</FileName>
+              <FileName>slc_pmu.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\patch\src\qmx_pmu.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\patch\src\slc_pmu.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_sysctrl.c</FileName>
+              <FileName>slc_sysctrl.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\drivers\win04\patch\src\qmx_sysctrl.c</FilePath>
+              <FilePath>..\..\..\..\source\drivers\win04\patch\src\slc_sysctrl.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -536,34 +536,34 @@
           <GroupName>hal</GroupName>
           <Files>
             <File>
-              <FileName>qmx_hal_intc.c</FileName>
+              <FileName>slc_hal_intc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_intc.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_intc.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_hal_sysctrl.c</FileName>
+              <FileName>slc_hal_sysctrl.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_sysctrl.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_sysctrl.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_hal_gpio.c</FileName>
+              <FileName>slc_hal_gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_gpio.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_gpio.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_hal_uart.c</FileName>
+              <FileName>slc_hal_uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_uart.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_uart.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_hal_pmu.c</FileName>
+              <FileName>slc_hal_pmu.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_pmu.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_pmu.c</FilePath>
             </File>
             <File>
-              <FileName>qmx_hal_dma.c</FileName>
+              <FileName>slc_hal_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\source\hal\src\qmx_hal_dma.c</FilePath>
+              <FilePath>..\..\..\..\source\hal\src\slc_hal_dma.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -45,9 +45,9 @@ def excel_to_c_array(excel_file, sheet_name=0):
         c_code.append("    uint8_t freq_doubler;")
         c_code.append("    uint8_t lo_ppf;")
         c_code.append("    uint8_t pll_dac_lpf;")
-        c_code.append("} qmx_rccali_t;\n")
+        c_code.append("} slc_rccali_t;\n")
         
-        c_code.append("static const qmx_rccali_t calib_table[] = {")
+        c_code.append("static const slc_rccali_t calib_table[] = {")
         
         # 处理每一行数据
         for index, row in df.iterrows():

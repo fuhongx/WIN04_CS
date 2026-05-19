@@ -8,14 +8,14 @@
 #include "error_def.h"
 #include "utility.h"
 #include "app_cfg.h"
-#include "qmx_hal_sysctrl.h"
-#include "qmx_hal_delay.h"
-#include "qmx_hal_intc.h"
-#include "qmx_hal_gpio.h"
+#include "slc_hal_sysctrl.h"
+#include "slc_hal_delay.h"
+#include "slc_hal_intc.h"
+#include "slc_hal_gpio.h"
 #include "rf_test_def.h"
-#include "qmx_cali.h"
-#include "qmx_phy_trx.h"
-#include "qmx_private_spi_frame.h"
+#include "slc_cali.h"
+#include "slc_phy_trx.h"
+#include "slc_private_spi_frame.h"
 //------------------------------------------------------------------------------
 // Compatible old drivers.
 //------------------------------------------------------------------------------
@@ -140,12 +140,12 @@ void spi_cmd_handler(uint8_t *pu8Buffer)
     }
 }
 
-// void qmx_phy0_test_mask_irq(void)
+// void slc_phy0_test_mask_irq(void)
 // {
-//     uint32_t irq_flag = qmx_phy_irq_get_status();
+//     uint32_t irq_flag = slc_phy_irq_get_status();
 
 //     // clear irq flag
-//     qmx_phy_irq_clr_status(irq_flag);
+//     slc_phy_irq_clr_status(irq_flag);
 
 //     PRINTF("PHY0 IRQ: 0x%08X\r\n", irq_flag);
 // }
@@ -156,16 +156,16 @@ void rf_test_main(void)
     //    rom_hw_sysctrl_reset_phy();
 
     rf_test_interface_init();
-#ifdef QMX_FPGA
+#ifdef SLC_FPGA
     rf_sub_spi_init();
-    // qmx_private_spi_init();
+    // slc_private_spi_init();
 #endif
-    qmx_hal_gpio_set_iomux(HAL_GPIO_PIN17, HAL_IOMUX_MODE7);
-    // QMX_HAL_ENABLE_PERIPHERAL_IRQ(PHY0_IRQ, 0x3);
-    // qmx_hal_register_irq_handler(PHY0_IRQ, qmx_phy0_test_mask_irq);
-    // qmx_phy0_irq_enable(PHY_IRQ_ALL_MASK);
+    slc_hal_gpio_set_iomux(HAL_GPIO_PIN17, HAL_IOMUX_MODE7);
+    // SLC_HAL_ENABLE_PERIPHERAL_IRQ(PHY0_IRQ, 0x3);
+    // slc_hal_register_irq_handler(PHY0_IRQ, slc_phy0_test_mask_irq);
+    // slc_phy0_irq_enable(PHY_IRQ_ALL_MASK);
 
-    qmx_hal_nop_delay_us(800);
+    slc_hal_nop_delay_us(800);
 
     uint32_t u32Addr = 0x40010000;
 
@@ -384,7 +384,7 @@ void rf_test_main(void)
 
                     *op_addr = payload.data;
                     // PRINTF("WRITE_RF_REG(0x%x, 0x%x);\n", op_addr, payload.data);
-                    // qmx_phy_spi_write32_cmd(addr.data, payload.data);
+                    // slc_phy_spi_write32_cmd(addr.data, payload.data);
 
                     break;
 
@@ -392,7 +392,7 @@ void rf_test_main(void)
                     op_addr = ((uint32_t *)(0x40010000 + addr.data));
 
                     payload.data = *op_addr;
-                    // payload.data = qmx_phy_spi_read32_cmd(addr.data);
+                    // payload.data = slc_phy_spi_read32_cmd(addr.data);
 
                     // put_char(payload.byte[0]);
                     // put_char(payload.byte[1]);
@@ -406,7 +406,7 @@ void rf_test_main(void)
 
                     *op_addr = payload.data;
 
-                    // qmx_phy_spi_write32_cmd(addr.data, payload.data);
+                    // slc_phy_spi_write32_cmd(addr.data, payload.data);
                     // PRINTF("WRITE_RF_REG(0x%x, 0x%x);\n", op_addr, payload.data);
 
                     break;
@@ -422,7 +422,7 @@ void rf_test_main(void)
                     // put_char(payload.byte[2]);
                     // put_char(payload.byte[3]);
 
-                    // payload.data = qmx_phy_spi_read32_cmd(addr.data);
+                    // payload.data = slc_phy_spi_read32_cmd(addr.data);
 
                     rf_test_transmit_bytes(&payload.byte[0], 4);
 
@@ -479,9 +479,9 @@ void rf_test_main(void)
                     // PRINTF("WRITE_REG(0x%x, 0x%x);\n", op_addr, payload.data);
 
                     if ((addr.data == 0x0004) && (payload.data == 0x1)) {
-                        qmx_clk_cali(QMX_CALI_DCDC1M);
-                        qmx_clk_cali(QMX_CALI_RC32K);
-                        qmx_clk_cali(QMX_CALI_RC50M);
+                        slc_clk_cali(SLC_CALI_DCDC1M);
+                        slc_clk_cali(SLC_CALI_RC32K);
+                        slc_clk_cali(SLC_CALI_RC50M);
                     }
                     break;
 

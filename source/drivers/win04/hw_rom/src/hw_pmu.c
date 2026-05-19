@@ -125,17 +125,17 @@ EN_ERR_STA_T rom_hw_pmu_enable_phy_power(bool bEnable)
 void rom_hw_pmu_rf_lp_bypass(bool enable)
 {
     if (enable)
-        PMU->LP_MAN |= QMX_PMU_RF_LP_BYPASS_VAL(1);
+        PMU->LP_MAN |= SLC_PMU_RF_LP_BYPASS_VAL(1);
     else
-        PMU->LP_MAN &= ~QMX_PMU_RF_LP_BYPASS_MASK;
+        PMU->LP_MAN &= ~SLC_PMU_RF_LP_BYPASS_MASK;
 }
 
 void rom_hw_pmu_force_flash_on(bool enable)
 {
     if (enable)
-        PMU->LP_MAN |= QMX_PMU_FORCE_FLASH_ON_VAL(1);
+        PMU->LP_MAN |= SLC_PMU_FORCE_FLASH_ON_VAL(1);
     else
-        PMU->LP_MAN &= ~QMX_PMU_FORCE_FLASH_ON_MASK;
+        PMU->LP_MAN &= ~SLC_PMU_FORCE_FLASH_ON_MASK;
 }
 
 uint8_t rom_hw_pmu_get_lp_fail_flag(void)
