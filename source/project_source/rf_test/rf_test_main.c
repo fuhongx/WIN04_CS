@@ -116,21 +116,43 @@ void spi_cmd_handler(uint8_t *pu8Buffer)
     case 0x2:
     {
         // PRINTF("Subg Write Cmd!\n");
+#if RF_TEST_SUBG_ENABLE
         rf_subg_write32_cmd(u16Addr, &pu8Buffer[3], 4);
+#else
+        u32Data = ((uint32_t)pu8Buffer[3] << 24) | ((uint32_t)pu8Buffer[4] << 16) | ((uint32_t)pu8Buffer[5] << 8) | (uint32_t)pu8Buffer[6];
+        slc_rf_spi_write32_cmd(u16Addr, u32Data);
+#endif
         break;
     }
 
     case 0x3:
     {
         // PRINTF("Subg Read Cmd!\n");
+#if RF_TEST_SUBG_ENABLE
         rf_subg_read32_cmd(u16Addr, au8ReadBuffer, 4);
+#else
+        u32Data = slc_rf_spi_read32_cmd(u16Addr);
+        au8ReadBuffer[0] = (u32Data >> 24) & 0xFF;
+        au8ReadBuffer[1] = (u32Data >> 16) & 0xFF;
+        au8ReadBuffer[2] = (u32Data >> 8) & 0xFF;
+        au8ReadBuffer[3] = u32Data & 0xFF;
+#endif
+        rf_test_transmit_bytes(au8ReadBuffer, 4);
         break;
     }
 
     case 0x0B:
     {
         // PRINTF("Subg Read Dummy Cmd!\n");
+#if RF_TEST_SUBG_ENABLE
         rf_subg_read32_with_dummy(u16Addr, au8ReadBuffer, 4);
+#else
+        u32Data = slc_rf_spi_read32_cmd_with_dummy(u16Addr);
+        au8ReadBuffer[0] = (u32Data >> 24) & 0xFF;
+        au8ReadBuffer[1] = (u32Data >> 16) & 0xFF;
+        au8ReadBuffer[2] = (u32Data >> 8) & 0xFF;
+        au8ReadBuffer[3] = u32Data & 0xFF;
+#endif
         rf_test_transmit_bytes(au8ReadBuffer, 4);
         break;
     }
@@ -157,8 +179,11 @@ void rf_test_main(void)
 
     rf_test_interface_init();
 #ifdef SLC_FPGA
+#if RF_TEST_SUBG_ENABLE
     rf_sub_spi_init();
-    // slc_private_spi_init();
+#else
+    slc_private_spi_init();
+#endif
 #endif
     slc_hal_gpio_set_iomux(HAL_GPIO_PIN17, HAL_IOMUX_MODE7);
     // SLC_HAL_ENABLE_PERIPHERAL_IRQ(PHY0_IRQ, 0x3);

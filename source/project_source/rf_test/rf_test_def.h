@@ -30,7 +30,7 @@
 #define RF_TEST_UART_RX_PIN                  (HAL_GPIO_PIN3)
 #endif
 
-
+#define RF_TEST_SUBG_ENABLE                  (0)
 
 
 typedef void (*pf_rf_test_transmit_callback)(uint8_t *pu8Buffer, uint16_t u16Len);

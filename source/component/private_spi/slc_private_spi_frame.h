@@ -53,6 +53,7 @@ void slc_private_spi_init(void);
 
 void slc_rf_spi_write32_cmd(uint16_t addr, uint32_t data);
 uint32_t slc_rf_spi_read32_cmd(uint16_t addr);
+uint32_t slc_rf_spi_read32_cmd_with_dummy(uint16_t addr); // for read 32bit data with dummy
 void slc_rf_spi_set_bits(uint16_t addr, uint8_t start_bit, uint8_t end_bit, uint32_t val);
 uint32_t slc_rf_spi_get_bits(uint16_t addr, uint8_t start_bit, uint8_t end_bit);
 
