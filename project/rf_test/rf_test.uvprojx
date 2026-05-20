@@ -338,7 +338,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>WIN04 CAD</Define>
+              <Define>WIN04 CAD SLC_FPGA</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\source\device\ARMCM0plus\Include;..\..\source\device\CMSIS_Core\Include;..\..\source\device\reg_device;..\..\source\component\error_def;..\..\source\component\utility;..\..\source\component\debug;..\..\source\drivers\win04\register;..\..\source\drivers\win04\hw_rom\inc;..\..\source\drivers\win04\hw_flash\inc;..\..\source\hal\inc;..\..\source\mem_cfg\flash;..\..\source\mem_cfg\win04;..\..\source\device\win04;.\config;..\..\source\drivers\win04\patch\inc;..\..\source\component\private_spi</IncludePath>
             </VariousControls>
@@ -460,26 +460,6 @@
           <GroupName>drivers</GroupName>
           <Files>
             <File>
-              <FileName>slc_intc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\hw_flash\src\slc_intc.c</FilePath>
-            </File>
-            <File>
-              <FileName>slc_gpio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\patch\src\slc_gpio.c</FilePath>
-            </File>
-            <File>
-              <FileName>slc_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\patch\src\slc_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>slc_dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\patch\src\slc_dma.c</FilePath>
-            </File>
-            <File>
               <FileName>slc_cali.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\source\drivers\win04\hw_flash\src\slc_cali.c</FilePath>
@@ -495,14 +475,9 @@
               <FilePath>..\..\source\drivers\win04\hw_flash\src\slc_rf.c</FilePath>
             </File>
             <File>
-              <FileName>slc_pmu.c</FileName>
+              <FileName>slc_intc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\patch\src\slc_pmu.c</FilePath>
-            </File>
-            <File>
-              <FileName>slc_sysctrl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\source\drivers\win04\patch\src\slc_sysctrl.c</FilePath>
+              <FilePath>..\..\source\drivers\win04\patch\src\slc_intc.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -538,6 +513,11 @@
               <FileName>slc_hal_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\source\hal\src\slc_hal_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_hal_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\source\hal\src\slc_hal_spi.c</FilePath>
             </File>
           </Files>
         </Group>

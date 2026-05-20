@@ -16,7 +16,6 @@
 #include "rf_test_def.h"
 
 #include "slc_hal_spi.h"
-#include "hw_uart.h"
 
 void *pf_transmit;
 void *pf_get_char;
@@ -44,14 +43,14 @@ void rf_sub_spi_init(void)
 
     hal_spi_cfg_t config = {0};
     config.mode = HAL_SPI_MASTER;
-    config.clk_div = HAL_SPI_DIV_100;
+    config.clk_div = HAL_SPI_DIV_20;
     config.data_mode = HAL_SPI_DATA_MSB;
     config.polarity_phase = HAL_SPI_CPOL0_CPHA0;
     config.data_len = HAL_SPI_DATA_LEN_8BIT;
-    config.cs_holding_time = 0x100;
+    config.cs_holding_time = 0x10;
     config.clk_adjust_en = true;
     config.sw_cs_en = true;
-    config.cs_gap_time = 0;
+    config.cs_gap_time = 0x10;
     config.anti_noise_level = 0;
     config.tx_fifo_pfull_th = 12;
     config.rx_fifo_pfull_th = 12;
@@ -256,18 +255,17 @@ uint8_t rf_test_uart_get_char(void)
 uint8_t rf_get_one_char_new(void)
 {
     uint8_t u8RxData = 0;
-    uint8_t u8Ret = 0;
-    stUartHandle_t *rf_test_uartHandle = slc_hal_uart_get_handle(RF_TEST_UART_HANDLE);
+    int ret = 0;
+    uint32_t len = 1;
     while(1)
     {
-        // TODO: 待ES修改uart接口逻辑后修改
-        u8Ret = rom_hw_uart_recieve_fixlen_bytes(rf_test_uartHandle, &u8RxData, 1, 1);
-        if(u8Ret == EN_ERROR_STA_OK)
+        ret = slc_hal_uart_receive_data(RF_TEST_UART_HANDLE, &u8RxData, &len, HAL_UART_TIMEOUT_US);
+        if(ret == 0)
         {
             break;
         }
     }
-    
+
     return u8RxData;
 }
 
