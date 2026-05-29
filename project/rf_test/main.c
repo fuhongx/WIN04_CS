@@ -25,7 +25,6 @@ uint32_t u32PutNum = 0;
 void system_init(void)
 {
     slc_hal_sysctrl_cache_mode_set(HAL_CACHE_ENABLE);
-    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_GPIO);   // 复位boot内的PIN8管脚配置
 
     slc_hal_pmu_phy_power_enable(true);
 
@@ -44,11 +43,13 @@ void system_init(void)
 #endif
 
     // 校准结束切换回RC50M，需重新进行UART初始化
-    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_FDB50M, HAL_SYSCLK_DIV_NONE);
 
 #if APP_DEBUG_ENABLED
     debug_printf_init();
 #endif
+    PRINTF("FW start to work(freq: %dMHz). Build Time:[%s T %s].\n",
+            slc_hal_sysctrl_get_system_clock() / 1000000, __DATE__, __TIME__);
 }
 
 

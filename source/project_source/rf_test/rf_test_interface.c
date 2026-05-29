@@ -150,10 +150,12 @@ void rf_test_uart_init(void)
     if(HAL_UART0 == RF_TEST_UART_HANDLE)
     {
         slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_UART0, true);
+        slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_UART0);
     }
     else
     {
         slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_UART1, true);
+        slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_UART1);
     }
 
     //GPIO INIT
@@ -170,108 +172,41 @@ void rf_test_uart_init(void)
 
     config.tx_fifo_thld = HAL_UART_TXFIFO_THLD_EMPTY;
     config.rx_fifo_thld = HAL_UART_RXFIFO_THLD_1BYTE;
-    config.fifo_en = false;
+    config.fifo_en = true;
     config.flow_ctrl_en = false;
 
     slc_hal_uart_init(RF_TEST_UART_HANDLE, &config);
+    PRINTF("RF test uart%d init ok\n", (RF_TEST_UART_HANDLE == HAL_UART0) ? 0 : 1);
 }
 
 void rf_test_uart_tx(uint8_t *pu8Buffer, uint16_t u16Len)
 {
-    slc_hal_uart_send_data(RF_TEST_UART_HANDLE, pu8Buffer, u16Len, HAL_UART_TIMEOUT_US);
+    slc_hal_uart_send_data(RF_TEST_UART_HANDLE, pu8Buffer, u16Len, 1000);
 }
 
 bool bNoRet = false;
-extern stUartHandle_t *slc_hal_uart_get_handle(hal_uart_id_e uart);
-uint8_t rf_test_uart_get_char(void)
-{
-    uint16_t u16Sta = 0;
-    uint8_t rx_data;
-    uint32_t u32Timeout = 0;
-    stUartHandle_t *uartHandle = slc_hal_uart_get_handle(DEBUG_UART_HANDLE);
-    stUartHandle_t *rf_test_uartHandle = slc_hal_uart_get_handle(RF_TEST_UART_HANDLE);
-    while(1)
-    {
-        u16Sta = slc_hal_uart_get_irq_status(RF_TEST_UART_HANDLE);
-        while(HAL_UART_STA_RX_READY != (u16Sta & HAL_UART_STA_RX_READY))
-        {
-            u16Sta = slc_hal_uart_get_irq_status(RF_TEST_UART_HANDLE);
-            
-            if(HAL_UART_STA_RX_READY != (u16Sta & HAL_UART_STA_RX_READY))
-            {
-                u32Timeout++;
-            }
-            
-            if(u32Timeout > 3000)
-            {
-                extern uint8_t au8PrtBuffer[1024 * 4];
-                extern uint32_t u32PrtNum;
-                extern uint32_t u32PutNum;
-
-                if(u32PrtNum != u32PutNum)
-                {
-                    uint8_t u8Cnt = uartHandle->TX_FIFO_CNT;
-                    if(u8Cnt < 15)
-                    {
-                        uint8_t u8PutNum;
-                        
-                        if((15 - u8Cnt) <= (u32PrtNum - u32PutNum))
-                        {
-                            u8PutNum = 15 - u8Cnt;
-                        }
-                        else
-                        {
-                            u8PutNum = (u32PrtNum - u32PutNum);
-                        }
-                        
-                        for(int i=0; i < u8PutNum; i++)
-                        {
-                            uartHandle->DATA_FIFO_AND_CLK_DLV_LO = au8PrtBuffer[u32PutNum];
-                            u32PutNum++;
-                        }
-                    }
-                    
-                }
-                if(u32PrtNum == u32PutNum)
-                {
-                    u32PrtNum = 0;
-                    u32PutNum = 0;
-                }
-            }
-            
-        }
-        u32Timeout = 0;
-        
-        rx_data = rf_test_uartHandle->DATA_FIFO_AND_CLK_DLV_LO & UART_DATA_FIFO_REG_MASK;
-        if(!bNoRet)
-        {
-        break;
-        }
-    }
-    
-    return rx_data;
-}
-
 uint8_t rf_get_one_char_new(void)
 {
-    uint8_t u8RxData = 0;
+    uint8_t u8RxData[1] = {0};
     int ret = 0;
     uint32_t len = 1;
     while(1)
     {
-        ret = slc_hal_uart_receive_data(RF_TEST_UART_HANDLE, &u8RxData, &len, HAL_UART_TIMEOUT_US);
-        if(ret == 0)
+        ret = slc_hal_uart_receive_data(RF_TEST_UART_HANDLE, u8RxData, &len, 5);
+        if(len == 1)
         {
+            // PRINTF("Get one char %x\n", u8RxData[0]);
             break;
         }
+        len = 1;
     }
 
-    return u8RxData;
+    return u8RxData[0];
 }
 
 void rf_test_uart_get_data(uint8_t *pu8Buffer, uint16_t* pu16Len)
 {
-    slc_hal_uart_receive_data(RF_TEST_UART_HANDLE, pu8Buffer, (uint32_t *)pu16Len, HAL_UART_TIMEOUT_US);
+    slc_hal_uart_receive_data(RF_TEST_UART_HANDLE, pu8Buffer, (uint32_t *)pu16Len, 1000);
 }
 
 void rf_test_interface_init(void)

@@ -19,10 +19,17 @@
 
 
 //DEBUG Config
+#ifndef SLC_FPGA
 #define DEBUG_UART_TX_PIN                   (HAL_GPIO_PIN2)
 #define DEBUG_UART_RX_PIN                   (HAL_GPIO_PIN3)
 #define DEBUG_UART_IOMUX                    (HAL_IOMUX_MODE0)
 #define DEBUG_UART_HANDLE                   (HAL_UART1)
+#else
+#define DEBUG_UART_TX_PIN                   (HAL_GPIO_PIN0)
+#define DEBUG_UART_RX_PIN                   (HAL_GPIO_PIN1)
+#define DEBUG_UART_IOMUX                    (HAL_IOMUX_MODE0)
+#define DEBUG_UART_HANDLE                   (HAL_UART0)
+#endif
 
 #define DEBUG_UART_BAUDRATE                 (921600)
 

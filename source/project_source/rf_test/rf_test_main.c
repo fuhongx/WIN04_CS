@@ -235,6 +235,7 @@ void rf_test_main(void)
 
 #define ADDR_BASE_FOR_TEST (0x40000000) // 0x40010000
 
+    PRINTF("rf test start\n");
     while (1)
 
     {
@@ -271,10 +272,10 @@ void rf_test_main(void)
                 {
                     uint16_t u16RxLen = 16;
                     rf_test_uart_get_data(au8RxBuffer, &u16RxLen);
-                    for (int i = 0; i < u16RxLen; i++)
-                    {
-                        // PRINTF("R %d = 0x%x\n", i, au8RxBuffer[i]);
-                    }
+                    // for (int i = 0; i < u16RxLen; i++)
+                    // {
+                    //     // PRINTF("R %d = 0x%x\n", i, au8RxBuffer[i]);
+                    // }
                     spi_cmd_handler(&au8RxBuffer[0]);
                     memset(au8RxBuffer, 0, sizeof(au8RxBuffer));
                 }
@@ -472,6 +473,7 @@ void rf_test_main(void)
                     // put_char(payload.byte[1]);
                     // put_char(payload.byte[2]);
                     // put_char(payload.byte[3]);
+                    // PRINTF("READ 0x%x, 0x%x\n", op_addr, payload.data);
 
                     rf_test_transmit_bytes(&payload.byte[0], 4);
 
@@ -503,11 +505,11 @@ void rf_test_main(void)
                     *op_addr = payload.data;
                     // PRINTF("WRITE_REG(0x%x, 0x%x);\n", op_addr, payload.data);
 
-                    if ((addr.data == 0x0004) && (payload.data == 0x1)) {
-                        slc_clk_cali(SLC_CALI_DCDC1M);
-                        slc_clk_cali(SLC_CALI_RC32K);
-                        slc_clk_cali(SLC_CALI_RC50M);
-                    }
+                    // if ((addr.data == 0x0004) && (payload.data == 0x1)) {
+                    //     slc_clk_cali(SLC_CALI_DCDC1M);
+                    //     slc_clk_cali(SLC_CALI_RC32K);
+                    //     slc_clk_cali(SLC_CALI_RC50M);
+                    // }
                     break;
 
                 case (0x0021):
