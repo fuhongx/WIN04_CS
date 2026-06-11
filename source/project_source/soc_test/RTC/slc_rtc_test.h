@@ -8,5 +8,6 @@ int slc_rtc_err_bcd_test(void);
 int slc_rtc_alarm_ab_test(void);
 int slc_rtc_alarm_a_test(void);
 int slc_rtc_alarm_b_test(void);
+int slc_rtc_err_bcd_stop_test(void);
 
 #endif // __SLC_RTC_TEST_H__

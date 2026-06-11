@@ -105,21 +105,30 @@ __RAM_FUNC int slc_flash_erase_write_read_test(void)
     return 0;
 }
 
+/**
+ * @brief QSPI时钟分频测试，遍历clk/4~clk/64(步长clk/4)共16档分频，
+ *        每档分频下执行flash擦写读测试，结束后恢复原始分频配置。
+ * @return 0: 全部通过; -1: 某档分频测试失败
+ */
 int slc_flash_qspi_div_test(void)
 {
     int i;
+    int ret = 0;
+    uint32_t clk_div_save = (FLASH_CTRL->QSPI_CFG >> FLASH_CTRL_QSPI_CFG_CLK_DIV_SHIFT) & FLASH_CTRL_QSPI_CFG_CLK_DIV_MASK;
+
     for (i = EN_FLASH_CLK_DIV2; i <= EN_FLASH_CLK_DIV32; i++) {
         rom_hw_flash_ctrl_set_clk_div((EN_FLASH_CLK_DIV_T)i);
         PRINTF("set clk div %d\n", (i + 1) * 2);
 
         if (slc_flash_erase_write_read_test() != 0) {
             PRINTF("flash clk div %d erase rw test fail!\n", (i + 1) * 2);
-            return -1;
+            ret = -1;
+            break;
         }
     }
 
-    rom_hw_flash_ctrl_set_clk_div(EN_FLASH_CLK_DIV2);
-    return 0;
+    rom_hw_flash_ctrl_set_clk_div((EN_FLASH_CLK_DIV_T)clk_div_save);
+    return ret;
 }
 
 int slc_flash_read_write_mode_test(void)
@@ -156,25 +165,44 @@ int slc_flash_qspi_mode_test(void)
     return 0;
 }
 
+/**
+ * @brief Flash读数据采样参数测试，遍历16种采样延迟(0x00~0xF0，步长0x10)
+ *        和2种采样边沿(下降沿/上升沿)组合，每组合下执行擦写读测试，
+ *        结束后恢复原始采样配置。
+ * @return 0: 全部通过; -1: 某组参数测试失败
+ */
 int slc_flash_read_data_capture_test(void)
 {
+    uint32_t read_cap_save = FLASH_CTRL->READ_DATA_CAP;
+    int ret = 0;
+
     for (int i = 0; i < 0xff; i += 0x10) {
         for (int j = 0; j < 2; j++) {
             PRINTF("set read data capture sample delay: 0x%X, edge: %d\n", i, j);
             rom_hw_flash_ctrl_set_read_data_capture(i, j);
             if (slc_flash_erase_write_read_test() != 0) {
                 PRINTF("sample delay: 0x%X, edge: %d erase rw test fail!\n", i, j);
-                return -1;
+                ret = -1;
+                goto restore;
             }
         }
     }
 
-    return 0;
+restore:
+    FLASH_CTRL->READ_DATA_CAP = read_cap_save;
+    return ret;
 }
 
+/**
+ * @brief QSPI各阶段延迟参数测试，遍历CSSOT/CSEOT/CSDADS/CSDA延迟从0x01到0x05
+ *       （步长0x01），每档延迟下执行擦写读测试，结束后恢复原始延迟配置。
+ * @return 0: 全部通过; -1: 某档延迟测试失败
+ */
 int slc_flash_qspi_delay_test(void)
 {
     unFlashQspiDelay_t delay;
+    uint32_t delay_save = FLASH_CTRL->QSPI_DELAY;
+    int ret = 0;
     delay.u32Cfg = 0x01010101;
     uint32_t delay_stop = 0x05050505;
     uint32_t delay_step = 0x01010101;
@@ -184,11 +212,14 @@ int slc_flash_qspi_delay_test(void)
         PRINTF("set qspi delay 0x%X\n", delay.u32Cfg);
         if (slc_flash_erase_write_read_test() != 0) {
             PRINTF("qspi delay 0x%X erase rw test fail!\n", delay.u32Cfg);
-            return -1;
+            ret = -1;
+            break;
         }
         delay.u32Cfg += delay_step;
     }
-    return 0;
+
+    FLASH_CTRL->QSPI_DELAY = delay_save;
+    return ret;
 }
 
 __RAM_FUNC int slc_flash_security_register_test(void)
@@ -235,17 +266,24 @@ __RAM_FUNC int slc_flash_security_register_test(void)
     return 0;
 }
 
+/**
+ * @brief Flash写保护功能测试：先读取并保存状态寄存器原始值，然后写入0x44
+ *        设置块保护，验证受保护地址区域的写入行为，最后恢复原始写保护状态。
+ *        注意：该测试会尝试写BOOT2_CODE_ADDR等关键地址区域，需人工判定结果。
+ * @return 0: 测试完成
+ */
 __RAM_FUNC int slc_flash_protect_test(void)
 {
     uint8_t sta = 0;
+    uint8_t sta_orig1 = 0;
     uint32_t val = 0;
-    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
-    PRINTF("Flash status register 1: 0x%X\n", sta);
+    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta_orig1);
+    PRINTF("Flash status register 1: 0x%X\n", sta_orig1);
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sta);
     PRINTF("Flash status register 2: 0x%X\n", sta);
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG3, &sta);
     PRINTF("Flash status register 3: 0x%X\n", sta);
-
+    
     rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, 0x44);
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
     PRINTF("Flash status register 1: 0x%X\n", sta);
@@ -272,5 +310,73 @@ __RAM_FUNC int slc_flash_protect_test(void)
     write32(FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20, val + 0x12345678);
     PRINTF("test flash 0x%X\n", read32(FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20));
 
+    /* 恢复原始写保护状态 */
+    rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, sta_orig1);
+    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
+    PRINTF("Flash status register 1 restored: 0x%X\n", sta);
+
+    return 0;
+}
+
+/**
+ * @brief Flash 耐久性测试：对同一地址反复执行擦除→写入随机数→回读比对，
+ *        循环10000次，每1000次打印进度，验证flash存储单元无损坏。
+ * @return 0: 全部通过; -1: 某次擦写读比对失败
+ */
+__RAM_FUNC int slc_flash_endurance_test(void)
+{
+#define ENDURANCE_CYCLES       10000
+#define ENDURANCE_ERASE_LEN     UNIT_SECTOR
+#define ENDURANCE_WRITE_LEN     UNIT_PAGE
+#define ENDURANCE_ADDR          FLASH_USERER_DATA_ADDR
+#define ENDURANCE_REPORT_STEP   1000
+
+    uint8_t write_data[UNIT_PAGE] = {0};
+    uint8_t *buffer = malloc(UNIT_PAGE);
+    uint32_t i;
+    int ret = 0;
+    hal_rng_init_t rng_init = {0};
+
+    if (buffer == NULL) {
+        PRINTF("endurance test: malloc buffer error\n");
+        return -1;
+    }
+
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_RAND, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_RAND);
+    rng_init.seed = 0x12345678;
+    slc_hal_rng_init(&rng_init);
+
+    for (i = 0; i < ENDURANCE_CYCLES; i++) {
+        ret = slc_hal_get_random_u8(write_data, sizeof(write_data), 1000);
+        if (ret != 0) {
+            PRINTF("endurance test[%d]: get random data fail, ret=%d\n", i, ret);
+            free(buffer);
+            return -1;
+        }
+
+        rom_hw_flash_erase_by_length(ENDURANCE_ADDR, ENDURANCE_ERASE_LEN);
+        rom_hw_flash_write_data(ENDURANCE_ADDR, write_data, ENDURANCE_WRITE_LEN);
+
+        slc_hal_sysctrl_cache_mode_set(HAL_CACHE_FLUSH);
+        memset(buffer, 0, ENDURANCE_WRITE_LEN);
+        rom_hw_flash_read_data(ENDURANCE_ADDR, buffer, ENDURANCE_WRITE_LEN);
+
+        for (int j = 0; j < ENDURANCE_WRITE_LEN; j++) {
+            if (buffer[j] != write_data[j]) {
+                PRINTF("endurance test[%d]: addr 0x%X fail! wr=0x%X rd=0x%X\n",
+                       i, ENDURANCE_ADDR + j, write_data[j], buffer[j]);
+                free(buffer);
+                return -1;
+            }
+        }
+
+        if ((i + 1) % ENDURANCE_REPORT_STEP == 0) {
+            PRINTF("endurance test: %d / %d PASS\n", i + 1, ENDURANCE_CYCLES);
+        }
+    }
+
+    PRINTF("endurance test: %d cycles all PASS\n", ENDURANCE_CYCLES);
+    free(buffer);
     return 0;
 }

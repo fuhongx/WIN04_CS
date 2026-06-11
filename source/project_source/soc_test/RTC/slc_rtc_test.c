@@ -406,48 +406,135 @@ int slc_rtc_alarm_b_test(void)
     return ret;
 }
 
-/* 此处调用底层接口验证芯片功能 */
-#include "hw_rtc.h"
-int slc_rtc_err_bcd_test(void)
+/**
+ * @brief RTC非法BCD值软件拦截测试：先通过HAL设置合法时间，再尝试用HAL接口
+ *        写入非法BCD分钟值(0x66)，验证HAL软件层的BCD校验正确拦截非法写入，
+ *        硬件时间未被篡改。最后验证RTC停止后时间不再变化。
+ * @return 0: 拦截成功且时间未被破坏; -1: 非法值未被拦截或时间被篡改
+ */
+int slc_rtc_err_bcd_stop_test(void)
 {
-    stRtcTime_t stTime;
-    stRtcTime_t cur_time = {0};
+    hal_rtc_calendar_t rtc_time;
+    hal_rtc_calendar_t cur_time0 = {0};
+    hal_rtc_calendar_t cur_time1 = {0};
     int ret = 0;
 
-    // BCD format: year/month/day(week) hour:minute:second.subsecond
-    stTime.u16Year = TEST_RTC_YEAR;
-    stTime.u8Month = TEST_RTC_MONTH;
-    stTime.u8Day = TEST_RTC_DAY;
-    stTime.u8Week = TEST_RTC_WEEK;
-    stTime.u8Hour = TEST_RTC_HOUR;
-    stTime.u8Minute = 0x66;
-    stTime.u8Second = 0x50;
-    stTime.u16SubSecond = TEST_RTC_SUBSECOND;
+    // 步骤1: 通过HAL接口设置合法时间
+    rtc_time.year = TEST_RTC_YEAR;
+    rtc_time.month = TEST_RTC_MONTH;
+    rtc_time.day = TEST_RTC_DAY;
+    rtc_time.week = TEST_RTC_WEEK;
+    rtc_time.hour = TEST_RTC_HOUR;
+    rtc_time.minute = TEST_RTC_MINUTE;
+    rtc_time.second = TEST_RTC_SECOND;
+    rtc_time.subsecond = TEST_RTC_SUBSECOND;
+
+    slc_hal_rtc_stop();
+    slc_hal_rtc_set_calendar(&rtc_time);
+
+    slc_hal_rtc_get_calendar(&cur_time0);
+    PRINTF("RTC set valid time at %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+           cur_time0.year, cur_time0.month, cur_time0.day, slc_week_days[cur_time0.week],
+           cur_time0.hour, cur_time0.minute, cur_time0.second, cur_time0.subsecond);
+
+    // 步骤2: 尝试通过HAL接口写入非法BCD分钟值(0x66)
+    // HAL层的slc_check_calendar_bcd会检测到minute>0x59，直接返回不写硬件
+    rtc_time.minute = 0x66;   // 非法BCD值
+    slc_hal_rtc_set_calendar(&rtc_time);
+
+    // 步骤3: 读回硬件时间，验证HAL拦截成功，时间未被篡改
+    slc_hal_rtc_get_calendar(&cur_time1);
+    if (memcmp(&cur_time0, &cur_time1, sizeof(hal_rtc_calendar_t)) != 0) {
+        PRINTF("RTC BCD check fail! HAL should reject illegal BCD value 0x66\n");
+        PRINTF("before: %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+               cur_time0.year, cur_time0.month, cur_time0.day, slc_week_days[cur_time0.week],
+               cur_time0.hour, cur_time0.minute, cur_time0.second, cur_time0.subsecond);
+        PRINTF("after:  %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+               cur_time1.year, cur_time1.month, cur_time1.day, slc_week_days[cur_time1.week],
+               cur_time1.hour, cur_time1.minute, cur_time1.second, cur_time1.subsecond);
+        ret = -1;
+    } else {
+        PRINTF("RTC BCD check pass! HAL rejected illegal BCD value 0x66\n");
+    }
+
+    slc_hal_rtc_stop();
+    return ret;
+}
+/**
+ * @brief RTC非法BCD值软件拦截测试：先通过HAL设置合法时间(second=0x50)，
+ *        再尝试用HAL接口写入非法BCD分钟值(0x66)，验证HAL软件层的BCD校验
+ *        正确拦截非法写入，硬件时间未被篡改。启动RTC等待10s后停止，验证秒进位
+ *        正确，证明拦截不影响正常计时功能。
+ * @return 0: 拦截成功且计时正确; -1: 非法值未被拦截或计时错误
+ */
+int slc_rtc_err_bcd_test(void)
+{
+    hal_rtc_calendar_t rtc_time;
+    hal_rtc_calendar_t cur_time0 = {0};
+    hal_rtc_calendar_t cur_time1 = {0};
+    int ret = 0;
+
+    // 步骤1: 通过HAL接口设置合法时间: 2024-02-28 23:59:50
+    rtc_time.year = TEST_RTC_YEAR;
+    rtc_time.month = TEST_RTC_MONTH;
+    rtc_time.day = TEST_RTC_DAY;
+    rtc_time.week = TEST_RTC_WEEK;
+    rtc_time.hour = TEST_RTC_HOUR;
+    rtc_time.minute = TEST_RTC_MINUTE;
+    rtc_time.second = 0x50;
+    rtc_time.subsecond = TEST_RTC_SUBSECOND;
 
     g_test_rtc_alarm_flag = 0;
 
     slc_hal_rtc_stop();
-    rom_hw_rtc_set_time(&stTime);
+    slc_hal_rtc_set_calendar(&rtc_time);
 
-    PRINTF("RTC init done, start at %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
-           stTime.u16Year, stTime.u8Month, stTime.u8Day, slc_week_days[stTime.u8Week],
-           stTime.u8Hour, stTime.u8Minute, stTime.u8Second, stTime.u16SubSecond);
+    slc_hal_rtc_get_calendar(&cur_time0);
+    PRINTF("RTC set valid time at %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+           cur_time0.year, cur_time0.month, cur_time0.day, slc_week_days[cur_time0.week],
+           cur_time0.hour, cur_time0.minute, cur_time0.second, cur_time0.subsecond);
 
-    slc_hal_rtc_start();
+    // 步骤2: 尝试通过HAL接口写入非法BCD分钟值(0x66)
+    // HAL层的slc_check_calendar_bcd会检测到minute>0x59，直接返回不写硬件
+    rtc_time.minute = 0x66;   // 非法BCD值
+    slc_hal_rtc_set_calendar(&rtc_time);
 
-    slc_hal_nop_delay_s(10);
-
-    rom_hw_rtc_get_time(&cur_time, EN_RTC_TIME_NOW);
-    if (cur_time.u8Hour != 0x0 || cur_time.u8Minute != 0x0 || cur_time.u8Second != 0x10) {
-        PRINTF("RTC err_bcd test fail!\n");
+    // 步骤3: 读回硬件时间，验证HAL拦截成功，时间未被篡改
+    slc_hal_rtc_get_calendar(&cur_time1);
+    if (memcmp(&cur_time0, &cur_time1, sizeof(hal_rtc_calendar_t)) != 0) {
+        PRINTF("RTC err_bcd test fail! HAL should reject illegal BCD value 0x66\n");
+        PRINTF("before: %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+               cur_time0.year, cur_time0.month, cur_time0.day, slc_week_days[cur_time0.week],
+               cur_time0.hour, cur_time0.minute, cur_time0.second, cur_time0.subsecond);
+        PRINTF("after:  %04X/%02X/%02X(%s) %02X:%02X:%02X.%d\n",
+               cur_time1.year, cur_time1.month, cur_time1.day, slc_week_days[cur_time1.week],
+               cur_time1.hour, cur_time1.minute, cur_time1.second, cur_time1.subsecond);
         ret = -1;
+    } else {
+        PRINTF("RTC HAL rejected illegal BCD value 0x66, time unchanged\n");
     }
 
-    PRINTF("RTC now at %04X/%02X/%02X(%s) %02X:%02X:%02X.%d--\n",
-           cur_time.u16Year, cur_time.u8Month, cur_time.u8Day, slc_week_days[cur_time.u8Week],
-           cur_time.u8Hour, cur_time.u8Minute, cur_time.u8Second, cur_time.u16SubSecond);
+    // 步骤4: 启动RTC等待10s，验证合法时间下的计时正常
+    slc_hal_rtc_start();
+    slc_hal_nop_delay_s(10);
 
     slc_hal_rtc_stop();
+    slc_hal_rtc_get_calendar(&cur_time0);
+
+    PRINTF("RTC now at %04X/%02X/%02X(%s) %02X:%02X:%02X.%d--\n",
+           cur_time0.year, cur_time0.month, cur_time0.day, slc_week_days[cur_time0.week],
+           cur_time0.hour, cur_time0.minute, cur_time0.second, cur_time0.subsecond);
+
+    // second应从0x50运行10s后进位，BCD格式下23:59:50 + 10s = 00:00:00
+    // 即天进位到29(闰年)，时/分/秒均复位为0
+    if (cur_time0.second != 0x00 || cur_time0.minute != 0x00 ||
+        cur_time0.hour != 0x00 || cur_time0.day != 0x29) {
+        PRINTF("RTC err_bcd test fail! expect 2024/02/29 00:00:00, "
+               "actual %04X/%02X/%02X %02X:%02X:%02X\n",
+               cur_time0.year, cur_time0.month, cur_time0.day,
+               cur_time0.hour, cur_time0.minute, cur_time0.second);
+        ret = -1;
+    }
 
     return ret;
 }

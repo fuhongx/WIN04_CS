@@ -187,7 +187,10 @@ int slc_wdt_deinit_test(void)
 
 /* 下面的用例直接调用底层驱动接口 */
 #include "hw_wdt.h"
-#define SLC_WDT_TEST_CNT    0x123456
+#define SLC_WDT_TEST_CNT        0x123456
+#define SLC_WDT_TEST_CNT_BASE   0x1000000U
+#define SLC_WDT_CNT_DRIFT_MAX   0x1000U
+
 int slc_wdt_write_protect_test(void)
 {
     uint32_t before_cnt = 0;
@@ -198,17 +201,33 @@ int slc_wdt_write_protect_test(void)
     slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_WDT);
 
     PRINTF("[WDT] write protect test start!\n");
+
+    rom_hw_wdt_enable_write(false);
+    rom_hw_wdt_set_counter(SLC_WDT_TEST_CNT_BASE);
+    rom_hw_wdt_get_counter(&before_cnt);
+    rom_hw_wdt_set_counter(before_cnt + SLC_WDT_TEST_CNT);
+    rom_hw_wdt_get_counter(&after_cnt);
+    if ((after_cnt <= before_cnt) ||
+        ((after_cnt - before_cnt) > SLC_WDT_TEST_CNT) ||
+        ((SLC_WDT_TEST_CNT - (after_cnt - before_cnt)) > SLC_WDT_CNT_DRIFT_MAX)) {
+        PRINTF("[WDT] write protect disable test failed! before_cnt 0x%X, after_cnt 0x%X\n",
+               before_cnt, after_cnt);
+        return -1;
+    }
+    PRINTF("[WDT] write protect disable test pass! before_cnt 0x%X, after_cnt 0x%X\n",
+           before_cnt, after_cnt);
+
     rom_hw_wdt_enable_write(true);
     rom_hw_wdt_get_counter(&before_cnt);
     rom_hw_wdt_set_counter(before_cnt + SLC_WDT_TEST_CNT);
     rom_hw_wdt_get_counter(&after_cnt);
     if ((after_cnt - before_cnt) == SLC_WDT_TEST_CNT) {
         PRINTF("[WDT] write protect enable test failed! before_cnt 0x%X, after_cnt 0x%X\n",
-                before_cnt, after_cnt);
+               before_cnt, after_cnt);
         return -1;
     }
-
-    PRINTF("[WDT] write protect test success! before_cnt 0x%X, after_cnt 0x%X\n",
+    PRINTF("[WDT] write protect enable test pass! before_cnt 0x%X, after_cnt 0x%X\n",
            before_cnt, after_cnt);
+    PRINTF("[WDT] write protect test success!\n");
     return 0;
 }

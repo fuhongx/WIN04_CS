@@ -15,6 +15,7 @@
  */
 
 #include <string.h>
+#include "slc_private_spi_frame.h"
 #include <math.h>
 #include "slc_cali.h"
 #include "slc_phy_trx.h"
@@ -32,8 +33,7 @@ phy_trx_cfg_param_t *slc_phy_get_trx_config_param(void)
 
 void slc_phy_start_trans_tx_data(phy_cfg_tx_mode_e tx_mode, rf_power_e power)
 {
-    RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-    RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
     slc_phy_set_trx(PHY_TX_EN);
 
 #ifndef SLC_FPGA
@@ -91,8 +91,7 @@ void slc_phy_start_get_rx_data(void)
 {
     slc_rf_tx_disable();
 
-    RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-    RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE));
 
 #ifdef SLC_FPGA
     // 中频1M，默认采样率5M
@@ -220,15 +219,14 @@ void slc_phy_single_tone(void)
     slc_rf_dfe_set_line_ctrl_bw(RF_DFE_AUTO_CTRL);
     slc_rf_dfe_bypass_fir59(true, 0, RF_DFE_AUTO_CTRL);
     slc_rf_dfe_set_trx_mode(RF_DFE_CALI);
-    RF_DFE->DFE_CALIB_PARAMETER &= ~DFE_SINE_DC_SEL_MASK;  // 0: sine, 1: DC
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_DFE(0xC4), DFE_SINE_DC_SEL_MASK);  // 0: sine, 1: DC
 
     sine_fcw = (uint32_t)round(2.0 * PI * 100000 * 16777216.0 / 25000000.0);
-    RF_DFE->DFE_CALIB_SIN_FCW = DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xC8), DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw));
 
-    RF_DFE->DFE_CALIB_WAIT_TIME &= ~DFE_CAL_SEND_DURATION_MASK;
-    RF_DFE->DFE_CALIB_WAIT_TIME |= DFE_CAL_SEND_DURATION_VAL(0);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0xBC), DFE_CAL_SEND_DURATION_MASK, DFE_CAL_SEND_DURATION_VAL(0));
 
     slc_rf_dfe_reset();
 
-    RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
 }

@@ -232,7 +232,7 @@ void rf_test_main(void)
     //    }
 
     state = S_HEAD1;
-
+		PRINTF("rf test start\n");
 #define ADDR_BASE_FOR_TEST (0x40000000) // 0x40010000
 
     PRINTF("rf test start\n");

@@ -14,6 +14,7 @@
 #include "slc_hal_timer.h"
 #include "slc_hal_intc.h"
 
+
 int slc_systick_accuracy_test(void)
 {
     uint32_t start_time, end_time;
@@ -38,15 +39,43 @@ int slc_systick_accuracy_test(void)
 
     cost_time_ms = (start_time - end_time) / 50000.0f;
 
-    slc_hal_timer_stop(HAL_TIMER0);
-
     if ((fabsf(cost_time_us - 10000.0f) > 500.0f) || (fabsf(cost_time_ms - 1000.0f) > 50.0f)) {
+        slc_hal_timer_stop(HAL_TIMER0);
         PRINTF("systick delay test failed! us cost time: %.2f us, ms cost time: %.2f ms\n", cost_time_us, cost_time_ms);
         return -1;
-    } else {
-        PRINTF("systick delay test success! us cost time: %.2f us, ms cost time: %.2f ms\n", cost_time_us, cost_time_ms);
-        return 0;
     }
+    PRINTF("systick delay test success! us cost time: %.2f us, ms cost time: %.2f ms\n", cost_time_us, cost_time_ms);
+
+    /* Systick 开关测试：关闭后计数器停止，重新开启后延时恢复正常 */
+    PRINTF("Systick switch test start...\n");
+    SysTick->LOAD = 0xFFFFFF - 1;
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+    slc_hal_nop_delay_ms(10);
+    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;  /* 关闭 systick */
+
+    uint32_t val_off = SysTick->VAL;
+    slc_hal_nop_delay_ms(100);  /* 用 nop 延时，systick 不应继续计数 */
+    if (val_off != SysTick->VAL) {
+        slc_hal_timer_stop(HAL_TIMER0);
+        PRINTF("Systick switch off test failed! val before: %u, val after: %u\n", val_off, SysTick->VAL);
+        return -1;
+    }
+
+    /* 通过 delay 接口重新开启，检查 100ms 延时误差在 5% 以内 */
+    start_time = slc_hal_timer_get_count(HAL_TIMER0);
+    slc_hal_systick_delay_ms(100);
+    end_time = slc_hal_timer_get_count(HAL_TIMER0);
+    slc_hal_timer_stop(HAL_TIMER0);
+
+    cost_time_ms = (start_time - end_time) / (slc_hal_sysctrl_get_system_clock() / 1000.0f);
+    if (fabsf(cost_time_ms - 100.0f) > 5.0f) {
+        PRINTF("Systick switch on test failed! cost time: %.2f ms\n", cost_time_ms);
+        return -1;
+    }
+
+    PRINTF("Systick switch test success!\n");
+    return 0;
 }
 
 uint32_t g_systick_irq_flag = 0;

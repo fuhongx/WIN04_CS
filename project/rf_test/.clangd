@@ -1,0 +1,7 @@
+CompileFlags:
+  Add:
+    - -isystemC:\Keil_v5\ARM\ARMCLANG/include
+    - -isystemC:\Keil_v5\ARM\ARMCLANG/include/libcxx
+  Remove: []
+  CompilationDatabase: ./build/rf_test
+  Compiler: C:\Keil_v5\ARM\ARMCLANG\bin\armclang.exe
