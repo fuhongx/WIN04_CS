@@ -304,5 +304,9 @@ void slc_rf_irq_enable(uint32_t irq_mask);
 void slc_rf_irq_disable(uint32_t irq_mask);
 uint32_t slc_rf_irq_get_sta(void);
 void slc_rf_irq_clr_sta(uint32_t irq_sta);
+void slc_rf_fpga_set(phy_cfg_bw_e bw, phy_cfg_trx_e trx);
+void tx_polar_en(void);
+
+
 
 #endif

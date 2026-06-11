@@ -79,10 +79,10 @@ void slc_cad_cfg(uint16_t check_symbol_num, uint16_t duty_cycle_period, pre_cad_
 
     precad_en = 1;
 
-    val = PHY_CTRL->FIND_WIN;
-    val &= ~(PHY_PROTECT_NUM_MASK);
-    val |= PHY_PROTECT_NUM_VAL(20000);
-    PHY_CTRL->FIND_WIN = val;
+    //val = PHY_CTRL->FIND_WIN;
+    //val &= ~(PHY_PROTECT_NUM_MASK);
+    //val |= PHY_PROTECT_NUM_VAL(20000);
+    //PHY_CTRL->FIND_WIN = val;
 
     val = PHY_CTRL->CAD2;
     val &= ~(PHY_CAD_PRE_NUM_MASK | PHY_CAD_PREADDR_MASK);

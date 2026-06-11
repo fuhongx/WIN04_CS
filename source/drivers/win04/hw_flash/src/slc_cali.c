@@ -14,6 +14,7 @@
  * ****************************************************************************
  */
 #include <math.h>
+#include "slc_private_spi_frame.h"
 
 #include "slc_hal_delay.h"
 #include "slc_cali.h"
@@ -194,10 +195,9 @@ int slc_clk_cali(slc_cali_clk_e clk)
     switch (clk)
     {
         case SLC_CALI_RC32K:
-            RF_CTRL->RF_CALI_CTRL |= SLC_RFCTRL_CAL_RC32K_START_VAL(1);
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x04), SLC_RFCTRL_CAL_RC32K_START_VAL(1));
             do {
-                if ((RF_CTRL->RF_CALI_CTRL & SLC_RFCTRL_CAL_RC32K_START_MASK) == 0)
-                    break;
+                if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x04)) & SLC_RFCTRL_CAL_RC32K_START_MASK) == 0)                    break;
 
                 slc_hal_nop_delay_us(10);
                 timeout += 10;
@@ -206,16 +206,13 @@ int slc_clk_cali(slc_cali_clk_e clk)
             if (timeout >= SLC_CALI_CLK_RC32K_TIMEOUT_US)
                 return EN_ERROR_STA_TIMEOUT;
 
-            g_slc_cali_data.rc32k_ctrim = (RF_PMU->RC32K_CTRL & SLC_CMU_OSC32K_FREQ_CTRIM_MASK) >> SLC_CMU_OSC32K_FREQ_CTRIM_SHIFT;
-            g_slc_cali_data.rc32k_rtrim = (RF_PMU->RC32K_CTRL & SLC_CMU_OSC32K_FREQ_RTRIM_MASK) >> SLC_CMU_OSC32K_FREQ_RTRIM_SHIFT;
-
+            g_slc_cali_data.rc32k_ctrim = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x28)) & SLC_CMU_OSC32K_FREQ_CTRIM_MASK) >> SLC_CMU_OSC32K_FREQ_CTRIM_SHIFT;            g_slc_cali_data.rc32k_rtrim = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x28)) & SLC_CMU_OSC32K_FREQ_RTRIM_MASK) >> SLC_CMU_OSC32K_FREQ_RTRIM_SHIFT;
             break;
 
         case SLC_CALI_RC50M:
-            RF_CTRL->RF_CALI_CTRL |= SLC_RFCTRL_CAL_RC50M_START_VAL(1);
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x04), SLC_RFCTRL_CAL_RC50M_START_VAL(1));
             do {
-                if ((RF_CTRL->RF_CALI_CTRL & SLC_RFCTRL_CAL_RC50M_START_MASK) == 0)
-                    break;
+                if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x04)) & SLC_RFCTRL_CAL_RC50M_START_MASK) == 0)                    break;
 
                 slc_hal_nop_delay_us(10);
                 timeout += 10;
@@ -224,16 +221,13 @@ int slc_clk_cali(slc_cali_clk_e clk)
             if (timeout >= SLC_CALI_CLK_RC50M_TIMEOUT_US)
                 return EN_ERROR_STA_TIMEOUT;
 
-            g_slc_cali_data.rc50m_ctune = (RF_PMU->RC50M_CTRL & SLC_CMU_OSC50M_FREQ_CTUNE_MASK) >> SLC_CMU_OSC50M_FREQ_CTUNE_SHIFT;
-            g_slc_cali_data.rc50m_rtune = (RF_PMU->RC50M_CTRL & SLC_CMU_OSC50M_FREQ_RTUNE_MASK) >> SLC_CMU_OSC50M_FREQ_RTUNE_SHIFT;
-
+            g_slc_cali_data.rc50m_ctune = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x30)) & SLC_CMU_OSC50M_FREQ_CTUNE_MASK) >> SLC_CMU_OSC50M_FREQ_CTUNE_SHIFT;            g_slc_cali_data.rc50m_rtune = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x30)) & SLC_CMU_OSC50M_FREQ_RTUNE_MASK) >> SLC_CMU_OSC50M_FREQ_RTUNE_SHIFT;
             break;
 
         case SLC_CALI_DCDC1M:
-            RF_CTRL->RF_CALI_CTRL |= SLC_RFCTRL_CAL_DCDC1M_START_VAL(1);
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x04), SLC_RFCTRL_CAL_DCDC1M_START_VAL(1));
             do {
-                if ((RF_CTRL->RF_CALI_CTRL & SLC_RFCTRL_CAL_DCDC1M_START_MASK) == 0)
-                    break;
+                if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x04)) & SLC_RFCTRL_CAL_DCDC1M_START_MASK) == 0)                    break;
 
                 slc_hal_nop_delay_us(10);
                 timeout += 10;
@@ -242,8 +236,7 @@ int slc_clk_cali(slc_cali_clk_e clk)
             if (timeout >= SLC_CALI_CLK_DCDC1M_TIMEOUT_US)
                 return EN_ERROR_STA_TIMEOUT;
 
-            g_slc_cali_data.dcdc1m_captrim = (RF_PMU->DCDC_CTRL & SLC_DCDC_OSC_CAPTRIM_MASK) >> SLC_DCDC_OSC_CAPTRIM_SHIFT;
-
+            g_slc_cali_data.dcdc1m_captrim = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x20)) & SLC_DCDC_OSC_CAPTRIM_MASK) >> SLC_DCDC_OSC_CAPTRIM_SHIFT;
             break;
 
         default:
@@ -257,11 +250,10 @@ int slc_r_cali(void)
 {
     uint32_t timeout = 0;
 
-    RF_CTRL->RF_CALI_CTRL |= SLC_RFCTRL_CAL_PMU_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x04), SLC_RFCTRL_CAL_PMU_START_VAL(1));
 
     do {
-        if ((RF_CTRL->RF_CALI_CTRL & SLC_RFCTRL_CAL_PMU_START_MASK) == 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x04)) & SLC_RFCTRL_CAL_PMU_START_MASK) == 0)            break;
 
         slc_hal_nop_delay_us(10);
         timeout += 10;
@@ -272,9 +264,7 @@ int slc_r_cali(void)
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    g_slc_cali_data.pmu_iout_tune_trim = (RF_PMU->PMU_CTRL & SLC_PMU_IOUT_TUNE_TRIM_MASK) >> SLC_PMU_IOUT_TUNE_TRIM_SHIFT;
-    g_slc_cali_data.pmu_iout_ptat_trim = (RF_PMU->PMU_CTRL & SLC_PMU_IOUT_PTAT_TRIM_MASK) >> SLC_PMU_IOUT_PTAT_TRIM_SHIFT;
-
+    g_slc_cali_data.pmu_iout_tune_trim = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x18)) & SLC_PMU_IOUT_TUNE_TRIM_MASK) >> SLC_PMU_IOUT_TUNE_TRIM_SHIFT;    g_slc_cali_data.pmu_iout_ptat_trim = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PMU(0x18)) & SLC_PMU_IOUT_PTAT_TRIM_MASK) >> SLC_PMU_IOUT_PTAT_TRIM_SHIFT;
     return EN_ERROR_STA_OK;
 }
 
@@ -325,19 +315,19 @@ find_result:
 
     g_slc_cali_data.rc_cali_idx = result_idx;
 
-    RF_CTRL->RXABB_CBPF_CTRL &= ~RFCTRL_RXABB_CBPF_CTRIM_MASK;
-    RF_CTRL->TXABB_LPF_TRIM &= ~SLC_RFCTRL_TXLPF_CTRIM_MASK;
-    RF_CTRL->RXRF_MIX_TIA_CTRL &= ~SLC_RFCTRL_RXTIA_CT_CTUNE_MASK;
-    RF_PMU->FDB_50M_TUNE &= ~SLC_CMU_FDOUB_CTUNE_MASK;
-    RF_PLL->RFPLL_RESERVE &= ~RFPLL_RESERVE_IN_MASK;
-    RF_PLL->DAC_CTRL &= ~RFPLL_DAC_TIA_CTRIM_MASK;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x94), RFCTRL_RXABB_CBPF_CTRIM_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x74), SLC_RFCTRL_TXLPF_CTRIM_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0xB4), SLC_RFCTRL_RXTIA_CT_CTUNE_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PMU(0x40), SLC_CMU_FDOUB_CTUNE_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xF8), RFPLL_RESERVE_IN_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xF4), RFPLL_DAC_TIA_CTRIM_MASK);
 
-    RF_CTRL->RXABB_CBPF_CTRL |= RFCTRL_RXABB_CBPF_CTRIM_VAL(rccalib_table[result_idx].rxabb_cbpf_ctrim);
-    RF_CTRL->TXABB_LPF_TRIM |= SLC_RFCTRL_TXLPF_CTRIM_VAL(rccalib_table[result_idx].lpf_ctrim);
-    RF_CTRL->RXRF_MIX_TIA_CTRL |= SLC_RFCTRL_RXTIA_CT_CTUNE_VAL(rccalib_table[result_idx].tia);
-    RF_PMU->FDB_50M_TUNE |= SLC_CMU_FDOUB_CTUNE_VAL(rccalib_table[result_idx].freq_doubler);
-    RF_PLL->RFPLL_RESERVE |= RFPLL_RESERVE_IN_VAL(rccalib_table[result_idx].lo_ppf);
-    RF_PLL->DAC_CTRL |= RFPLL_DAC_TIA_CTRIM_VAL(rccalib_table[result_idx].pll_dac_lpf);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x94), RFCTRL_RXABB_CBPF_CTRIM_VAL(rccalib_table[result_idx].rxabb_cbpf_ctrim));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x74), SLC_RFCTRL_TXLPF_CTRIM_VAL(rccalib_table[result_idx].lpf_ctrim));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0xB4), SLC_RFCTRL_RXTIA_CT_CTUNE_VAL(rccalib_table[result_idx].tia));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PMU(0x40), SLC_CMU_FDOUB_CTUNE_VAL(rccalib_table[result_idx].freq_doubler));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xF8), RFPLL_RESERVE_IN_VAL(rccalib_table[result_idx].lo_ppf));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xF4), RFPLL_DAC_TIA_CTRIM_VAL(rccalib_table[result_idx].pll_dac_lpf));
 }
 
 int slc_rc_cali(void)
@@ -347,11 +337,10 @@ int slc_rc_cali(void)
     uint16_t rc_calib_cnt2 = 0;
     uint32_t sum_t1_t2 = 0;
 
-    RF_CTRL->RF_CALI_CTRL |= SLC_RFCTRL_CAL_RXABB_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x04), SLC_RFCTRL_CAL_RXABB_START_VAL(1));
 
     do {
-        if ((RF_CTRL->RF_CALI_CTRL & SLC_RFCTRL_CAL_RXABB_START_MASK) == 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x04)) & SLC_RFCTRL_CAL_RXABB_START_MASK) == 0)            break;
 
         slc_hal_nop_delay_us(10);
         timeout += 10;
@@ -362,16 +351,14 @@ int slc_rc_cali(void)
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    rc_calib_cnt1 = (RF_CTRL->CAL_RC_RPT & SLC_RC_CALIB_CNT1_MASK) >> SLC_RC_CALIB_CNT1_SHIFT;
-    rc_calib_cnt2 = (RF_CTRL->CAL_RC_RPT & SLC_RC_CALIB_CNT2_MASK) >> SLC_RC_CALIB_CNT2_SHIFT;
-    sum_t1_t2 = rc_calib_cnt1 + rc_calib_cnt2;
+    rc_calib_cnt1 = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x48)) & SLC_RC_CALIB_CNT1_MASK) >> SLC_RC_CALIB_CNT1_SHIFT;    rc_calib_cnt2 = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x48)) & SLC_RC_CALIB_CNT2_MASK) >> SLC_RC_CALIB_CNT2_SHIFT;    sum_t1_t2 = rc_calib_cnt1 + rc_calib_cnt2;
 
     find_rccali_params(sum_t1_t2);
 
     return EN_ERROR_STA_OK;
 }
 
-int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
+int slc_afc_cali1(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
 {
     uint32_t timeout = 0;
     uint32_t remainder_hz = freq_hz % 1000000;
@@ -381,19 +368,17 @@ int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
     float inter_freq_mhz = (float)inter_freq_hz / 1000000.0;
     int32_t inter_freq = (int32_t)round(inter_freq_mhz * (1 << 24));
 
-    RF_PLL->TX_FREQ_INT = PLL_TX_FREQ_INT_VAL(int_11bit);
-    RF_PLL->TX_FREQ_FRAC = PLL_TX_FREQ_FRAC_VAL(frac_24bit);
-    RF_PLL->INTER_FREQ = PLL_INTER_FREQ_VAL(inter_freq);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC), PLL_TX_FREQ_INT_VAL(int_11bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0), PLL_TX_FREQ_FRAC_VAL(frac_24bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4), PLL_INTER_FREQ_VAL(inter_freq));
 
     // TODO: AFC校准试ramping cycle若不设置小些，校准切换时间会达到毫秒级别，此处临时
-    RF_CTRL->TX_RAMPING_CTRL &= ~SLC_RFCTRL_TX_RAMP_CYCLE_MASK;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_MASK);
 
-    RF_CTRL->RF_MODE_CTRL &= ~(SLC_RFCTRL_TX_EN_MO_MASK | SLC_RFCTRL_RX_EN_MO_MASK);
-    RF_CTRL->RF_MODE_CTRL |= (SLC_RFCTRL_TX_EN_ME_VAL(1) | SLC_RFCTRL_RX_EN_ME_VAL(1));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_MO_MASK | SLC_RFCTRL_RX_EN_MO_MASK), (SLC_RFCTRL_TX_EN_ME_VAL(1) | SLC_RFCTRL_RX_EN_ME_VAL(1)));
 
     do {
-        if ((RF_PLL->PLLDIG_CTRL & PLL_RPT_AFC_DONE_MASK) == 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
 
         slc_hal_nop_delay_us(1);
         timeout += 1;
@@ -405,38 +390,34 @@ int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
     }
     timeout = 0;
 
-    RF_PLL->DTEMP_CTRL2 |= 0x300;
-    RF_PLL->DTEMP_CTRL0 |= 0x300;
-    RF_PLL->DTEMP_CTRL5 |= 0x100;
-    RF_PLL->DTEMP_CTRL5 &= ~0x1FF;
-    RF_PLL->DTEMP_CTRL5 |= 0x180;
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x8C), 0x1FF, 0x180);
 
     if (tx) {
         if (polar)
-            RF_PLL->PD_DAC_CTRL |= 0x200;
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
         else
-            RF_PLL->PD_DAC_CTRL &= ~0x200;
+            slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
 
-        RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-        RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE);
+            slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
 
-        RF_PLL->FSM_CTRL &= ~RFPLL_FSM_SKIPPER_MASK;
-        RF_PLL->FSM_CTRL |= RFPLL_FSM_SKIPPER_VAL(8);   // skip KVCO2
-        RF_PLL->PLLDIG_CTRL |= PLL_SW_PLL_EN_VAL(1);
-        RF_CTRL->RF_MODE_CTRL |= SLC_RFCTRL_TX_EN_MO_VAL(1);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_VAL(1));
     } else {
-        RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-        RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE);
-        RF_PLL->FSM_CTRL &= ~RFPLL_FSM_SKIPPER_MASK;
-        RF_PLL->FSM_CTRL |= RFPLL_FSM_SKIPPER_VAL(8);   // skip KVCO2
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE));
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
 
-        RF_PLL->PLLDIG_CTRL |= PLL_SW_PLL_EN_VAL(1);
-        RF_CTRL->RF_MODE_CTRL |= SLC_RFCTRL_RX_EN_MO_VAL(1);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_VAL(1));
     }
 
     do {
-        if ((RF_PLL->PLLDIG_CTRL & PLL_RPT_AFC_DONE_MASK) != 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) != 0)            break;
 
         slc_hal_nop_delay_us(10);
         timeout += 10;
@@ -450,26 +431,25 @@ int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
     slc_hal_nop_delay_us(10); // 等待一段时间，让PLL稳定下来
 
     if (tx) {
-        RF_CTRL->RF_MODE_CTRL &= ~SLC_RFCTRL_TX_EN_MO_MASK;
-        RF_CTRL->RF_MODE_CTRL &= ~(SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
     } else {
-        RF_CTRL->RF_MODE_CTRL &= ~SLC_RFCTRL_RX_EN_MO_MASK;
-        RF_CTRL->RF_MODE_CTRL &= ~(SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
     }
 
-    RF_PLL->PLLDIG_CTRL &= ~PLL_SW_PLL_EN_MASK;
-    RF_PLL->FSM_CTRL &= ~RFPLL_FSM_SKIPPER_MASK;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
 
-    RF_PLL->DTEMP_CTRL2 &= ~0x300;
-    RF_PLL->DTEMP_CTRL0 &= ~0x300;
-    RF_PLL->DTEMP_CTRL5 &= ~0x100;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
 
-    RF_PLL->PD_DAC_CTRL &= ~0x200;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
 
     timeout = 0;
     do {
-        if ((RF_PLL->PLLDIG_CTRL & PLL_RPT_AFC_DONE_MASK) == 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
 
         slc_hal_nop_delay_us(1);
         timeout += 1;
@@ -480,22 +460,155 @@ int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    RF_CTRL->TX_RAMPING_CTRL |= SLC_RFCTRL_TX_RAMP_CYCLE_VAL(0x1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_VAL(0x1));
     // PRINTF("AFC %s CALI succ, FREQ_INT 0x%X, FREQ_FRAC 0x%X, INTER_FREQ 0x%X\n", (tx ? "TX" : "RX"),
-    //         RF_PLL->TX_FREQ_INT, RF_PLL->TX_FREQ_FRAC, RF_PLL->INTER_FREQ);
-
+    //         slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4)));
     return EN_ERROR_STA_OK;
 }
+
+int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
+{
+    uint32_t timeout = 0;
+    uint32_t remainder_hz = freq_hz % 1000000;
+    uint64_t temp_frac = (uint64_t)remainder_hz * (1 << 24);
+    uint32_t frac_24bit = (uint32_t)(temp_frac / 1000000);
+    uint32_t int_11bit = freq_hz / 1000000;
+    float inter_freq_mhz = (float)inter_freq_hz / 1000000.0;
+    int32_t inter_freq = (int32_t)round(inter_freq_mhz * (1 << 24));
+    bool repeat = false;
+    uint32_t ramping_ctrl;
+    uint32_t rpt_afc_ctune;
+    uint32_t rpt_afc_ftune;
+
+start:
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC), PLL_TX_FREQ_INT_VAL(int_11bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0), PLL_TX_FREQ_FRAC_VAL(frac_24bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4), PLL_INTER_FREQ_VAL(inter_freq));
+
+    // TODO: AFC校准试ramping cycle若不设置小些，校准切换时间会达到毫秒级别，此处临时
+    ramping_ctrl = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x68));
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_MASK);
+
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_MO_MASK | SLC_RFCTRL_RX_EN_MO_MASK), (SLC_RFCTRL_TX_EN_ME_VAL(1) | SLC_RFCTRL_RX_EN_ME_VAL(1)));
+
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
+
+        slc_hal_nop_delay_us(1);
+        timeout += 1;
+    } while (timeout < 10);
+
+    if (timeout >= 10) {
+        PRINTF("wait AFC CALI start timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+    timeout = 0;
+
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x8C), 0x1FF, 0x180);
+
+#if 1
+    if(repeat != true){
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x44), (RFPLL_AMP_CTR0_CTUNE_MASK | RFPLL_AMP_CTR0_FTUNE_MASK), (RFPLL_AMP_CTR0_CTUNE_VAL(0x20) | RFPLL_AMP_CTR0_FTUNE_VAL(0x8)));
+    }else{
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x44), (RFPLL_AMP_CTR0_CTUNE_MASK | RFPLL_AMP_CTR0_FTUNE_MASK), (RFPLL_AMP_CTR0_CTUNE_VAL(rpt_afc_ctune) | RFPLL_AMP_CTR0_FTUNE_VAL(rpt_afc_ftune)));
+    }
+#endif
+
+    if (tx) {
+        if (polar)
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+        else
+            slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+
+            slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
+
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_VAL(1));
+    } else {
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE));
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
+
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_VAL(1));
+    }
+
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) != 0)            break;
+
+        slc_hal_nop_delay_us(10);
+        timeout += 10;
+    } while (timeout < SLC_CALI_AFC_TIMEOUT_US);
+
+    if (timeout >= SLC_CALI_AFC_TIMEOUT_US) {
+        PRINTF("AFC CALI done timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+
+    slc_hal_nop_delay_us(10); // 等待一段时间，让PLL稳定下来
+
+    if (tx) {
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
+    } else {
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
+    }
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+
+    timeout = 0;
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
+
+        slc_hal_nop_delay_us(1);
+        timeout += 1;
+    } while (timeout < 50);
+
+    if (timeout >= 50) {
+        PRINTF("wait AFC CALI end timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+
+    if(repeat != true){
+        repeat = true;
+        rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+        rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+        PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
+        goto start;
+    }
+
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_CTRL(0x68), ramping_ctrl);
+    rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+    rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+    PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
+    //slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_VAL(0x1));
+    // PRINTF("AFC %s CALI succ, FREQ_INT 0x%X, FREQ_FRAC 0x%X, INTER_FREQ 0x%X\n", (tx ? "TX" : "RX"),
+    //         slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4)));
+    return EN_ERROR_STA_OK;
+}
+
 
 int slc_kdac_cali(void)
 {
     uint32_t timeout = 0;
 
-    RF_PLL->PLLDIG_CTRL |= PLL_CAL_DAC_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_CAL_DAC_START_VAL(1));
 
     do {
-        if ((RF_PLL->PLLDIG_CTRL & PLL_CAL_DAC_START_MASK) == 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_CAL_DAC_START_MASK) == 0)            break;
 
         slc_hal_nop_delay_us(10);
         timeout += 10;
@@ -506,8 +619,7 @@ int slc_kdac_cali(void)
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    g_slc_cali_data.kdac_gain = (RF_PLL->POLAR_CTRL & PLL_KDAC_GAIN_MASK) >> PLL_KDAC_GAIN_SHIFT;
-    PRINTF("KVCO2 CALI succ, gain=%d\n", g_slc_cali_data.kdac_gain);
+    g_slc_cali_data.kdac_gain = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC8)) & PLL_KDAC_GAIN_MASK) >> PLL_KDAC_GAIN_SHIFT;    PRINTF("KVCO2 CALI succ, gain=%d\n", g_slc_cali_data.kdac_gain);
 
     return EN_ERROR_STA_OK;
 }
@@ -526,17 +638,15 @@ EN_ERR_STA_T slc_cali_i(int32_t vt)
     int16_t iopt = 0;
     uint32_t timeout = 0;
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTI_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTI_VAL(vt));
     i = 0;
     for (dc_compi = -128; dc_compi < 128; dc_compi += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPI_MASK;
-        RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPI_VAL(dc_compi);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPI_MASK, DFE_CALIB_DC_COMPI_VAL(dc_compi));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -547,23 +657,20 @@ EN_ERR_STA_T slc_cali_i(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt0[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt0[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
 
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTI_VAL(-vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTI_VAL(-vt));
     i = 0;
     for (dc_compi = -128; dc_compi < 128; dc_compi += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPI_MASK;
-        RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPI_VAL(dc_compi);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPI_MASK, DFE_CALIB_DC_COMPI_VAL(dc_compi));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -574,8 +681,7 @@ EN_ERR_STA_T slc_cali_i(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt1[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt1[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
@@ -590,8 +696,7 @@ EN_ERR_STA_T slc_cali_i(int32_t vt)
         iopt = SLC_CALI_TXIQ_MIN_IDX + i*SLC_CALI_TXIQ_STEP;
     }
 
-    RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPI_MASK;
-    RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPI_VAL(iopt);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPI_MASK, DFE_CALIB_DC_COMPI_VAL(iopt));
     g_slc_cali_data.dciq_iopt = iopt;
     PRINTF("DCIQ CALI I succ, Vt=%d, min_diff=%u, iopt=%d\n", vt, min_diff, iopt);
 
@@ -608,17 +713,15 @@ EN_ERR_STA_T slc_cali_q(int32_t vt)
     int16_t qopt = 0;
     uint32_t timeout = 0;
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(vt));
     i = 0;
     for (dc_compq = -128; dc_compq < 128; dc_compq += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPQ_MASK;
-        RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPQ_VAL(dc_compq);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPQ_MASK, DFE_CALIB_DC_COMPQ_VAL(dc_compq));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -629,22 +732,19 @@ EN_ERR_STA_T slc_cali_q(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt0[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt0[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(-vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(-vt));
     i = 0;
     for (dc_compq = -128; dc_compq < 128; dc_compq += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPQ_MASK;
-        RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPQ_VAL(dc_compq);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPQ_MASK, DFE_CALIB_DC_COMPQ_VAL(dc_compq));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -655,8 +755,7 @@ EN_ERR_STA_T slc_cali_q(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt1[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt1[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
@@ -671,8 +770,7 @@ EN_ERR_STA_T slc_cali_q(int32_t vt)
         qopt = SLC_CALI_TXIQ_MIN_IDX + i*SLC_CALI_TXIQ_STEP;
     }
 
-    RF_DFE->DFE_CFG_DC_COMP &= ~DFE_CALIB_DC_COMPQ_MASK;
-    RF_DFE->DFE_CFG_DC_COMP |= DFE_CALIB_DC_COMPQ_VAL(qopt);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPQ_MASK, DFE_CALIB_DC_COMPQ_VAL(qopt));
     g_slc_cali_data.dciq_qopt = qopt;
     PRINTF("DCIQ CALI Q succ, Vt=%d, min_diff=%u, qopt=%d\n", vt, min_diff, qopt);
 
@@ -692,18 +790,17 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
     int amp_compi, amp_compq;
 
     /* Gain I cali */
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTI_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTI_VAL(vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
         amp_compi = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0+idx*1.0/2048.0)/1.0625)*4096);
         amp_compq = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0-idx*1.0/2048.0)/1.0625)*4096);
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
         timeout = 0;
 
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -714,23 +811,21 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_i_vt0[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_i_vt0[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTI_VAL(-vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTI_VAL(-vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
         amp_compi = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0+idx*1.0/2048.0)/1.0625)*4096);
         amp_compq = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0-idx*1.0/2048.0)/1.0625)*4096);
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
         timeout = 0;
 
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -741,24 +836,22 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_i_vt1[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_i_vt1[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
     /* Gain Q cali */
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
         amp_compi = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0+idx*1.0/2048.0)/1.0625)*4096);
         amp_compq = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0-idx*1.0/2048.0)/1.0625)*4096);
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
         timeout = 0;
 
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -769,23 +862,21 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_q_vt2[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_q_vt2[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(-vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(-vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
         amp_compi = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0+idx*1.0/2048.0)/1.0625)*4096);
         amp_compq = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0-idx*1.0/2048.0)/1.0625)*4096);
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
         timeout = 0;
 
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -796,8 +887,7 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_q_vt3[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_q_vt3[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
@@ -814,7 +904,7 @@ EN_ERR_STA_T slc_cali_gain(int32_t vt)
 
     amp_compi = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0+idx*1.0/2048.0)/1.0625)*4096);
     amp_compq = (int)((pow(10,-5.0/20)*7.0/8.0*(1.0-idx*1.0/2048.0)/1.0625)*4096);
-    RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
     g_slc_cali_data.dciq_amp_compi = amp_compi;
     g_slc_cali_data.dciq_amp_compq = amp_compq;
     PRINTF("DCIQ CALI GAIN succ, Vt=%d, min_diff=%u, idx=%d, amp_compi=0x%X, amp_compq=0x%X\n",
@@ -832,16 +922,15 @@ EN_ERR_STA_T slc_cali_phase(int32_t vt)
     int16_t idx = 0;
     uint32_t timeout = 0;
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(vt) | DFE_CAL_SEND_DC_VTI_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(vt) | DFE_CAL_SEND_DC_VTI_VAL(vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(idx);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(idx));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -852,21 +941,19 @@ EN_ERR_STA_T slc_cali_phase(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt0[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt0[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
-    RF_DFE->DFE_CALIB_DC_VT = DFE_CAL_SEND_DC_VTQ_VAL(-vt) | DFE_CAL_SEND_DC_VTI_VAL(vt);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xCC), DFE_CAL_SEND_DC_VTQ_VAL(-vt) | DFE_CAL_SEND_DC_VTI_VAL(vt));
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(idx);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(idx));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_DC_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_DC_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -877,8 +964,7 @@ EN_ERR_STA_T slc_cali_phase(int32_t vt)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        buf_vt1[i] = (RF_DFE->DFE_CALIB_DC_RSLT & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;
-        i++;
+        buf_vt1[i] = (slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD8)) & DFE_CAL_EST_DC_RSLT_MASK) >> DFE_CAL_EST_DC_RSLT_SHIFT;        i++;
         slc_hal_nop_delay_us(SLC_CALI_TXIQ_TIMEOUT_US);
     }
 
@@ -893,7 +979,7 @@ EN_ERR_STA_T slc_cali_phase(int32_t vt)
         idx = SLC_CALI_TXIQ_MIN_IDX + i*SLC_CALI_TXIQ_STEP;
     }
 
-    RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(idx);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(idx));
     g_slc_cali_data.dciq_phase_idx = idx;
     PRINTF("DCIQ CALI phase succ, Vt=%d, min_diff=%u, idx=%d\n", vt, min_diff, idx);
 
@@ -911,38 +997,32 @@ EN_ERR_STA_T slc_txiq_cali_common(uint8_t type, uint8_t rxabb_cbpf_gain2_lut0, u
         return EN_ERROR_STA_INVALID;
     }
 
-    RF_CTRL->RF_MODE_CTRL |= SLC_RFCTRL_TX_CAL_EN_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_CAL_EN_VAL(1));
 
     // 仿真发现至少需要65us, 否则会失败, 建议200us和仿真保持一致
     slc_hal_nop_delay_us(200);
 
-    RF_AGC->AGC_BHF_LUT0 &= ~AGC_RXABB_CBPF_GAIN2_LUT0_MASK;
-    RF_AGC->AGC_BHF_LUT0 |= AGC_RXABB_CBPF_GAIN2_LUT0_VAL(rxabb_cbpf_gain2_lut0);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_AGC(0x80), AGC_RXABB_CBPF_GAIN2_LUT0_MASK, AGC_RXABB_CBPF_GAIN2_LUT0_VAL(rxabb_cbpf_gain2_lut0));
 
-    RF_CTRL->GPADC_CTRL &= ~SLC_RFCTRL_GPADC_BUF_SEL_MASK;
-    RF_CTRL->GPADC_CTRL |= SLC_RFCTRL_GPADC_BUF_SEL_VAL(SLC_GPADC_TXPDT);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0xC0), SLC_RFCTRL_GPADC_BUF_SEL_MASK, SLC_RFCTRL_GPADC_BUF_SEL_VAL(SLC_GPADC_TXPDT));
 
-    RF_DFE->DFE_DIG_DOWN_CONV |= DFE_DDC_BYPASS_VAL(1);
-    RF_DFE->DFE_DC0_PARA_CFG |= DFE_RMDC0_BYPASS_VAL(1);
-    RF_DFE->DFE_CALIB_PARAMETER &= ~DFE_SINE_DC_SEL_MASK;
-    RF_DFE->DFE_CALIB_PARAMETER |= DFE_SINE_DC_SEL_VAL(type);  // 0: sine, 1: DC
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xB8), DFE_DDC_BYPASS_VAL(1));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xE4), DFE_RMDC0_BYPASS_VAL(1));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0xC4), DFE_SINE_DC_SEL_MASK, DFE_SINE_DC_SEL_VAL(type));  // 0: sine, 1: DC
 
-    RF_DFE->DFE_CALIB_WAIT_TIME &= ~DFE_CAL_SEND_DURATION_MASK;
-    RF_DFE->DFE_CALIB_WAIT_TIME |= DFE_CAL_SEND_DURATION_VAL(cali_send_duration);
-    RF_DFE->DFE_CALIB_WAIT_TIME &= ~DFE_CAL_EST_WAIT_MASK;
-    RF_DFE->DFE_CALIB_WAIT_TIME |= DFE_CAL_EST_WAIT_VAL(cali_est_wait_time);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0xBC), DFE_CAL_SEND_DURATION_MASK, DFE_CAL_SEND_DURATION_VAL(cali_send_duration));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0xBC), DFE_CAL_EST_WAIT_MASK, DFE_CAL_EST_WAIT_VAL(cali_est_wait_time));
 
     if (type == SLC_CALI_SINE) {
         sine_fcw = (uint32_t)round(2.0 * PI * sine_freq * 16777216.0 / 25000000.0);
         fft_fcw = (int32_t)round(-2.0 * PI * f_cail * 16777216.0 / 5000000.0);
-        RF_DFE->DFE_CALIB_SIN_FCW = DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw);
-        RF_DFE->DFE_CALIB_FFT_FCW = DFE_CAL_EST_FFT_FCW_VAL(fft_fcw);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xC8), DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xD0), DFE_CAL_EST_FFT_FCW_VAL(fft_fcw));
 
         PRINTF("TXIQ CALI SINE mode, SINE_FCW=0x%X, FFT_FCW=0x%X\n", sine_fcw, fft_fcw);
     }
 
-    RF_CTRL->RXABB_ADC_CTRL &= ~(SLC_RFCTRL_RXADC_RST_ME_MASK | SLC_RFCTRL_RXADC_RST_MO_MASK);
-    RF_CTRL->RXABB_ADC_CTRL |= SLC_RFCTRL_RXADC_RST_ME_VAL(1) | SLC_RFCTRL_RXADC_RST_MO_VAL(0);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0xA0), (SLC_RFCTRL_RXADC_RST_ME_MASK | SLC_RFCTRL_RXADC_RST_MO_MASK), SLC_RFCTRL_RXADC_RST_ME_VAL(1) | SLC_RFCTRL_RXADC_RST_MO_VAL(0));
 
     return EN_ERROR_STA_OK;
 }
@@ -956,7 +1036,7 @@ EN_ERR_STA_T slc_dciq_cali(uint8_t rxabb_cbpf_gain2_lut0, uint16_t cali_send_dur
     if (ret != EN_ERROR_STA_OK)
         return ret;
 
-    RF_DFE->DFE_CFG_DC_COMP &= ~(DFE_CALIB_DC_COMPI_MASK | DFE_CALIB_DC_COMPQ_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_DFE(0x104), (DFE_CALIB_DC_COMPI_MASK | DFE_CALIB_DC_COMPQ_MASK));
     if (slc_cali_i(vt) != EN_ERROR_STA_OK)
         return EN_ERROR_STA_ERROR;
 
@@ -972,8 +1052,8 @@ EN_ERR_STA_T slc_dciq_cali(uint8_t rxabb_cbpf_gain2_lut0, uint16_t cali_send_dur
     if (slc_cali_phase(vt) != EN_ERROR_STA_OK)
         return EN_ERROR_STA_ERROR;
 
-    RF_DFE->DFE_DIG_DOWN_CONV &= ~DFE_DDC_BYPASS_MASK;
-    RF_CTRL->RF_MODE_CTRL &= ~SLC_RFCTRL_TX_CAL_EN_MASK;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_DFE(0xB8), DFE_DDC_BYPASS_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_CAL_EN_MASK);
     PRINTF("DCIQ CALI succ\n");
     return EN_ERROR_STA_OK;
 }
@@ -988,16 +1068,15 @@ EN_ERR_STA_T slc_cali_fft_dc(void)
     uint32_t timeout = 0;
     uint32_t fft_rslti, fft_rsltq, fft_rslti_temp, fft_rsltq_temp;
 
-    RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(1024) | DFE_CALIB_AMP_COMPI_VAL(1024));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(1024) | DFE_CALIB_AMP_COMPI_VAL(1024)));
     i = 0;
     for (dc_compi = -128; dc_compi < 128; dc_compi += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP = DFE_CALIB_DC_COMPI_VAL(dc_compi);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x104), DFE_CALIB_DC_COMPI_VAL(dc_compi));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_FFT_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_FFT_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -1008,8 +1087,8 @@ EN_ERR_STA_T slc_cali_fft_dc(void)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        fft_rslti = RF_DFE->DFE_CALIB_FFT_RSLTI;
-        fft_rsltq = RF_DFE->DFE_CALIB_FFT_RSLTQ;
+        fft_rslti = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xDC));
+        fft_rsltq = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xE0));
         fft_rslti_temp = (fft_rslti & 0x200000) ? (0x400000 - fft_rslti) : fft_rslti;
         fft_rsltq_temp = (fft_rsltq & 0x200000) ? (0x400000 - fft_rsltq) : fft_rsltq;
 
@@ -1033,13 +1112,12 @@ EN_ERR_STA_T slc_cali_fft_dc(void)
 
     i = 0;
     for (dc_compq = -128; dc_compq < 128; dc_compq += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_DC_COMP = (DFE_CALIB_DC_COMPI_VAL(iopt) | DFE_CALIB_DC_COMPQ_VAL(dc_compq));
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x104), (DFE_CALIB_DC_COMPI_VAL(iopt) | DFE_CALIB_DC_COMPQ_VAL(dc_compq)));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_FFT_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_FFT_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -1050,8 +1128,8 @@ EN_ERR_STA_T slc_cali_fft_dc(void)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        fft_rslti = RF_DFE->DFE_CALIB_FFT_RSLTI;
-        fft_rsltq = RF_DFE->DFE_CALIB_FFT_RSLTQ;
+        fft_rslti = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xDC));
+        fft_rsltq = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xE0));
         fft_rslti_temp = (fft_rslti & 0x200000) ? (0x400000 - fft_rslti) : fft_rslti;
         fft_rsltq_temp = (fft_rsltq & 0x200000) ? (0x400000 - fft_rsltq) : fft_rsltq;
 
@@ -1073,7 +1151,7 @@ EN_ERR_STA_T slc_cali_fft_dc(void)
     }
     qopt = SLC_CALI_TXIQ_MIN_IDX + qopt;
 
-    RF_DFE->DFE_CFG_DC_COMP = (DFE_CALIB_DC_COMPI_VAL(iopt) | DFE_CALIB_DC_COMPQ_VAL(qopt));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x104), (DFE_CALIB_DC_COMPI_VAL(iopt) | DFE_CALIB_DC_COMPQ_VAL(qopt)));
     g_slc_cali_data.fftiq_dc_i = iopt;
     g_slc_cali_data.fftiq_dc_q  = qopt;
     PRINTF("FFT IQ CALI DC succ, i=%d, q=%d\n", iopt, qopt);
@@ -1096,13 +1174,12 @@ EN_ERR_STA_T slc_cali_fft_amp(void)
     for (idx = -128; idx < 128; idx += SLC_CALI_FFTIQ_AMP_STEP) {
         amp_compi = (int)(1024 + idx/2);
         amp_compq = (int)(1024 - idx/2);
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_FFT_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_FFT_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -1113,8 +1190,8 @@ EN_ERR_STA_T slc_cali_fft_amp(void)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        fft_rslti = RF_DFE->DFE_CALIB_FFT_RSLTI;
-        fft_rsltq = RF_DFE->DFE_CALIB_FFT_RSLTQ;
+        fft_rslti = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xDC));
+        fft_rsltq = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xE0));
         fft_rslti_temp = (fft_rslti & 0x200000) ? (0x400000 - fft_rslti) : fft_rslti;
         fft_rsltq_temp = (fft_rsltq & 0x200000) ? (0x400000 - fft_rsltq) : fft_rsltq;
 
@@ -1137,7 +1214,7 @@ EN_ERR_STA_T slc_cali_fft_amp(void)
     amp_result = SLC_CALI_TXIQ_MIN_IDX + amp_result;
     amp_compi = (int)(1024 + amp_result/2);
     amp_compq = (int)(1024 - amp_result/2);
-    RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(amp_compq) | DFE_CALIB_AMP_COMPI_VAL(amp_compi)));
     g_slc_cali_data.fftiq_amp_compi = amp_compi;
     g_slc_cali_data.fftiq_amp_compq = amp_compq;
     PRINTF("FFT IQ CALI AMP succ, i=%d, q=%d\n", amp_compi, amp_compq);
@@ -1156,13 +1233,12 @@ EN_ERR_STA_T slc_cali_fft_phase(void)
 
     i = 0;
     for (idx = -128; idx < 128; idx += SLC_CALI_TXIQ_STEP) {
-        RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(idx);
-        RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(idx));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
         timeout = 0;
 
         do {
-            if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_FFT_FINISH_MASK) != 0)
-                break;
+            if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_FFT_FINISH_MASK) != 0)                break;
 
             slc_hal_nop_delay_us(10);
             timeout += 10;
@@ -1173,8 +1249,8 @@ EN_ERR_STA_T slc_cali_fft_phase(void)
             return EN_ERROR_STA_TIMEOUT;
         }
 
-        fft_rslti = RF_DFE->DFE_CALIB_FFT_RSLTI;
-        fft_rsltq = RF_DFE->DFE_CALIB_FFT_RSLTQ;
+        fft_rslti = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xDC));
+        fft_rsltq = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xE0));
         fft_rslti_temp = (fft_rslti & 0x200000) ? (0x400000 - fft_rslti) : fft_rslti;
         fft_rsltq_temp = (fft_rsltq & 0x200000) ? (0x400000 - fft_rsltq) : fft_rsltq;
 
@@ -1196,7 +1272,7 @@ EN_ERR_STA_T slc_cali_fft_phase(void)
     }
     pha_result = SLC_CALI_TXIQ_MIN_IDX + pha_result;
 
-    RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(pha_result);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(pha_result));
     g_slc_cali_data.fftiq_phase_idx = pha_result;
     PRINTF("FFT IQ CALI PHASE succ, idx=%d\n", pha_result);
 
@@ -1226,10 +1302,9 @@ EN_ERR_STA_T slc_fftiq_cali(uint8_t rxabb_cbpf_gain2_lut0, uint16_t cali_send_du
     if (ret != EN_ERROR_STA_OK)
         return ret;
 
-    RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
     do {
-        if ((RF_DFE->DFE_CALIB_FINISH & DFE_CAL_EST_FFT_FINISH_MASK) != 0)
-            break;
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0xD4)) & DFE_CAL_EST_FFT_FINISH_MASK) != 0)            break;
 
         slc_hal_nop_delay_us(10);
         timeout += 10;
@@ -1240,8 +1315,8 @@ EN_ERR_STA_T slc_fftiq_cali(uint8_t rxabb_cbpf_gain2_lut0, uint16_t cali_send_du
         return EN_ERROR_STA_TIMEOUT;
     }
 
-    RF_DFE->DFE_DIG_DOWN_CONV &= ~DFE_DDC_BYPASS_MASK;
-    RF_CTRL->RF_MODE_CTRL &= ~SLC_RFCTRL_TX_CAL_EN_MASK;
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_DFE(0xB8), DFE_DDC_BYPASS_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_CAL_EN_MASK);
     return EN_ERROR_STA_OK;
 }
 
@@ -1261,49 +1336,48 @@ void slc_restore_cali_data(slc_cali_iq_e iq_type)
     uint8_t result_idx = g_slc_cali_data.rc_cali_idx;
 
     // 恢复时钟校准数据
-    RF_PMU->DCDC_CTRL &= ~SLC_DCDC_OSC_CAPTRIM_MASK;
-    RF_PMU->RC32K_CTRL &= ~(SLC_CMU_OSC32K_FREQ_CTRIM_MASK | SLC_CMU_OSC32K_FREQ_RTRIM_MASK);
-    RF_PMU->RC50M_CTRL &= ~(SLC_CMU_OSC50M_FREQ_CTUNE_MASK | SLC_CMU_OSC50M_FREQ_RTUNE_MASK);
-    RF_PMU->DCDC_CTRL |= SLC_DCDC_OSC_CAPTRIM_VAL(g_slc_cali_data.dcdc1m_captrim);
-    RF_PMU->RC32K_CTRL |= (SLC_CMU_OSC32K_FREQ_CTRIM_VAL(g_slc_cali_data.rc32k_ctrim) |
-                           SLC_CMU_OSC32K_FREQ_RTRIM_VAL(g_slc_cali_data.rc32k_rtrim));
-    RF_PMU->RC50M_CTRL |= (SLC_CMU_OSC50M_FREQ_CTUNE_VAL(g_slc_cali_data.rc50m_ctune) |
-                           SLC_CMU_OSC50M_FREQ_RTUNE_VAL(g_slc_cali_data.rc50m_rtune));
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PMU(0x20), SLC_DCDC_OSC_CAPTRIM_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PMU(0x28), (SLC_CMU_OSC32K_FREQ_CTRIM_MASK | SLC_CMU_OSC32K_FREQ_RTRIM_MASK));
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PMU(0x30), (SLC_CMU_OSC50M_FREQ_CTUNE_MASK | SLC_CMU_OSC50M_FREQ_RTUNE_MASK));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PMU(0x20), SLC_DCDC_OSC_CAPTRIM_VAL(g_slc_cali_data.dcdc1m_captrim));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PMU(0x28), (SLC_CMU_OSC32K_FREQ_CTRIM_VAL(g_slc_cali_data.rc32k_ctrim) |
+                           SLC_CMU_OSC32K_FREQ_RTRIM_VAL(g_slc_cali_data.rc32k_rtrim)));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PMU(0x30), (SLC_CMU_OSC50M_FREQ_CTUNE_VAL(g_slc_cali_data.rc50m_ctune) |
+                           SLC_CMU_OSC50M_FREQ_RTUNE_VAL(g_slc_cali_data.rc50m_rtune)));
 
     // 恢复RC校准数据
-    RF_CTRL->RXABB_CBPF_CTRL |= RFCTRL_RXABB_CBPF_CTRIM_VAL(rccalib_table[result_idx].rxabb_cbpf_ctrim);
-    RF_CTRL->TXABB_LPF_TRIM |= SLC_RFCTRL_TXLPF_CTRIM_VAL(rccalib_table[result_idx].lpf_ctrim);
-    RF_CTRL->RXRF_MIX_TIA_CTRL |= SLC_RFCTRL_RXTIA_CT_CTUNE_VAL(rccalib_table[result_idx].tia);
-    RF_PMU->FDB_50M_TUNE |= SLC_CMU_FDOUB_CTUNE_VAL(rccalib_table[result_idx].freq_doubler);
-    RF_PLL->RFPLL_RESERVE |= RFPLL_RESERVE_IN_VAL(rccalib_table[result_idx].lo_ppf);
-    RF_PLL->DAC_CTRL |= RFPLL_DAC_TIA_CTRIM_VAL(rccalib_table[result_idx].pll_dac_lpf);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x94), RFCTRL_RXABB_CBPF_CTRIM_VAL(rccalib_table[result_idx].rxabb_cbpf_ctrim));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x74), SLC_RFCTRL_TXLPF_CTRIM_VAL(rccalib_table[result_idx].lpf_ctrim));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0xB4), SLC_RFCTRL_RXTIA_CT_CTUNE_VAL(rccalib_table[result_idx].tia));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PMU(0x40), SLC_CMU_FDOUB_CTUNE_VAL(rccalib_table[result_idx].freq_doubler));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xF8), RFPLL_RESERVE_IN_VAL(rccalib_table[result_idx].lo_ppf));
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xF4), RFPLL_DAC_TIA_CTRIM_VAL(rccalib_table[result_idx].pll_dac_lpf));
 
     // 恢复R校准数据
-    RF_PMU->PMU_CTRL &= ~SLC_PMU_IOUT_TUNE_TRIM_MASK;
-    RF_PMU->PMU_CTRL &= ~SLC_PMU_IOUT_PTAT_TRIM_MASK;
-    RF_PMU->PMU_CTRL |= (SLC_PMU_IOUT_TUNE_TRIM_VAL(g_slc_cali_data.pmu_iout_tune_trim) |
-                         SLC_PMU_IOUT_PTAT_TRIM_VAL(g_slc_cali_data.pmu_iout_ptat_trim));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PMU(0x18),
+                          (SLC_PMU_IOUT_TUNE_TRIM_MASK | SLC_PMU_IOUT_PTAT_TRIM_MASK),
+                          (SLC_PMU_IOUT_TUNE_TRIM_VAL(g_slc_cali_data.pmu_iout_tune_trim) |
+                           SLC_PMU_IOUT_PTAT_TRIM_VAL(g_slc_cali_data.pmu_iout_ptat_trim)));
 
     // 恢复KDAC校准数据
-    RF_PLL->POLAR_CTRL &= ~PLL_KDAC_GAIN_MASK;
-    RF_PLL->POLAR_CTRL |= PLL_KDAC_GAIN_VAL(g_slc_cali_data.kdac_gain);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0xC8), PLL_KDAC_GAIN_MASK, PLL_KDAC_GAIN_VAL(g_slc_cali_data.kdac_gain));
 
     // standby后重新做AFC校准，无需存储AFC校准数据
 
     if (iq_type == SLC_CALI_DC_IQ) {
         // 恢复DC IQ校准数据
-        RF_DFE->DFE_CFG_DC_COMP = (DFE_CALIB_DC_COMPI_VAL(g_slc_cali_data.dciq_iopt) |
-                                    DFE_CALIB_DC_COMPQ_VAL(g_slc_cali_data.dciq_qopt));
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(g_slc_cali_data.dciq_amp_compq) |
-                                    DFE_CALIB_AMP_COMPI_VAL(g_slc_cali_data.dciq_amp_compi));
-        RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(g_slc_cali_data.dciq_phase_idx);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x104), (DFE_CALIB_DC_COMPI_VAL(g_slc_cali_data.dciq_iopt) |
+                                    DFE_CALIB_DC_COMPQ_VAL(g_slc_cali_data.dciq_qopt)));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(g_slc_cali_data.dciq_amp_compq) |
+                                    DFE_CALIB_AMP_COMPI_VAL(g_slc_cali_data.dciq_amp_compi)));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(g_slc_cali_data.dciq_phase_idx));
     } else {
         // 恢复FFT IQ校准数据
-        RF_DFE->DFE_CFG_DC_COMP = (DFE_CALIB_DC_COMPI_VAL(g_slc_cali_data.fftiq_dc_i) |
-                                    DFE_CALIB_DC_COMPQ_VAL(g_slc_cali_data.fftiq_dc_q));
-        RF_DFE->DFE_CFG_AMP_COMP = (DFE_CALIB_AMP_COMPQ_VAL(g_slc_cali_data.fftiq_amp_compq) |
-                                    DFE_CALIB_AMP_COMPI_VAL(g_slc_cali_data.fftiq_amp_compi));
-        RF_DFE->DFE_CFG_PHASE_COMP = DFE_CALIB_PHASE_COMP_VAL(g_slc_cali_data.fftiq_phase_idx);
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x104), (DFE_CALIB_DC_COMPI_VAL(g_slc_cali_data.fftiq_dc_i) |
+                                    DFE_CALIB_DC_COMPQ_VAL(g_slc_cali_data.fftiq_dc_q)));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xFC), (DFE_CALIB_AMP_COMPQ_VAL(g_slc_cali_data.fftiq_amp_compq) |
+                                    DFE_CALIB_AMP_COMPI_VAL(g_slc_cali_data.fftiq_amp_compi)));
+        slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0x100), DFE_CALIB_PHASE_COMP_VAL(g_slc_cali_data.fftiq_phase_idx));
     }
 }
 

@@ -15,6 +15,7 @@
  */
 
 #include <string.h>
+#include "slc_private_spi_frame.h"
 #include <math.h>
 #include "slc_cali.h"
 #include "slc_phy_trx.h"
@@ -32,23 +33,21 @@ phy_trx_cfg_param_t *slc_phy_get_trx_config_param(void)
 
 void slc_phy_start_trans_tx_data(phy_cfg_tx_mode_e tx_mode, rf_power_e power)
 {
-    RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-    RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
     slc_phy_set_trx(PHY_TX_EN);
 
-#ifndef SLC_FPGA
     /* DFE config */
     slc_rf_ctrl_clk_gate_enable(RF_CLK_ME, true);
     slc_rf_dfe_set_link_ctrl_mode(RF_DFE_REG_CTRL);
-    slc_rf_dfe_set_line_ctrl_bw(RF_DFE_AUTO_CTRL);
+    slc_rf_dfe_set_line_ctrl_bw(RF_DFE_REG_CTRL);
     // slc_rf_dfe_set_bw(g_phy_trx_config_param.bw);
     if (tx_mode == PHY_TX_IQ) {
         slc_rf_dfe_bypass_fir59(true, 0, RF_DFE_AUTO_CTRL);
     } else {
-        slc_rf_dfe_bypass_fir59(false, 1, RF_DFE_AUTO_CTRL);
+        slc_rf_dfe_bypass_fir59(false, 1, RF_DFE_REG_CTRL);
         slc_rf_dfe_set_fir59(g_phy_trx_config_param.sf);
     }
-#endif
+
     slc_rf_dfe_set_trx_mode(RF_DFE_TX);
 
     slc_rf_dfe_reset();
@@ -57,6 +56,8 @@ void slc_phy_start_trans_tx_data(phy_cfg_tx_mode_e tx_mode, rf_power_e power)
     slc_rf_subg_disable_trx();
     slc_rf_subg_set_tx_en();
 #else
+    
+#endif
     slc_txrf_set_pa_ppa_upc_ctrl(g_phy_trx_config_param.flo);
     slc_tx_dac_lpf_enable(RF_ME);
 
@@ -84,25 +85,24 @@ void slc_phy_start_trans_tx_data(phy_cfg_tx_mode_e tx_mode, rf_power_e power)
 
     slc_rf_tx_ctrl(tx_mode, g_phy_trx_config_param.flo);
     slc_txrf_set_power_ctrl(g_phy_trx_config_param.flo, power);
-#endif
+
 }
 
 void slc_phy_start_get_rx_data(void)
 {
     slc_rf_tx_disable();
 
-    RF_PLL->PK_CTRL &= ~RFPLL_PEAKDET_CON_VREF_1P1_MASK;
-    RF_PLL->PK_CTRL |= RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE));
 
 #ifdef SLC_FPGA
     // 中频1M，默认采样率5M
-    slc_rf_dfe_set_ddc_fcw(1000000, 5000000, false);
-    slc_rf_dfe_set_trx_mode(RF_DFE_RX);
-    slc_rf_dfe_set_link_ctrl_mode(RF_DFE_REG_CTRL);
-    slc_rf_dfe_set_rmdc_bypass_en(true, true);
-    slc_rf_dfe_reset();
+    //slc_rf_dfe_set_ddc_fcw(1000000, 5000000, false);
+    //slc_rf_dfe_set_trx_mode(RF_DFE_RX);
+    //slc_rf_dfe_set_link_ctrl_mode(RF_DFE_REG_CTRL);
+    //slc_rf_dfe_set_rmdc_bypass_en(true, true);
+    //slc_rf_dfe_reset();
 
-    slc_phy_set_agc_bypass_en(false);
+    //slc_phy_set_agc_bypass_en(false);
 #else
     slc_rf_ctrl_clk_gate_enable(RF_CLK_ME, true);
     slc_rf_dfe_set_trx_mode(RF_DFE_RX);
@@ -127,10 +127,21 @@ void slc_phy_start_get_rx_data(void)
 
     slc_rf_rx_agc_ctrl();
 #endif
+    slc_rf_ctrl_clk_gate_enable(RF_CLK_ME, true);
+    slc_rf_dfe_set_trx_mode(RF_DFE_RX);
+    slc_rf_dfe_set_link_ctrl_mode(RF_DFE_REG_CTRL);
+    slc_rf_dfe_set_rmdc_bypass_en(true, true);
+    slc_rf_dfe_reset();
+    slc_rf_dfe_set_ddc_fcw((g_phy_trx_config_param.bw == PHY_BW_500K) ? 500000 : 250000, 5000000, false);
+    slc_rf_rx_tia_ctrl((g_phy_trx_config_param.bw == PHY_BW_500K) ? RF_IF500K : RF_IF250K);
+    slc_rf_rx_cbpf_ctrl(g_phy_trx_config_param.bw);
+
+    slc_rf_rx_adc_ctrl();
+    slc_rf_rx_agc_ctrl();
 
     slc_phy_set_trx(PHY_RX_EN);
 #ifdef SLC_FPGA
-    slc_rf_subg_set_sync_opt_agc_opt();
+    //slc_rf_subg_set_sync_opt_agc_opt();
     slc_rf_subg_disable_trx();
     slc_rf_subg_set_rx_en();
 #endif
@@ -154,11 +165,16 @@ void slc_phy_trx_config(phy_cfg_t *cfg, uint16_t netid, phy_cfg_trx_e trx,
             (g_phy_trx_config_param.freq != freq)) {
             kadc_cali_en = 1;
         }
+        tx_polar_en();
     }
     g_phy_trx_config_param.freq = freq;
     g_phy_trx_config_param.sf = cfg->sf;
     g_phy_trx_config_param.bw = cfg->bw;
     g_phy_trx_config_param.flo = flo;
+    
+#ifdef SLC_FPGA
+        slc_rf_fpga_set(cfg->bw, trx);
+#endif
 
     /* phy config */
     slc_phy_set_timeout(0xFFFFFFFF);
@@ -175,23 +191,27 @@ void slc_phy_trx_config(phy_cfg_t *cfg, uint16_t netid, phy_cfg_trx_e trx,
 
     slc_set_monitor_reg_clr();
     slc_phy_cfg_fc(freq);
-    slc_rf_dfe_tx_del_keep_pnt_bypass(true);
+
+    //slc_rf_dfe_tx_del_keep_pnt_bypass(true);
 
     slc_phy_cfg_done(true);
     slc_phy_sw_reset();
 
 #ifdef SLC_FPGA
     /* subg config */
-    slc_rf_subg_set_gpio();
-    slc_rf_subg_disable_trx();
-    ret = slc_rf_subg_afc_cali();
+    ret += slc_afc_cali(g_phy_trx_config_param.freq, ((g_phy_trx_config_param.bw == PHY_BW_500K) ? -500000 : -250000),
+                        true, ((tx_mode == PHY_TX_POLAR) ? true: false));
+    ret += slc_afc_cali(g_phy_trx_config_param.freq, ((g_phy_trx_config_param.bw == PHY_BW_500K) ? -500000 : -250000),
+                        false, false);
+
     if (ret != EN_ERROR_STA_OK) {
-        PRINTF("AFC cali error! ret = %d\n", ret);
+        PRINTF("afc %s cali failed, ret = %d\n", (trx == PHY_TX_EN) ? "tx" : "rx", ret);
         return;
     }
 
-    slc_rf_subg_fc_cali(freq);
-    slc_rf_subg_set_fc(freq);
+    if (kadc_cali_en) {
+        slc_kdac_cali();
+    }
 #else
     ret += slc_afc_cali(g_phy_trx_config_param.freq, ((g_phy_trx_config_param.bw == PHY_BW_500K) ? -500000 : -250000),
                         true, ((tx_mode == PHY_TX_POLAR) ? true: false));
@@ -220,15 +240,14 @@ void slc_phy_single_tone(void)
     slc_rf_dfe_set_line_ctrl_bw(RF_DFE_AUTO_CTRL);
     slc_rf_dfe_bypass_fir59(true, 0, RF_DFE_AUTO_CTRL);
     slc_rf_dfe_set_trx_mode(RF_DFE_CALI);
-    RF_DFE->DFE_CALIB_PARAMETER &= ~DFE_SINE_DC_SEL_MASK;  // 0: sine, 1: DC
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_DFE(0xC4), DFE_SINE_DC_SEL_MASK);  // 0: sine, 1: DC
 
     sine_fcw = (uint32_t)round(2.0 * PI * 100000 * 16777216.0 / 25000000.0);
-    RF_DFE->DFE_CALIB_SIN_FCW = DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw);
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_DFE(0xC8), DFE_CAL_SEND_SINE_FCW_VAL(sine_fcw));
 
-    RF_DFE->DFE_CALIB_WAIT_TIME &= ~DFE_CAL_SEND_DURATION_MASK;
-    RF_DFE->DFE_CALIB_WAIT_TIME |= DFE_CAL_SEND_DURATION_VAL(0);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0xBC), DFE_CAL_SEND_DURATION_MASK, DFE_CAL_SEND_DURATION_VAL(0));
 
     slc_rf_dfe_reset();
 
-    RF_DFE->DFE_CALIB_START |= DFE_CAL_SEND_START_VAL(1);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_DFE(0xC0), DFE_CAL_SEND_START_VAL(1));
 }
