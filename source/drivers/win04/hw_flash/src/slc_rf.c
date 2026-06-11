@@ -19,6 +19,8 @@
 #include "slc_hal_delay.h"
 #include "slc_phy.h"
 #include "slc_rf.h"
+#include "app_cfg.h"
+
 
 /* RFFE PMU func */
 void slc_rf_set_pmu_lvd_crvt(slc_rf_lvd_crvt_e lvd_val)
@@ -523,4 +525,36 @@ slc_rf_rxabb_bw_e slc_rf_get_rxabb_bwmode_bw(phy_cfg_bw_e bw)
             return RF_RXABB_500K;
     }
 }
+
+void slc_rf_fpga_set(phy_cfg_bw_e bw, phy_cfg_trx_e trx)
+{
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x60), (RF_CTRL_CLK_ME_MASK | RF_CTRL_CLK_ME_MASK), (RF_CTRL_CLK_ME_VAL(1) | RF_CTRL_CLK_MO_VAL(1)));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x00), DFE_CTRL_WORK_MODE_MASK, DFE_CTRL_WORK_MODE_VAL(0));
+    
+    if (trx == PHY_RX_EN){
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x00), DFE_WORK_MODE_MASK, DFE_WORK_MODE_VAL(1));
+    }
+    else{
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x00), DFE_WORK_MODE_MASK, DFE_WORK_MODE_VAL(0));
+    }
+
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_DFE(0x08), (DFE_CFG_CTRL_BW_MASK | DFE_CFG_BW_MASK), (DFE_CFG_CTRL_BW_VAL(0) | DFE_CFG_BW_VAL((uint32_t)bw)));
+    
+    uint32_t reeg = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x60));
+    PRINTF("RF CTRL 0X60 = %08x, %08x!\n",reeg,SLC_RF_SPI_ADDR_CTRL(0x60));
+    reeg = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x00));
+    PRINTF("RF CTRL 0X00 = %08x!\n",reeg);
+    reeg = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0x00));
+    PRINTF("RF DFE 0X00 = %08x!\n",reeg);
+    reeg = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_DFE(0x08));
+    PRINTF("RF DFE 0X08 = %08x!\n",reeg);
+    
+}
+
+void tx_polar_en(void)
+{
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (RF_CTRL_TXMODE_ME_MASK | RF_CTRL_TXMODE_MO_MASK), (RF_CTRL_TXMODE_ME_VAL(1) | RF_CTRL_TXMODE_MO_VAL(1)));
+}
+
+
 

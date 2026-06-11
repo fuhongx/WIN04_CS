@@ -23,22 +23,26 @@
 void slc_rf_subg_set_gpio(void)
 {
     // set IO driver strength
-    slc_rf_spi_set_bits(0x00CC, 24, 25, 0x0);
+    //slc_rf_spi_set_bits(0x00CC, 24, 25, 0x0);
 }
 
 void slc_rf_subg_disable_trx(void)
 {
-    slc_rf_spi_set_bits(0x00C8, 2, 5, 0xA);
+    //slc_rf_spi_set_bits(0x00C8, 2, 5, 0xA);
 }
 
 void slc_rf_subg_set_tx_en(void)
 {
-    slc_rf_spi_set_bits(0x00C8, 2, 3, 0x3);
+    //slc_rf_spi_set_bits(0x00C8, 2, 3, 0x3);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (RF_CTRL_RXEN_ME_MASK | RF_CTRL_RXEN_MO_MASK));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (RF_CTRL_TXEN_ME_MASK | RF_CTRL_TXEN_MO_MASK), (RF_CTRL_TXEN_ME_VAL(1) | RF_CTRL_TXEN_MO_VAL(1)));
 }
 
 void slc_rf_subg_set_rx_en(void)
 {
-    slc_rf_spi_set_bits(0x00C8, 4, 5, 0x3);
+    //slc_rf_spi_set_bits(0x00C8, 4, 5, 0x3);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (RF_CTRL_TXEN_ME_MASK | RF_CTRL_TXEN_MO_MASK));
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (RF_CTRL_RXEN_ME_MASK | RF_CTRL_RXEN_MO_MASK), (RF_CTRL_RXEN_ME_VAL(1) | RF_CTRL_RXEN_MO_VAL(1)));
 }
 
 EN_ERR_STA_T slc_rf_subg_afc_cali(void)

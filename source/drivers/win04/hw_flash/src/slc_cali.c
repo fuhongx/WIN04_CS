@@ -358,7 +358,7 @@ int slc_rc_cali(void)
     return EN_ERROR_STA_OK;
 }
 
-int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
+int slc_afc_cali1(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
 {
     uint32_t timeout = 0;
     uint32_t remainder_hz = freq_hz % 1000000;
@@ -465,6 +465,141 @@ int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
     //         slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4)));
     return EN_ERROR_STA_OK;
 }
+
+int slc_afc_cali(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
+{
+    uint32_t timeout = 0;
+    uint32_t remainder_hz = freq_hz % 1000000;
+    uint64_t temp_frac = (uint64_t)remainder_hz * (1 << 24);
+    uint32_t frac_24bit = (uint32_t)(temp_frac / 1000000);
+    uint32_t int_11bit = freq_hz / 1000000;
+    float inter_freq_mhz = (float)inter_freq_hz / 1000000.0;
+    int32_t inter_freq = (int32_t)round(inter_freq_mhz * (1 << 24));
+    bool repeat = false;
+    uint32_t ramping_ctrl;
+    uint32_t rpt_afc_ctune;
+    uint32_t rpt_afc_ftune;
+
+start:
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC), PLL_TX_FREQ_INT_VAL(int_11bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0), PLL_TX_FREQ_FRAC_VAL(frac_24bit));
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4), PLL_INTER_FREQ_VAL(inter_freq));
+
+    // TODO: AFC校准试ramping cycle若不设置小些，校准切换时间会达到毫秒级别，此处临时
+    ramping_ctrl = slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_CTRL(0x68));
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_MASK);
+
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_MO_MASK | SLC_RFCTRL_RX_EN_MO_MASK), (SLC_RFCTRL_TX_EN_ME_VAL(1) | SLC_RFCTRL_RX_EN_ME_VAL(1)));
+
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
+
+        slc_hal_nop_delay_us(1);
+        timeout += 1;
+    } while (timeout < 10);
+
+    if (timeout >= 10) {
+        PRINTF("wait AFC CALI start timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+    timeout = 0;
+
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
+    slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x8C), 0x1FF, 0x180);
+
+#if 1
+    if(repeat != true){
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x44), (RFPLL_AMP_CTR0_CTUNE_MASK | RFPLL_AMP_CTR0_FTUNE_MASK), (RFPLL_AMP_CTR0_CTUNE_VAL(0x20) | RFPLL_AMP_CTR0_FTUNE_VAL(0x8)));
+    }else{
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x44), (RFPLL_AMP_CTR0_CTUNE_MASK | RFPLL_AMP_CTR0_FTUNE_MASK), (RFPLL_AMP_CTR0_CTUNE_VAL(rpt_afc_ctune) | RFPLL_AMP_CTR0_FTUNE_VAL(rpt_afc_ftune)));
+    }
+#endif
+
+    if (tx) {
+        if (polar)
+            slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+        else
+            slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+
+            slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
+
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_VAL(1));
+    } else {
+        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_RX_CODE));
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
+
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_VAL(1));
+        slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_VAL(1));
+    }
+
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) != 0)            break;
+
+        slc_hal_nop_delay_us(10);
+        timeout += 10;
+    } while (timeout < SLC_CALI_AFC_TIMEOUT_US);
+
+    if (timeout >= SLC_CALI_AFC_TIMEOUT_US) {
+        PRINTF("AFC CALI done timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+
+    slc_hal_nop_delay_us(10); // 等待一段时间，让PLL稳定下来
+
+    if (tx) {
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_TX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
+    } else {
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), SLC_RFCTRL_RX_EN_MO_MASK);
+        slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_CTRL(0x00), (SLC_RFCTRL_TX_EN_ME_MASK | SLC_RFCTRL_RX_EN_ME_MASK));
+    }
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x04), PLL_SW_PLL_EN_MASK);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x80), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x78), 0x300);
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0x8C), 0x100);
+
+    slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
+
+    timeout = 0;
+    do {
+        if ((slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0x04)) & PLL_RPT_AFC_DONE_MASK) == 0)            break;
+
+        slc_hal_nop_delay_us(1);
+        timeout += 1;
+    } while (timeout < 50);
+
+    if (timeout >= 50) {
+        PRINTF("wait AFC CALI end timeout\n");
+        return EN_ERROR_STA_TIMEOUT;
+    }
+
+    if(repeat != true){
+        repeat = true;
+        rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+        rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+        PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
+        goto start;
+    }
+
+    slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_CTRL(0x68), ramping_ctrl);
+    rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+    rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+    PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
+    //slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_VAL(0x1));
+    // PRINTF("AFC %s CALI succ, FREQ_INT 0x%X, FREQ_FRAC 0x%X, INTER_FREQ 0x%X\n", (tx ? "TX" : "RX"),
+    //         slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xBC)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC0)), slc_rf_spi_read32_cmd(SLC_RF_SPI_ADDR_PLL(0xC4)));
+    return EN_ERROR_STA_OK;
+}
+
 
 int slc_kdac_cali(void)
 {
