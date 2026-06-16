@@ -13,6 +13,7 @@
 #include "slc_aes_test.h"
 #include "slc_rtc_test.h"
 #include "slc_low_power_test.h"
+#include "slc_reset_test.h"
 #include "slc_flash_test.h"
 #include "slc_timer_test.h"
 #include "slc_pwm_test.h"
@@ -20,6 +21,7 @@
 #include "slc_lpio_test.h"
 #include "slc_lpuart_test.h"
 #include "slc_spi_test.h"
+#include "slc_cache_test.h"
 
 #define SOCTEST_START_LINE    ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 #define SOCTEST_END_LINE      "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
@@ -30,6 +32,10 @@ static const soctest_case_t slc_nvic_test_case[] = {
     {"NVIC Interrupt Test",     slc_nvic_intc_test,         SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"NVIC nest&priority Test", slc_nvic_nest_and_priority_test,    SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"NVIC Primask Test",       slc_nvic_primask_test,      MANUAL_TEST | EXCEPTION_TEST},
+};
+
+static const soctest_case_t slc_cache_test_case[] = {
+    {"CACHE flush Test",        slc_cache_flush_test,    MANUAL_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t slc_systick_test_case[] = {
@@ -175,6 +181,10 @@ static const soctest_case_t slc_lowpower_test_case[] = {
     {"standby lpio wakeup Test", low_power_standby_wakeup_by_lpio_test,  MANUAL_TEST | EXCEPTION_TEST},
 };
 
+static const soctest_case_t slc_reset_test_case[] = {
+    {"Soft Reset Test",         slc_reset_soft_test,                MANUAL_TEST | EXCEPTION_TEST},
+};
+
 static const soctest_case_t slc_uart_test_case[] = {
     {"UART baudrate Test",  slc_uart_baudrate_test, SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"UART stopbit Test",   slc_uart_stopbit_test,  AUTO_TEST | PRESSURE_TEST},
@@ -215,7 +225,7 @@ static const soctest_case_t slc_lpio_test_case[] = {
 static const soctest_mod_t g_soctest_mod_list[SOCTEST_MOD_TYPE_MAX] =
 {
     [SOCTEST_MOD_NVIC]      = {"NVIC", NULL, NULL, slc_nvic_test_case, TESTCASE_TABLE_SIZE(slc_nvic_test_case)},
-    [SOCTEST_MOD_CACHE]     = {"CACHE", NULL, NULL, NULL, 0},
+    [SOCTEST_MOD_CACHE]     = {"CACHE", NULL, NULL, slc_cache_test_case, TESTCASE_TABLE_SIZE(slc_cache_test_case)},
     [SOCTEST_MOD_SYSTICK]   = {"SYSTICK", NULL, NULL, slc_systick_test_case, TESTCASE_TABLE_SIZE(slc_systick_test_case)},
     [SOCTEST_MOD_EXCPTION]  = {"EXCPTION", NULL, NULL, NULL, 0},
     [SOCTEST_MOD_FLASH]     = {"FLASH", NULL, NULL, slc_flash_test_case, TESTCASE_TABLE_SIZE(slc_flash_test_case)},
@@ -237,7 +247,7 @@ static const soctest_mod_t g_soctest_mod_list[SOCTEST_MOD_TYPE_MAX] =
     [SOCTEST_MOD_LPTIMER]   = {"LPTIMER", NULL, NULL, slc_lptimer_test_case, TESTCASE_TABLE_SIZE(slc_lptimer_test_case)},
     [SOCTEST_MOD_LPIO]      = {"LPIO", slc_lpio_test_init, slc_lpio_test_deinit, slc_lpio_test_case, TESTCASE_TABLE_SIZE(slc_lpio_test_case)},
     [SOCTEST_MOD_LPWR]      = {"LPWR", NULL, NULL, slc_lowpower_test_case, TESTCASE_TABLE_SIZE(slc_lowpower_test_case)},
-    [SOCTEST_MOD_RESET]     = {"RESET", NULL, NULL, NULL, 0},
+    [SOCTEST_MOD_RESET]     = {"RESET", NULL, NULL, slc_reset_test_case, TESTCASE_TABLE_SIZE(slc_reset_test_case)},
 };
 
 static const char* soctest_case_type_str[SOCTEST_CASE_TYPE_ID_MAX] =

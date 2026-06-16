@@ -100,6 +100,28 @@ void flash_read_id_test(void)
     // dump_u8buf("flash sec mem0", buffer, 256);
 }
 
+void reset_verification(void)
+{
+    uint8_t rst_cause = slc_hal_sysctrl_get_reset_src();
+    switch(rst_cause) {
+        case 0x0:
+            PRINTF("Reset from PowerOn\n");
+            break;
+        case 0x1:
+            PRINTF("Reset from WDT timeout\n");
+            break;
+        case 0x2:
+            PRINTF("Reset from IWDT timeout\n");
+            break;
+        case 0x4:
+            PRINTF("Reset from NVIC reset\n");
+            break;
+        default:
+            PRINTF("Reset from unknown reason: 0x%02X\n", rst_cause);
+            break;
+    }
+}
+
 int main(void)
 {
     slc_check_boot_status();
@@ -110,6 +132,7 @@ int main(void)
 
     slc_platform_init();
     flash_read_id_test();
+    reset_verification();
 
 #ifdef SLC_PHYTEST
     slc_phy_test();
