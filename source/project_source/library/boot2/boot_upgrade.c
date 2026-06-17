@@ -16,7 +16,7 @@
 uint32_t u32Buffer[UNIT_SECTOR / 4] = {0};
 
 uint32_t au32ReadBuffer[BOOT2HEADER_LEN / 4] = {0};
-
+extern uint32_t rom_hw_crc32(uint8_t *pu8Buffer, uint16_t u16Len);
 typedef enum
 {
     EN_BOOT_UPGRADE_ERASE_BOOT2,
@@ -104,7 +104,7 @@ bool boot_upgrade_update_boot2_code(boot2_header_t *pstBoot2)
     pstUpgradeVer = (boot2_header_t *)au32ReadBuffer;
 
     // 2 -> Check header crc.
-    uint32_t u32HeaderCrc = rom_hw_crc_get_crc32_value((uint8_t *)au32ReadBuffer, BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
+    uint32_t u32HeaderCrc = rom_hw_crc32((uint8_t *)au32ReadBuffer, BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
     if(pstUpgradeVer->u32Boot2HeaderCrc != u32HeaderCrc) {
         PRINTF("[BL2] warning check Boot2upgrade HeaderCrc fail, Read = 0x%x, Caculate Crc= 0x%x\n",
                 pstUpgradeVer->u32Boot2HeaderCrc, u32HeaderCrc);
@@ -161,7 +161,7 @@ bool boot_upgrade_update_app_code(fw_header_t *pstFirm)
     fw_header_t *pstUpgrade = (fw_header_t *)au32ReadBuffer;
 
     // 2 -> Check header crc.
-    uint32_t u32HeaderCrc = rom_hw_crc_get_crc32_value((uint8_t *)au32ReadBuffer, BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
+    uint32_t u32HeaderCrc = rom_hw_crc32((uint8_t *)au32ReadBuffer, BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
     if(pstUpgrade->u32FirmwareHeaderCrc != u32HeaderCrc)
     {
         PRINTF("[BL2] warning check FW_upgrade HeaderCrc fail, Read = 0x%x, Caculate Crc= 0x%x\n",
@@ -208,7 +208,7 @@ check_fw_integrality:
     }
 
     PRINTF("[BL2] start to check current Firmware integrality, safe_level = %u\n", safe_level);
-    uint32_t cur_HeaderCrc = rom_hw_crc_get_crc32_value((uint8_t *)au32ReadBuffer, FIRMWARE_HEADER_LEN - BOOT2HEADER_CRC_LEN);
+    uint32_t cur_HeaderCrc = rom_hw_crc32((uint8_t *)au32ReadBuffer, FIRMWARE_HEADER_LEN - BOOT2HEADER_CRC_LEN);
     if (cur_header->u32FirmwareHeaderCrc != cur_HeaderCrc) {
         PRINTF("[BL2] check Current Firmware HeaderCRC fail! Read = 0x%x, Caculate Crc= 0x%x\n",
                 cur_header->u32FirmwareHeaderCrc, cur_HeaderCrc);

@@ -38,31 +38,4 @@ EN_ERR_STA_T rom_hw_crc_set_init_value(stCrcHandle_t *pstHandle, uint32_t u32Val
 EN_ERR_STA_T rom_hw_crc_set_xor_bytes(stCrcHandle_t *pstHandle, uint32_t u32Xor);
 uint32_t rom_hw_crc_calculate_data(stCrcHandle_t *pstHandle, uint8_t *pu8Data, uint16_t u16Len);
 
-/**
- * @brief Get CRC16 value of buffer.
- *            CRC16-CCITT (POLY 0x1021), 0x0000 initial value, input data reverse, output xor 0x0000, output reverse
- * @param pu8Buffer Pointer to buffer.
- * @param u16Len Length of buffer.
- * @return uint32_t CRC16 value.
- */
-uint16_t rom_hw_crc_get_crc16_value(uint8_t *pu8Buffer, uint16_t u16Len);
-
-/**
- * @brief Get CRC24 value of buffer.
- *            CRC24 (POLY 0x800063), 0xFFFFFF initial value, input data reverse, output xor 0xFFFFFF, output reverse
- * @param pu8Buffer Pointer to buffer.
- * @param u16Len Length of buffer.
- * @return uint32_t CRC24 value.
- */
-uint32_t rom_hw_crc_get_crc24_value(uint8_t *pu8Buffer, uint16_t u16Len);
-
-/**
- * @brief Get CRC32 value of buffer.
- *            CRC32 (POLY 0x04C11DB7), 0xFFFFFFFF initial value, input data reverse, output xor 0xFFFFFFFF, output reverse
- * @param pu8Buffer Pointer to buffer.
- * @param u16Len Length of buffer.
- * @return uint32_t CRC32 value.
- */
-uint32_t rom_hw_crc_get_crc32_value(uint8_t *pu8Buffer, uint16_t u16Len);
-
 #endif

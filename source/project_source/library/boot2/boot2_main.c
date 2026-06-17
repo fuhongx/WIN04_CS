@@ -89,6 +89,7 @@ void boot2_peripheral_deinit(void)
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_UART1, false);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_UART1);
 
+    rom_hw_sysctrl_set_cache_mode(EN_CACHE_ENABLE);
     rom_hw_sysctrl_set_cache_mode(EN_CACHE_FLUSH);
 }
 // #include "hw_timer.h"

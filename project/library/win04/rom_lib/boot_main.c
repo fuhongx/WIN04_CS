@@ -17,7 +17,6 @@
 extern uint8_t g_boot_flash_devid[3];
 int main(void)
 {
-    boot_identify_from_rst();
     boot_identify_from_lowpower();
 
     rom_hw_sysctrl_system_clock_init(EN_SYS_CLK_RC50M, EN_SYS_CLK_MCLK_DIV_NONE);
@@ -58,6 +57,9 @@ int main(void)
 
     // 4 read security mem, set flash security
     boot_set_flash_enc_by_security_info();
+
+    // 由于security mem增加了一个IWDT的控制位，需要在读取security mem后判断是否需要关闭IWDT
+    boot_identify_from_rst();
 
     boot_selection();
 

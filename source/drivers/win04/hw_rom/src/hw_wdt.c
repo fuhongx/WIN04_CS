@@ -111,6 +111,7 @@ EN_ERR_STA_T rom_hw_wdt_feed_dog(void)
 EN_ERR_STA_T rom_hw_iwdt_enable_write(bool bEnable)
 {
     IWDT->WDT_WPR = bEnable;
+    rom_utility_delay_us(LP_RW_DELAY);
 
     return EN_ERROR_STA_OK;
 }

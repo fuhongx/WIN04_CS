@@ -135,7 +135,7 @@ typedef enum
     EN_NORMAL_POWERUP   = 0,
     EN_RST_FROM_WDT     = 1,
     EN_RST_FROM_IWDT    = 2,
-    EN_RST_FROM_SOFT    = 3, // software reset, NVIC_SystemReset
+    EN_RST_FROM_SOFT    = 4, // software reset, NVIC_SystemReset
 } EN_SYSCTRL_RST_SRC_T;
 
 /**
@@ -204,7 +204,8 @@ EN_ERR_STA_T rom_hw_sysctrl_set_cache_mode(EN_SYSCTRL_CACHE_MODE_T enMode);
  */
 EN_ERR_STA_T rom_hw_cdc_delay(uint32_t u32Delay);
 
-void rom_hw_sysctrl_set_lp_clk(bool xtal);
+void rom_hw_sysctrl_set_phy_pmu_clk(bool xtal);
+void rom_hw_sysctrl_set_apb1_clk(bool xtal);
 void rom_hw_sysctrl_set_phy_fft_clk(bool xtal);
 
 uint8_t rom_hw_sysctrl_get_reset_src(void);

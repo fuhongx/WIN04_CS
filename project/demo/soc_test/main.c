@@ -18,6 +18,7 @@
 #include "slc_phy_test.h"
 #include "slc_soc_test.h"
 #include "compiler.h"
+#include "slc_intc.h"
 #include "slc_test_slave.h"
 
 #ifdef SLC_AUTOTEST
@@ -63,7 +64,7 @@ __RETENTION_FUNC __attribute__((interrupt)) void NMI_Handler_in_RAM(void)
 {
     if(g_test_nmi_continue_flag) {
         g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
-        rom_utility_delay_us(10);
+        slc_hal_nop_delay_us(10);
     } else {
         PRINTF("An unexpected exception, manual reset needed.\n");
         while(1);
@@ -121,42 +122,21 @@ void slc_platform_init(void)
     PRINTF("FW start to work(freq: %dMHz). Build Time:[%s T %s].\n",
             slc_hal_sysctrl_get_system_clock() / 1000000, __DATE__, __TIME__);
 }
-#include "hw_flash.h"
-void flash_read_id_test(void)
-{
-    uint8_t dev_id[3] = {0};
-    uint8_t uid[8] = {0};
-    uint8_t buffer[256] = {0};
-
-    rom_hw_flash_read_dev_id(dev_id, 3);
-    rom_hw_flash_read_uid(uid, 8);
-    dump_u8buf("flash dev id", dev_id, sizeof(dev_id));
-    dump_u8buf("flash uid", uid, sizeof(uid));
-    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-    dump_u8buf("flash sec mem0", buffer, 256);
-
-    // buffer[36] = 0x2;
-    // rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM0, FLASH_ERASE_SECURITY_MEM_KEY);
-    // rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-
-    // rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-    // dump_u8buf("flash sec mem0", buffer, 256);
-}
 
 void reset_verification(void)
 {
     uint8_t rst_cause = slc_hal_sysctrl_get_reset_src();
     switch(rst_cause) {
-        case 0x0:
+        case HAL_MORMAL_POWERUP:
             PRINTF("Reset from PowerOn\n");
             break;
-        case 0x1:
+        case HAL_RST_FROM_WDT:
             PRINTF("Reset from WDT timeout\n");
             break;
-        case 0x2:
+        case HAL_RST_FROM_IWDT:
             PRINTF("Reset from IWDT timeout\n");
             break;
-        case 0x4:
+        case HAL_RST_FROM_SOFT:
             PRINTF("Reset from NVIC reset\n");
             break;
         default:
@@ -175,7 +155,6 @@ int main(void)
 #endif // SLC_AUTOTEST
 
     slc_platform_init();
-    flash_read_id_test();
     reset_verification();
 
 #ifdef SLC_PHYTEST

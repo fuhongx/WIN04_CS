@@ -149,11 +149,18 @@ void slc_hal_sysctrl_peripheral_mod_reset(hal_peripheral_clk_e peripheral);
 void slc_hal_sysctrl_cache_mode_set(hal_cache_mode_e mode);
 
 /**
- * @brief Set low power clock, 设置低功耗时钟源
+ * @brief Set phy pmu clock, 设置phy_pmu时钟源
  * 
  * @param clk_src 低功耗时钟源选择，参考 hal_sysctrl_lp_src_e 枚举
  */
-void slc_hal_sysctrl_set_lp_clk(hal_sysctrl_lp_src_e clk_src);
+void slc_hal_sysctrl_set_phy_pmu_clk(hal_sysctrl_lp_src_e clk_src);
+
+/**
+ * @brief Set apb1 clock, 设置apb1时钟源
+ * 
+ * @param clk_src 低功耗时钟源选择，参考 hal_sysctrl_lp_src_e 枚举
+ */
+void slc_hal_sysctrl_set_apb1_clk(hal_sysctrl_lp_src_e clk_src);
 
 /**
  * @brief Get reset source, 获取复位源

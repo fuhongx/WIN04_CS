@@ -281,10 +281,10 @@ __RETENTION_FUNC void slc_lpwr_ctrl_sleep(hal_pmu_lp_mode lp_mode)
             slc_hal_pmu_lpio_enable(true);
 
             if (g_flash_force_on == true) {
-                slc_hal_pmu_force_flash_on(true);
+                // slc_hal_pmu_force_flash_on(true);
                 rom_hw_flash_deep_power_down();
             } else {
-                slc_hal_pmu_force_flash_on(false);
+                // slc_hal_pmu_force_flash_on(false);
                 rom_hw_flash_deep_power_down();
             }
 
@@ -306,7 +306,7 @@ standby_wakeup:
         {
             slc_hal_pmu_phy_power_enable(false);
             slc_hal_pmu_rf_lp_bypass(false);
-            slc_hal_pmu_force_flash_on(false);
+            // slc_hal_pmu_force_flash_on(false);
             slc_hal_pmu_set_lp_mode(HAL_PMU_LP_MODE_SHUTDOWN);
             slc_hal_pmu_powerdown();
             rom_hw_flash_deep_power_down();

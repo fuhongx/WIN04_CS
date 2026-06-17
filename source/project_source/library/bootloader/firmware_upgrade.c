@@ -35,6 +35,7 @@
 #include "boot_interface.h"
 #include "sha256.h"
 
+extern uint32_t rom_hw_crc32(uint8_t *pu8Buffer, uint16_t u16Len);
 bool bDownbinFlag = false;
 uint32_t u32FlashReadBuffer[UNIT_PAGE/2] = {0};
 
@@ -45,11 +46,6 @@ uint8_t g_boot_flash_devid[3] = {0};
 //------------------------------------------------------------------------------
 //Upgrade by cmd.
 //------------------------------------------------------------------------------
-void firmware_upgrade_uart_tx(uint8_t *pu8Buffer, uint16_t u16Len)
-{
-    boot_interface_send_data(pu8Buffer, u16Len);
-}
-
 void firmware_upgrade_send_error(uint8_t u8Resp, uint8_t u8ErrorType)
 {
     memset(au8FirmRespBuffer, 0, sizeof(au8FirmRespBuffer));
@@ -58,9 +54,9 @@ void firmware_upgrade_send_error(uint8_t u8Resp, uint8_t u8ErrorType)
     au8FirmRespBuffer[2] = 0x1 & 0xFF;
     au8FirmRespBuffer[3] = (0x1 >> 8) & 0xFF;
     au8FirmRespBuffer[4] = u8ErrorType;
-    uint32_t u32Crc = rom_hw_crc_get_crc32_value(au8FirmRespBuffer, 4 + 1);
+    uint32_t u32Crc = rom_hw_crc32(au8FirmRespBuffer, 4 + 1);
     rom_utility_little_endian_store_32(au8FirmRespBuffer, 4 + 1, u32Crc);
-    firmware_upgrade_uart_tx(au8FirmRespBuffer, 1 + 8);
+    boot_interface_send_data(au8FirmRespBuffer, 1 + 8);
 }
 
 void firmware_send_resp(uint8_t u8Resp, uint8_t* pu8Buffer, uint16_t u16Len)
@@ -72,15 +68,10 @@ void firmware_send_resp(uint8_t u8Resp, uint8_t* pu8Buffer, uint16_t u16Len)
     au8FirmRespBuffer[3] = (u16Len >> 8) & 0xFF;
     memcpy(&au8FirmRespBuffer[4], pu8Buffer, u16Len);
     
-    uint32_t u32Crc = rom_hw_crc_get_crc32_value(au8FirmRespBuffer, 4 + u16Len);
+    uint32_t u32Crc = rom_hw_crc32(au8FirmRespBuffer, 4 + u16Len);
 
     rom_utility_little_endian_store_32(au8FirmRespBuffer, 4 + u16Len, u32Crc);
-    firmware_upgrade_uart_tx(au8FirmRespBuffer, u16Len + 8);
-}
-
-void firmware_change_baud(uint32_t u32Baud)
-{
-    boot_interface_change_baudrate(u32Baud);
+    boot_interface_send_data(au8FirmRespBuffer, u16Len + 8);
 }
 
 bool firmware_upgrade_is_cmd_valid(uint8_t* pu8Buffer, uint16_t u16Len)
@@ -102,7 +93,7 @@ bool firmware_upgrade_is_cmd_valid(uint8_t* pu8Buffer, uint16_t u16Len)
     }
 
     // Check Crc
-    uint32_t u32Crc = rom_hw_crc_get_crc32_value(pu8Buffer, (u16Len - FIRM_UPGRADE_CRC_LEN));
+    uint32_t u32Crc = rom_hw_crc32(pu8Buffer, (u16Len - FIRM_UPGRADE_CRC_LEN));
     uint32_t u32ReadCrc = rom_utility_little_endian_read_32(pu8Buffer, u16Len - FIRM_UPGRADE_CRC_LEN);
 
     if(u32Crc != u32ReadCrc)
@@ -139,7 +130,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
             firmware_send_resp(EN_FIRM_RESP_SET_BAUD, pu8Data, 4);
 
             rom_utility_delay_ms(1);
-            firmware_change_baud(u32Baud);
+            boot_interface_change_baudrate(u32Baud);
             PRINTF("[BL CMD] EN_FIRM_CMD_SET_BAUD, NewBaud = %d\n", u32Baud);
             break;
         }
@@ -328,7 +319,7 @@ void firmware_upgrade_cmd_handler(uint8_t u8Cmd, uint8_t* pu8Data, uint16_t u16L
         uint32_t fw_key = 0;
         uint8_t *pu8Resp = (uint8_t*) u32FlashReadBuffer;
         rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, pu8Resp, 256);
-        fw_key = rom_hw_crc_get_crc32_value(&pu8Resp[64], 64);
+        fw_key = rom_hw_crc32(&pu8Resp[64], 64);
         // 写入flash加密密钥
         SYS_CTRL->Res3 = fw_key;
         // 关闭SWD并打开flash加密

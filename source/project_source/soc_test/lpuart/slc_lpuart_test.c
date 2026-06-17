@@ -30,7 +30,8 @@ void slc_lpuart_test_init(void)
 
     // RC32K时，9600概率性误码，切换到XTAL32K后正常
     slc_rf_enable_xtal32k(true);
-    slc_hal_sysctrl_set_lp_clk(HAL_SYSCLK_LP_XTAL32K);
+    slc_hal_sysctrl_set_phy_pmu_clk(HAL_SYSCLK_LP_XTAL32K);
+    slc_hal_sysctrl_set_apb1_clk(HAL_SYSCLK_LP_XTAL32K);
 
     slc_hal_gpio_set_iomux(HAL_GPIO_PIN18, HAL_IOMUX_MODE3);
     slc_hal_gpio_set_iomux(HAL_GPIO_PIN19, HAL_IOMUX_MODE3);
@@ -48,7 +49,8 @@ void slc_lpuart_test_deinit(void)
 
     slc_test_common_deinit();
 
-    slc_hal_sysctrl_set_lp_clk(HAL_SYSCLK_LP_RC32K);
+    slc_hal_sysctrl_set_phy_pmu_clk(HAL_SYSCLK_LP_XTAL32K);
+    slc_hal_sysctrl_set_apb1_clk(HAL_SYSCLK_LP_RC32K);
     slc_rf_enable_xtal32k(false);
 
     slc_hal_lpuart_deinit(HAL_LPUART0);

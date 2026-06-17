@@ -17,12 +17,21 @@
 #ifndef __HW_PMU_H__
 #define __HW_PMU_H__
 
-#define SLC_PMU_FORCE_FLASH_ON_SHIFT    (0U)
-#define SLC_PMU_FORCE_FLASH_ON_MASK     (1U << SLC_PMU_FORCE_FLASH_ON_SHIFT)
-#define SLC_PMU_FORCE_FLASH_ON_VAL(x)   (((x) << SLC_PMU_FORCE_FLASH_ON_SHIFT) & SLC_PMU_FORCE_FLASH_ON_MASK)
-#define SLC_PMU_RF_LP_BYPASS_SHIFT      (1U)
-#define SLC_PMU_RF_LP_BYPASS_MASK       (1U << SLC_PMU_RF_LP_BYPASS_SHIFT)
-#define SLC_PMU_RF_LP_BYPASS_VAL(x)     (((x) << SLC_PMU_RF_LP_BYPASS_SHIFT) & SLC_PMU_RF_LP_BYPASS_MASK)
+#define SLC_PMU_RF_LP_BYPASS_SHIFT          (0U)
+#define SLC_PMU_RF_LP_BYPASS_MASK           (1U << SLC_PMU_RF_LP_BYPASS_SHIFT)
+#define SLC_PMU_RF_LP_BYPASS_VAL(x)         (((x) << SLC_PMU_RF_LP_BYPASS_SHIFT) & SLC_PMU_RF_LP_BYPASS_MASK)
+#define SLC_PMU_FLASH_SW_MAN_EN_SHIFT       (1U)
+#define SLC_PMU_FLASH_SW_MAN_EN_MASK        (1U << SLC_PMU_FLASH_SW_MAN_EN_SHIFT)
+#define SLC_PMU_FLASH_SW_MAN_EN_VAL(x)      (((x) << SLC_PMU_FLASH_SW_MAN_EN_SHIFT) & SLC_PMU_FLASH_SW_MAN_EN_MASK)
+#define SLC_PMU_FLASH_SW_MAN_CTRL_SHIFT     (2U)
+#define SLC_PMU_FLASH_SW_MAN_CTRL_MASK      (1U << SLC_PMU_FLASH_SW_MAN_CTRL_SHIFT)
+#define SLC_PMU_FLASH_SW_MAN_CTRL_VAL(x)    (((x) << SLC_PMU_FLASH_SW_MAN_CTRL_SHIFT) & SLC_PMU_FLASH_SW_MAN_CTRL_MASK)
+#define SLC_PMU_FLASH_IO_MAN_EN_SHIFT       (3U)
+#define SLC_PMU_FLASH_IO_MAN_EN_MASK        (1U << SLC_PMU_FLASH_IO_MAN_EN_SHIFT)
+#define SLC_PMU_FLASH_IO_MAN_EN_VAL(x)      (((x) << SLC_PMU_FLASH_IO_MAN_EN_SHIFT) & SLC_PMU_FLASH_IO_MAN_EN_MASK)
+#define SLC_PMU_FLASH_IO_MAN_CTRL_SHIFT     (4U)
+#define SLC_PMU_FLASH_IO_MAN_CTRL_MASK      (1U << SLC_PMU_FLASH_IO_MAN_CTRL_SHIFT)
+#define SLC_PMU_FLASH_IO_MAN_CTRL_VAL(x)    (((x) << SLC_PMU_FLASH_IO_MAN_CTRL_SHIFT) & SLC_PMU_FLASH_IO_MAN_CTRL_MASK)
 
 typedef enum
 {
@@ -57,7 +66,10 @@ EN_ERR_STA_T rom_hw_pmu_get_lpio_status(uint8_t *lpio_en);
 EN_ERR_STA_T rom_hw_pmu_set_boot_lpwr_flag(uint8_t lpwr_flag);
 EN_ERR_STA_T rom_hw_pmu_get_boot_lpwr_flag(uint8_t *lpwr_flag);
 
-void rom_hw_pmu_force_flash_on(bool enable);
+void rom_hw_pmu_flash_io_man_en(bool enable);
+void rom_hw_pmu_flash_io_man_ctrl(bool sw_ctrl);
+void rom_hw_pmu_flash_sw_man_en(bool enable);
+void rom_hw_pmu_flash_sw_man_ctrl(bool sw_ctrl);
 void rom_hw_pmu_rf_lp_bypass(bool enable);
 
 uint8_t rom_hw_pmu_get_lp_fail_flag(void);

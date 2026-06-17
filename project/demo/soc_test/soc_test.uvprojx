@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>WIN04,SLC_SOCTEST,NT_SHELL,SLC_FPGA</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\source\device\ARMCM0plus\Include;..\..\..\source\device\CMSIS_Core\Include;..\..\..\source\device\reg_device;..\..\..\source\device\win04;..\..\..\source\component\error_def;..\..\..\source\component\utility;..\..\..\source\component\debug;..\..\..\source\component\nt_shell\core\inc;..\..\..\source\component\nt_shell\util\inc;..\..\..\source\component\nt_shell;..\..\..\source\component\private_spi;..\..\..\source\drivers\win04\register;..\..\..\source\drivers\win04\hw_rom\inc;..\..\..\source\drivers\win04\hw_flash\inc;..\..\..\source\drivers\win04\patch\inc;..\..\..\source\mem_cfg\flash;..\..\..\source\mem_cfg\win04;..\..\..\source\hal\inc;.\config;..\..\..\source\component\crypto\aes;..\..\..\source\component\crypto\crc;..\..\..\source\project_source\soc_test\lowpower;..\..\..\source\project_source\soc_test\algo;..\..\..\source\project_source\soc_test\DMA;..\..\..\source\project_source\soc_test\flash;..\..\..\source\project_source\soc_test\IIC;..\..\..\source\project_source\soc_test\IWDT;..\..\..\source\project_source\soc_test\mem;..\..\..\source\project_source\soc_test\NVIC;..\..\..\source\project_source\soc_test\phy;..\..\..\source\project_source\soc_test\RTC;..\..\..\source\project_source\soc_test\soc_test;..\..\..\source\project_source\soc_test\systick;..\..\..\source\project_source\soc_test\timer;..\..\..\source\project_source\soc_test\WDT;..\..\..\source\project_source\soc_test\uart;..\..\..\source\project_source\soc_test\gpio;..\..\..\source\project_source\soc_test\lpio;..\..\..\source\project_source\soc_test\lpuart;..\..\..\source\project_source\soc_test\spi;..\..\..\source\component\crypto\hash</IncludePath>
+              <IncludePath>..\..\..\source\device\ARMCM0plus\Include;..\..\..\source\device\CMSIS_Core\Include;..\..\..\source\device\reg_device;..\..\..\source\device\win04;..\..\..\source\component\error_def;..\..\..\source\component\utility;..\..\..\source\component\debug;..\..\..\source\component\nt_shell\core\inc;..\..\..\source\component\nt_shell\util\inc;..\..\..\source\component\nt_shell;..\..\..\source\component\private_spi;..\..\..\source\drivers\win04\register;..\..\..\source\drivers\win04\hw_rom\inc;..\..\..\source\drivers\win04\hw_flash\inc;..\..\..\source\drivers\win04\patch\inc;..\..\..\source\mem_cfg\flash;..\..\..\source\mem_cfg\win04;..\..\..\source\hal\inc;.\config;..\..\..\source\component\crypto\aes;..\..\..\source\component\crypto\crc;..\..\..\source\project_source\soc_test\lowpower;..\..\..\source\project_source\soc_test\algo;..\..\..\source\project_source\soc_test\DMA;..\..\..\source\project_source\soc_test\flash;..\..\..\source\project_source\soc_test\IIC;..\..\..\source\project_source\soc_test\IWDT;..\..\..\source\project_source\soc_test\mem;..\..\..\source\project_source\soc_test\NVIC;..\..\..\source\project_source\soc_test\phy;..\..\..\source\project_source\soc_test\RTC;..\..\..\source\project_source\soc_test\soc_test;..\..\..\source\project_source\soc_test\systick;..\..\..\source\project_source\soc_test\timer;..\..\..\source\project_source\soc_test\WDT;..\..\..\source\project_source\soc_test\uart;..\..\..\source\project_source\soc_test\gpio;..\..\..\source\project_source\soc_test\lpio;..\..\..\source\project_source\soc_test\lpuart;..\..\..\source\project_source\soc_test\spi;..\..\..\source\component\crypto\hash;..\..\..\source\project_source\soc_test\reset;..\..\..\source\project_source\soc_test\cache</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -623,6 +623,16 @@
               <FileName>slc_wdt_test.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\project_source\soc_test\WDT\slc_wdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_cache_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\cache\slc_cache_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_reset_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\reset\slc_reset_test.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1421,6 +1431,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\source\project_source\soc_test\WDT\slc_wdt_test.c</FilePath>
             </File>
+            <File>
+              <FileName>slc_cache_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\cache\slc_cache_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_reset_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\reset\slc_reset_test.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2217,6 +2237,16 @@
               <FileName>slc_wdt_test.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\project_source\soc_test\WDT\slc_wdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_cache_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\cache\slc_cache_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_reset_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\reset\slc_reset_test.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3083,6 +3113,16 @@
               <FileName>slc_wdt_test.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\source\project_source\soc_test\WDT\slc_wdt_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_cache_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\cache\slc_cache_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>slc_reset_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\source\project_source\soc_test\reset\slc_reset_test.c</FilePath>
             </File>
           </Files>
         </Group>
