@@ -49,6 +49,7 @@ void slc_lpwr_ctrl_init(slc_lpwr_ctrl_cfg *lp_cfg);
  * @param lp_mode 低功耗模式, 详情见hal_pmu_lp_mode
  */
 void slc_lpwr_ctrl_sleep(hal_pmu_lp_mode lp_mode);
+void slc_lpwr_ctrl_sleep_fake(hal_pmu_lp_mode lp_mode);  // fake mode for TEST ONLY
 
 /**
  * @brief 检查是否是从低功耗模式唤醒, 并清除标志, 在主函数开头调用，供standby模式使用

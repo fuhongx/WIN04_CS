@@ -182,6 +182,7 @@ static const soctest_case_t slc_lowpower_test_case[] = {
     {"standby not wakeup Test", low_power_standby_not_wakeup_test,  MANUAL_TEST | EXCEPTION_TEST},
     {"stop lpio wakeup Test",    low_power_stop_wakeup_by_lpio_test,     MANUAL_TEST | EXCEPTION_TEST},
     {"standby lpio wakeup Test", low_power_standby_wakeup_by_lpio_test,  MANUAL_TEST | EXCEPTION_TEST},
+    {"lowpower failed Test",    low_power_enter_failed_test,        MANUAL_TEST | EXCEPTION_TEST},
 };
 
 static const soctest_case_t slc_reset_test_case[] = {

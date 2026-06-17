@@ -94,3 +94,9 @@ uint8_t slc_hal_pmu_get_boot_flag(void)
     rom_hw_pmu_get_boot_lpwr_flag(&flag);
     return flag;
 }
+
+uint8_t slc_hal_pmu_get_lp_fail_flag(void)
+{
+    uint8_t flag = rom_hw_pmu_get_lp_fail_flag();
+    return flag;
+}

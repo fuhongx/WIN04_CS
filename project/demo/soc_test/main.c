@@ -27,6 +27,49 @@
 #ifdef NT_SHELL
 #include "nttop.h"
 
+extern uint8_t g_lp_fail_flag;
+uint32_t g_test_nmi_continue_flag __RETENTION_DATA = 0;
+
+void NMI_Handler_Proc(uint32_t u32ExcReturn, uint32_t u32Msp, uint32_t u32Psp)
+{
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+    } else {
+        PRINTF("@ NMI handler......\n");
+        volatile uint32_t *u32Sp = NULL;
+        if (u32ExcReturn & 0x04) {
+            PRINTF("use PSP, ");
+            u32Sp = (volatile uint32_t *)u32Psp;
+        } else {
+            PRINTF("use MSP, ");
+            u32Sp = (volatile uint32_t *)u32Msp;
+        }
+        PRINTF("and stack frame:\n");
+        PRINTF("R0  : 0x%08X\n", u32Sp[0]);
+        PRINTF("R1  : 0x%08X\n", u32Sp[1]);
+        PRINTF("R2  : 0x%08X\n", u32Sp[2]);
+        PRINTF("R3  : 0x%08X\n", u32Sp[3]);
+        PRINTF("R12 : 0x%08X\n", u32Sp[4]);
+        PRINTF("LR  : 0x%08X\n", u32Sp[5]);
+        PRINTF("PC  : 0x%08X\n", u32Sp[6]);
+        PRINTF("xPSR: 0x%08X\n", u32Sp[7]);
+        
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
+}
+
+__RETENTION_FUNC __attribute__((interrupt)) void NMI_Handler_in_RAM(void)
+{
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+        rom_utility_delay_us(10);
+    } else {
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
+}
+
 void slc_debug_uart_irq_handler(void)
 {
     uint32_t sta __MAYBE_UNUSED = 0;
@@ -120,6 +163,7 @@ void reset_verification(void)
             PRINTF("Reset from unknown reason: 0x%02X\n", rst_cause);
             break;
     }
+    slc_register_nmi_handler(NMI_Handler_in_RAM);
 }
 
 int main(void)
@@ -151,9 +195,4 @@ int main(void)
 #pragma diag_suppress 111
 #endif
     return 0;
-}
-
-void NMI_Handler_Proc(void)
-{
-    while (1);
 }
