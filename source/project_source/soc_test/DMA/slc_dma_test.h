@@ -12,6 +12,8 @@ int slc_dma_timeout_test(void);
 
 int slc_dma_performance_test(void);
 
+int slc_dma_multi_ch_coexist_test(void);
+
 int slc_dma_uart_trx_test(void);
 int slc_dma_lpuart_trx_test(void);
 int slc_dma_spi_slave_test(void);

@@ -85,7 +85,8 @@ int slc_lpuart_test_trx_common(hal_lpuart_id_e lpuart)
 
     slc_hal_lpuart_send_data(lpuart, tx_data, SLC_LPUART_TEST_TRX_LEN);
 
-    slc_hal_nop_delay_ms(500);  // wait tx finish
+    /* 1200bps 下 64 字节约 533ms，留足对端 RX 完成时间 */
+    slc_hal_nop_delay_ms(700);
 
     g_lpuart_test_rx_len = 0;
     tx_cmd[0] = lpuart;

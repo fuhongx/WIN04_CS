@@ -103,16 +103,16 @@ start:
     SLC_HAL_ENABLE_PERIPHERAL_IRQ(DMA_IRQ, 0x3);
     slc_hal_dma_start(chx);
 
-    while (g_dma_test_flag == 0);
+    while (g_dma_test_flag == 0) {
+        __WFI();
+    }
 
-    for (int i = 0; i < DMA_TEST_SIZE; i+=4) {
-        if (*((uint32_t *)(dst_addr + i)) != i + 0x5AFFA5FF) {
-            PRINTF("DMA CH%d check fail\n", chx);
-            dump_u32buf("src", (uint32_t *)src_addr, DMA_TEST_SIZE);
-            dump_u32buf("dst", (uint32_t *)dst_addr, DMA_TEST_SIZE);
-            ret = -1;
-            goto end;
-        }
+    if (memcmp((void *)src_addr, (void *)dst_addr, DMA_TEST_SIZE) != 0) {
+        PRINTF("DMA CH%d check fail, src/dst mismatch\n", chx);
+        dump_u32buf("src", (uint32_t *)src_addr, DMA_TEST_SIZE);
+        dump_u32buf("dst", (uint32_t *)dst_addr, DMA_TEST_SIZE);
+        ret = -1;
+        goto end;
     }
 
     if (chx == HAL_DMA_CH7) {
@@ -336,31 +336,56 @@ int slc_dma_muti_trig_test(void)
     return 0;
 }
 
-int slc_dma_timeout_test(void)
+#define DMA_TIMEOUT_TOTAL_SIZE  (DMA_TEST_SIZE)
+
+static volatile int32_t g_dma_timeout_irq_ret = 0;
+
+static void dma_timeout_irq_handler(void)
 {
+    uint32_t flag = slc_hal_dma_get_interrupt_status();
+
+    if (flag & HAL_DMA_IRQ_STA_CFG_ERROR_MASK) {
+        PRINTF("DMA timeout CFG_ERR, flag=0x%X\n", flag);
+        g_dma_timeout_irq_ret = -1;
+        slc_hal_dma_clear_interrupt_status(flag);
+        g_dma_test_flag = 1;
+        return;
+    }
+
+    slc_hal_dma_clear_interrupt_status(flag);
+
+    if (flag & HAL_DMA_IRQ_STA_TRANSFER_DONE_MASK) {
+        g_dma_test_flag = 1;
+    }
+}
+
+static int slc_dma_timeout_common_test(hal_dma_width_e width)
+{
+    int ret = 0;
     hal_dma_ch_e chx = HAL_DMA_CH0;
     hal_dma_init_t dma_init;
-    uint8_t *src_buf = malloc(DMA_TEST_SIZE);
-    uint8_t *dst_buf = malloc(DMA_TEST_SIZE);
+    uint8_t *src_buf = malloc(DMA_TIMEOUT_TOTAL_SIZE);
+    uint8_t *dst_buf = malloc(DMA_TIMEOUT_TOTAL_SIZE);
+    uint32_t fin_size;
+    uint16_t pkg_size = (uint16_t)(1U << width);
+    uint16_t trig_num = (uint16_t)(DMA_TEST_SIZE / pkg_size);
 
     if (src_buf == NULL || dst_buf == NULL) {
         PRINTF("malloc error, src_buf 0x%X, dst_buf 0x%X\n", (uint32_t)src_buf, (uint32_t)dst_buf);
         return -1;
     }
 
-    // 正常的DMA搬运不需要请求信号
     dma_init.req = HAL_DMA_REQ_DISABLE;
-    dma_init.src_width = HAL_DMA_WIDTH_BYTE;
-    dma_init.dst_width = HAL_DMA_WIDTH_BYTE;
+    dma_init.src_width = width;
+    dma_init.dst_width = width;
     dma_init.src_addr = (uint32_t)src_buf;
     dma_init.dst_addr = (uint32_t)dst_buf;
-    dma_init.single_pkg_size = 1;
-    dma_init.muli_trigger_num = DMA_TEST_SIZE;
+    dma_init.single_pkg_size = pkg_size;
+    dma_init.muli_trigger_num = trig_num;
     dma_init.irq_enable = HAL_DMA_IRQ_ENABLE_ALL;
     dma_init.timeout = 0xFFFF;
     dma_init.src_addr_rise = true;
-    dma_init.dst_addr_rise  = true;
-    // 正常搬运时需选择软件请求，外设搬运时选择外设请求，也可选择软件请求
+    dma_init.dst_addr_rise = true;
     dma_init.soft_req = true;
     dma_init.high_priority = false;
 
@@ -368,23 +393,60 @@ int slc_dma_timeout_test(void)
     slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_DMA);
 
 start:
-    // flash必须32bit访问，否则可能丢数，经过cache时是会截断低2bit的，DMA和CPU都必须4字节对齐访问
-    for (int i = 0; i < DMA_TEST_SIZE; i+=4) {
+    for (int i = 0; i < DMA_TIMEOUT_TOTAL_SIZE; i += 4) {
         *((uint32_t *)(src_buf + i)) = i + 0x5AFFA5FF;
-        *((uint32_t *)(dst_buf + i)) = 0x0;
     }
+    memset(dst_buf, 0, DMA_TIMEOUT_TOTAL_SIZE);
 
     g_dma_test_flag = 0;
+    g_dma_timeout_irq_ret = 0;
 
     slc_hal_dma_init(chx, &dma_init);
-    slc_hal_register_irq_handler(DMA_IRQ, DMA_IRQ_Handler);
-
-    PRINTF("====>DMA CH%d timeout test start\n", chx);
-    slc_hal_dma_start(chx);
+    slc_hal_register_irq_handler(DMA_IRQ, dma_timeout_irq_handler);
     SLC_HAL_ENABLE_PERIPHERAL_IRQ(DMA_IRQ, 0x3);
 
-    while (g_dma_test_flag == 0);
+    PRINTF("====>DMA CH%d timeout test start, width %u byte, pkg %u, trig %u\n",
+           chx, pkg_size, pkg_size, trig_num);
+    slc_hal_dma_start(chx);
 
+    while (g_dma_test_flag == 0) {
+        __WFI();
+    }
+
+    if (g_dma_timeout_irq_ret != 0) {
+        PRINTF("DMA CH%d timeout config error\n", chx);
+        ret = -1;
+        goto next_ch;
+    }
+
+    fin_size = slc_hal_dma_get_finish_size(chx);
+    if (fin_size != pkg_size) {
+        PRINTF("DMA CH%d timeout finish size fail, got %u, expect %u\n",
+               chx, fin_size, pkg_size);
+        ret = -1;
+        goto next_ch;
+    }
+
+    if (memcmp(src_buf, dst_buf, pkg_size) != 0) {
+        PRINTF("DMA CH%d timeout first trig data fail\n", chx);
+        dump_u8buf("src", src_buf, pkg_size);
+        dump_u8buf("dst", dst_buf, pkg_size);
+        ret = -1;
+        goto next_ch;
+    }
+
+    for (uint32_t i = pkg_size; i < DMA_TIMEOUT_TOTAL_SIZE; i++) {
+        if (dst_buf[i] != 0) {
+            PRINTF("DMA CH%d timeout data moved after 1st trig, byte[%u]=0x%02X\n",
+                   chx, i, dst_buf[i]);
+            ret = -1;
+            goto next_ch;
+        }
+    }
+
+    PRINTF("DMA CH%d timeout test pass, only first trig transferred\n", chx);
+
+next_ch:
     if (chx == HAL_DMA_CH7) {
         goto end;
     }
@@ -393,9 +455,33 @@ start:
     goto start;
 
 end:
+    slc_hal_register_irq_handler(DMA_IRQ, DMA_IRQ_Handler);
     free(src_buf);
     free(dst_buf);
     slc_hal_dma_deinit(chx);
+    return ret;
+}
+
+int slc_dma_timeout_test(void)
+{
+    if (slc_dma_timeout_common_test(HAL_DMA_WIDTH_BYTE) != 0) {
+        PRINTF("====>DMA timeout byte test fail\n");
+        return -1;
+    }
+    PRINTF("====>DMA timeout byte test success\n");
+
+    if (slc_dma_timeout_common_test(HAL_DMA_WIDTH_HALFWORD) != 0) {
+        PRINTF("====>DMA timeout half word test fail\n");
+        return -1;
+    }
+    PRINTF("====>DMA timeout half word test success\n");
+
+    if (slc_dma_timeout_common_test(HAL_DMA_WIDTH_WORD) != 0) {
+        PRINTF("====>DMA timeout word test fail\n");
+        return -1;
+    }
+    PRINTF("====>DMA timeout word test success\n");
+
     PRINTF("====>DMA timeout test success\n");
     return 0;
 }
@@ -496,6 +582,145 @@ start:
     slc_hal_dma_deinit(chx);
 
     return 0;
+}
+
+#define DMA_COEXIST_PKG_SIZE    256
+
+static volatile uint32_t g_dma_coexist_done_mask = 0;
+
+static void dma_coexist_irq_handler(void)
+{
+    uint32_t flag = slc_hal_dma_get_interrupt_status();
+
+    slc_hal_dma_clear_interrupt_status(flag);
+
+    for (int i = 0; i < HAL_DMA_CH_MAX; i++) {
+        if (flag & (1U << i)) {
+            g_dma_coexist_done_mask |= (1U << i);
+        }
+    }
+}
+
+static void dma_coexist_fill_buf(uint8_t *buf, uint32_t ch_idx)
+{
+    for (uint32_t i = 0; i < DMA_COEXIST_PKG_SIZE; i += 4) {
+        *((uint32_t *)(buf + i)) = i + 0x5AFFA5FF + (ch_idx << 16);
+    }
+}
+
+int slc_dma_multi_ch_coexist_test(void)
+{
+    typedef struct {
+        hal_dma_ch_e ch;
+        hal_dma_req_e req;
+        bool soft_req;
+        const char *name;
+    } dma_coexist_cfg_t;
+
+    static const dma_coexist_cfg_t ch_cfg[HAL_DMA_CH_MAX] = {
+        {HAL_DMA_CH0, HAL_DMA_REQ_DISABLE,  true, "MEM->MEM"},
+        {HAL_DMA_CH1, HAL_DMA_REQ_DISABLE,  true, "MEM->MEM"},
+        {HAL_DMA_CH2, HAL_DMA_REQ_UART1_TX, true, "UART1 TX"},
+        {HAL_DMA_CH3, HAL_DMA_REQ_UART1_RX, true, "UART1 RX"},
+        {HAL_DMA_CH4, HAL_DMA_REQ_SPI1_TX,  true, "SPI1 TX"},
+        {HAL_DMA_CH5, HAL_DMA_REQ_SPI1_RX,  true, "SPI1 RX"},
+        {HAL_DMA_CH6, HAL_DMA_REQ_I2C0_TX,  true, "I2C0 TX"},
+        {HAL_DMA_CH7, HAL_DMA_REQ_I2C0_RX,  true, "I2C0 RX"},
+    };
+
+    uint8_t *src_buf[HAL_DMA_CH_MAX] = {0};
+    uint8_t *dst_buf[HAL_DMA_CH_MAX] = {0};
+    hal_dma_init_t dma_init;
+    int ret = 0;
+    uint32_t i;
+
+    for (i = 0; i < HAL_DMA_CH_MAX; i++) {
+        src_buf[i] = malloc(DMA_COEXIST_PKG_SIZE);
+        dst_buf[i] = malloc(DMA_COEXIST_PKG_SIZE);
+        if (src_buf[i] == NULL || dst_buf[i] == NULL) {
+            PRINTF("[DMA] multi ch coexist malloc fail, ch=%u\n", i);
+            ret = -1;
+            goto cleanup;
+        }
+    }
+
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_DMA, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_DMA);
+
+    for (i = 0; i < HAL_DMA_CH_MAX; i++) {
+        dma_coexist_fill_buf(src_buf[i], i);
+        memset(dst_buf[i], 0, DMA_COEXIST_PKG_SIZE);
+
+        dma_init.req = ch_cfg[i].req;
+        dma_init.src_width = HAL_DMA_WIDTH_WORD;
+        dma_init.dst_width = HAL_DMA_WIDTH_WORD;
+        dma_init.src_addr = (uint32_t)src_buf[i];
+        dma_init.dst_addr = (uint32_t)dst_buf[i];
+        dma_init.single_pkg_size = DMA_COEXIST_PKG_SIZE;
+        dma_init.muli_trigger_num = 0;
+        dma_init.irq_enable = HAL_DMA_IRQ_ENABLE_ALL;
+        dma_init.timeout = 0;
+        dma_init.src_addr_rise = true;
+        dma_init.dst_addr_rise = true;
+        dma_init.soft_req = ch_cfg[i].soft_req;
+        dma_init.high_priority = false;
+
+        slc_hal_dma_init(ch_cfg[i].ch, &dma_init);
+    }
+
+    g_dma_coexist_done_mask = 0;
+    slc_hal_register_irq_handler(DMA_IRQ, dma_coexist_irq_handler);
+    SLC_HAL_ENABLE_PERIPHERAL_IRQ(DMA_IRQ, 0x3);
+
+    PRINTF("[DMA] multi ch coexist test start, enable 8 channels\n");
+    for (i = 0; i < HAL_DMA_CH_MAX; i++) {
+        slc_hal_dma_start((hal_dma_ch_e)i);
+    }
+
+    while (g_dma_coexist_done_mask != ((1U << HAL_DMA_CH_MAX) - 1U)) {
+        __WFI();
+    }
+
+    for (i = 0; i < HAL_DMA_CH_MAX; i++) {
+        uint32_t fin_size = slc_hal_dma_get_finish_size((hal_dma_ch_e)i);
+
+        if (fin_size != DMA_COEXIST_PKG_SIZE) {
+            PRINTF("[DMA] CH%u (%s) finish size fail, got %u, expect %u\n",
+                   i, ch_cfg[i].name, fin_size, DMA_COEXIST_PKG_SIZE);
+            ret = -1;
+            continue;
+        }
+
+        if (memcmp(src_buf[i], dst_buf[i], DMA_COEXIST_PKG_SIZE) != 0) {
+            PRINTF("[DMA] CH%u (%s) data check fail\n", i, ch_cfg[i].name);
+            dump_u8buf("src", src_buf[i], DMA_COEXIST_PKG_SIZE);
+            dump_u8buf("dst", dst_buf[i], DMA_COEXIST_PKG_SIZE);
+            ret = -1;
+        } else {
+            PRINTF("[DMA] CH%u (%s) pass\n", i, ch_cfg[i].name);
+        }
+    }
+
+    slc_hal_register_irq_handler(DMA_IRQ, DMA_IRQ_Handler);
+
+    if (ret == 0) {
+        PRINTF("====>DMA multi ch coexist test success\n");
+    } else {
+        PRINTF("====>DMA multi ch coexist test fail\n");
+    }
+
+cleanup:
+    for (i = 0; i < HAL_DMA_CH_MAX; i++) {
+        slc_hal_dma_deinit((hal_dma_ch_e)i);
+        if (src_buf[i] != NULL) {
+            free(src_buf[i]);
+        }
+        if (dst_buf[i] != NULL) {
+            free(dst_buf[i]);
+        }
+    }
+
+    return ret;
 }
 
 void slc_dma_uart_test_irq(void)

@@ -159,10 +159,13 @@ EN_ERR_STA_T rom_hw_lpuart_recv_data(uint8_t *pu8Buffer, uint16_t *len)
         return EN_ERROR_STA_INVALID;
     }
 
-    for (idx = 0; (idx <= max_len) && !ret; idx++)
+    for (idx = 0; idx < max_len; idx++) {
         ret = rom_hw_lpuart_get_char(pu8Buffer++);
+        if (ret != EN_ERROR_STA_OK)
+            break;
+    }
 
-    *len = (idx - 1);
+    *len = idx;
     return EN_ERROR_STA_OK;
 }
 

@@ -21,6 +21,26 @@
 #include "slc_test_slave.h"
 #include "slc_private_spi_frame.h"
 
+#ifdef SLC_SOCTEST
+#include "slc_hal_iwdt.h"
+
+static void slc_iwdt_dump_regs(const char *tag)
+{
+    PRINTF("\r\n[IWDT regs %s]\r\n", tag);
+    PRINTF("  WDT_WPR  = 0x%08X\r\n", IWDT->WDT_WPR);
+    PRINTF("  WDT_SCR  = 0x%08X\r\n", IWDT->WDT_SCR);
+    PRINTF("  WDT_LDR  = 0x%08X\r\n", IWDT->WDT_LDR);
+    PRINTF("  WDT_CDR  = 0x%08X\r\n", IWDT->WDT_CDR);
+    PRINTF("  WDT_IER  = 0x%08X\r\n", IWDT->WDT_IER);
+    PRINTF("  WDT_IMR  = 0x%08X\r\n", IWDT->WDT_IMR);
+    PRINTF("  WDT_ISR  = 0x%08X\r\n", IWDT->WDT_ISR);
+    PRINTF("  WDT_TSR  = 0x%08X\r\n", IWDT->WDT_TSR);
+    PRINTF("  WDT_FDR  = 0x%08X\r\n", IWDT->WDT_FDR);
+    PRINTF("  IWDT_DLL = 0x%08X\r\n", IWDT->IWDT_DLL);
+    PRINTF("  IWDT_TER = 0x%08X\r\n", IWDT->IWDT_TER);
+}
+#endif
+
 #ifdef SLC_AUTOTEST
 #include "slc_uart_cmd_process.h"
 #endif
@@ -103,8 +123,15 @@ void slc_platform_init(void)
 
 #if APP_DEBUG_ENABLED
     debug_printf_init();
-
+    PRINTF("reset_src: %x\n",slc_hal_sysctrl_sw_get_reset_src());
 #ifdef NT_SHELL
+
+#ifdef SLC_SOCTEST
+    slc_iwdt_dump_regs("before deinit");
+    // IWDT survives system reset; always deinit before any test or shell. 
+    //slc_hal_iwdt_deinit();
+#endif
+
     slc_hal_register_irq_handler(DEBUG_UART_IRQ, slc_debug_uart_irq_handler);
     slc_hal_uart_enable_irq(DEBUG_UART_HANDLE, HAL_UART_INT_EN_RX_NOT_EMPTY);
     SLC_HAL_ENABLE_PERIPHERAL_IRQ(DEBUG_UART_IRQ, 0x3);
@@ -141,6 +168,8 @@ void flash_read_id_test(void)
 
 int main(void)
 {
+
+
     slc_check_boot_status();
 
 #ifdef SLC_AUTOTEST

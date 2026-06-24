@@ -14,6 +14,91 @@
 #include "slc_hal_rng.h"
 #include "slc_hal_timer.h"
 #include "slc_rng_test.h"
+#include "hw_rng.h"
+
+/* RNG 性能测试：单次搬运数据量 1KB */
+#define SLC_RNG_PERF_TEST_SIZE      1024
+/* 随机数 word 个数（4 字节对齐） */
+#define SLC_RNG_PERF_WORD_CNT       (SLC_RNG_PERF_TEST_SIZE / 4U)
+/* 刷新分频 div=0，实际为 clk/(0+1)，即分频 1 */
+#define SLC_RNG_PERF_DIV_MIN        0U
+/* 刷新分频 div=1，实际为 clk/(1+1)，即分频 2 */
+#define SLC_RNG_PERF_DIV_MAX        1U
+/* 唯一值占比下限 75%，低于则认为有明显重复 */
+#define SLC_RNG_UNIQUE_MIN_RATIO    75U
+
+/**
+ * @brief 检查随机数是否无明显重复
+ * @param data     随机数缓冲区（u32）
+ * @param word_cnt word 个数
+ * @return 0=通过，-1=全 0 或重复过多
+ */
+static int slc_rng_check_no_obvious_repeat(const uint32_t *data, uint32_t word_cnt)
+{
+    uint32_t unique = 0;
+    uint32_t min_unique = (word_cnt * SLC_RNG_UNIQUE_MIN_RATIO) / 100U;
+
+    for (uint32_t i = 0; i < word_cnt; i++) {
+        if (data[i] == 0) {
+            return -1;
+        }
+
+        for (uint32_t j = 0; j < i; j++) {
+            if (data[j] == data[i]) {
+                goto next_word;
+            }
+        }
+        unique++;
+
+next_word:
+        continue;
+    }
+
+    if (unique < min_unique) {
+        PRINTF("[RNG] obvious repeat, unique=%u, min=%u\n", unique, min_unique);
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief 单次 RNG 性能测试
+ * @param freq_div   刷新率分频（寄存器值，实际分频 = freq_div + 1）
+ * @param seed       随机数种子
+ * @param data       输出缓冲区
+ * @param cost_ticks 输出：Timer0 计数值差（start - end）
+ * @return 0=成功，-1=失败
+ */
+static int slc_rng_perf_run_once(uint8_t freq_div, uint32_t seed, uint32_t *data,
+                                 uint32_t *cost_ticks)
+{
+    uint32_t start_time;
+    uint32_t end_time;
+    int ret;
+
+    /* 使能 RNG，配置刷新分频并初始化种子 */
+    rom_hw_rng_init(freq_div, true);
+    rom_hw_update_rng_seed(seed);
+
+    /* 生成 1K 随机数并统计耗时 */
+    start_time = slc_hal_timer_get_count(HAL_TIMER0);
+    ret = slc_hal_get_random_u32(data, SLC_RNG_PERF_TEST_SIZE, 50000);
+    end_time = slc_hal_timer_get_count(HAL_TIMER0);
+
+    if (ret != 0) {
+        PRINTF("[RNG] get random fail, freq_div=%u, ret=%d\n", freq_div, ret);
+        return ret;
+    }
+
+    /* check：数据无明显重复 */
+    if (slc_rng_check_no_obvious_repeat(data, SLC_RNG_PERF_WORD_CNT) != 0) {
+        return -1;
+    }
+
+    *cost_ticks = start_time - end_time;
+    return 0;
+}
 
 int slc_rng_generate_test(void)
 {
@@ -39,51 +124,73 @@ int slc_rng_generate_test(void)
         return -1;
 }
 
-#define SLC_RNG_PERF_TEST_SIZE  1024
+/**
+ * @brief RNG 性能测试（两种分频各测 1K，校验重复性与耗时比例）
+ * @return 0=PASS，-1=FAIL
+ */
 int slc_rng_perf_test(void)
 {
-    uint32_t rng_test_start_time = 0;
-    uint32_t rng_test_end_time = 0;
-    uint8_t div = 0;
-    hal_rng_init_t rng_init = {0};
+    const uint8_t div_list[] = {SLC_RNG_PERF_DIV_MIN, SLC_RNG_PERF_DIV_MAX};
+    const uint32_t seed = 0xACBD6543;
+    uint32_t cost_ticks[2] = {0};
     uint32_t *data = malloc(SLC_RNG_PERF_TEST_SIZE);
     int ret = 0;
+    float time_us[2];
+    float perf_mbps[2];
 
     if (data == NULL) {
         PRINTF("malloc error\n");
         return -1;
     }
 
-    rng_init.seed = 0xACBD6543;
-
+    /* 初始化 Timer0 用于测时 */
     slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_TIM0, true);
     slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_TIM0);
-
     slc_hal_timer_init(HAL_TIMER0, 0xFFFFFFFF, false);
     slc_hal_timer_start(HAL_TIMER0);
 
     slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_RAND, true);
     slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_RAND);
 
-    slc_hal_rng_init(&rng_init);
+    /* 分频 1 和分频 2 各测一次 */
+    for (int i = 0; i < 2; i++) {
+        uint8_t freq_div = div_list[i];
 
-    rng_test_start_time = 0;
-    rng_test_end_time = 0;
+        ret = slc_rng_perf_run_once(freq_div, seed, data, &cost_ticks[i]);
+        if (ret != 0) {
+            goto end;
+        }
 
-    rng_test_start_time = slc_hal_timer_get_count(HAL_TIMER0);
-    ret = slc_hal_get_random_u32(data, SLC_RNG_PERF_TEST_SIZE, 1000);
-    rng_test_end_time = slc_hal_timer_get_count(HAL_TIMER0);
-    if (ret != 0) {
-        PRINTF("get random u32 error, ret=0x%X\n", ret);
-        goto end;
+        time_us[i] = cost_ticks[i] / 50.0f;
+        perf_mbps[i] = SLC_RNG_PERF_TEST_SIZE * 8.0f * 50.0f /
+                       (1.024f * 1.024f * (float)cost_ticks[i]);
+
+        PRINTF("[RNG] perf div=%u (clk/%u), size=%u byte, time=%.2f us, perf=%.2f Mbps\n",
+               freq_div, freq_div + 1U, SLC_RNG_PERF_TEST_SIZE, time_us[i], perf_mbps[i]);
     }
 
-    PRINTF("====>rng performance test, generate data: %u byte, cost time: %.2f us, perf: %.2f Mbps\n",
-            SLC_RNG_PERF_TEST_SIZE, (rng_test_start_time - rng_test_end_time) / 50.0f,
-            SLC_RNG_PERF_TEST_SIZE * 8 * 50.0f / (1.024f * 1.024f) / (rng_test_start_time - rng_test_end_time));
+    /* check：两次耗时比例应与分频倍数一致（±30% 容差） */
+    {
+        uint32_t expect_ratio_x10 = ((div_list[1] + 1U) * 10U) / (div_list[0] + 1U);
+        uint32_t actual_ratio_x10 = (cost_ticks[1] * 10U) / cost_ticks[0];
+
+        PRINTF("[RNG] perf ratio: actual=%u.%u, expect=%u.%u (time div%d/time div%d)\n",
+               actual_ratio_x10 / 10U, actual_ratio_x10 % 10U,
+               expect_ratio_x10 / 10U, expect_ratio_x10 % 10U,
+               div_list[1] + 1U, div_list[0] + 1U);
+
+        if ((actual_ratio_x10 < (expect_ratio_x10 * 7U / 10U)) ||
+            (actual_ratio_x10 > (expect_ratio_x10 * 13U / 10U))) {
+            PRINTF("[RNG] perf ratio check fail\n");
+            ret = -1;
+            goto end;
+        }
+    }
+
+    PRINTF("====>RNG performance test success\n");
 
 end:
-    slc_hal_rng_deinit();
+    rom_hw_rng_init(0, false);
     slc_hal_timer_stop(HAL_TIMER0);
     free(data);
     return ret;

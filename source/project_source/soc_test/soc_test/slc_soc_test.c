@@ -74,6 +74,7 @@ static const soctest_case_t slc_dma_test_case[] = {
     {"DMA diff width test",     slc_dma_diff_width_test,        SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"DMA timeout Test",        slc_dma_timeout_test,           SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"DMA Performance Test",    slc_dma_performance_test,       AUTO_TEST | PRESSURE_TEST},
+    {"DMA multi ch coexist Test", slc_dma_multi_ch_coexist_test, SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"DMA UART Test",           slc_dma_uart_trx_test,          MANUAL_TEST | EXCEPTION_TEST},
     {"DMA LPUART Test",         slc_dma_lpuart_trx_test,        MANUAL_TEST | EXCEPTION_TEST},
     {"DMA SPI-M Test",          slc_dma_spi_master_test,        MANUAL_TEST | EXCEPTION_TEST},

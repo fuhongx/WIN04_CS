@@ -449,7 +449,7 @@ fifo_detect:
 
     slc_hal_uart_disable_irq(SLC_TEST_UART_HANDLE, HAL_UART_INT_EN_RX_NOT_EMPTY);
     SLC_HAL_DISABLE_PERIPHERAL_IRQ(SLC_TEST_UART_IRQ);
-    slc_hal_nop_delay_ms(120);
+    slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
 
     memset(rx_data, 0, SLC_TEST_RX_MAX_LEN);
     rx_len = SLC_TEST_RX_MAX_LEN;

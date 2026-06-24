@@ -10,6 +10,7 @@
 #include "slc_hal_spi.h"
 #include "slc_hal_intc.h"
 #include "slc_hal_lpuart.h"
+#include "slc_rf.h"
 #include "sw_crc.h"
 
 static int g_spi_slave_id = HAL_SPI0;
@@ -219,6 +220,10 @@ int slc_test_slave_lpuart_cfg(slc_test_common_frame_t *rx_frame)
 {
     hal_lpuart_init_t lpuart_init = {0};
 
+    /* 与 Master 一致使用 XTAL32K，避免 RC32K 偏差导致双板 LPUART 失步 */
+    slc_rf_enable_xtal32k(true);
+    slc_hal_sysctrl_set_lp_clk(HAL_SYSCLK_LP_XTAL32K);
+
     lpuart_init.baudrate = rx_frame->data[0] | (rx_frame->data[1] << 8) | (rx_frame->data[2] << 16) | (rx_frame->data[3] << 24);
     lpuart_init.parity = (hal_lpuart_parity_e)rx_frame->data[4];
     lpuart_init.stopbit = (hal_lpuart_stopbit_e)rx_frame->data[5];
@@ -381,7 +386,7 @@ void slc_test_slave_main(void)
         }
 
         if ((test_len != 0) && (rx_frame->cmd == SLC_TEST_CMD_UART_RX_FIFO)) {
-            slc_hal_nop_delay_ms(100);
+            slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
 
             for (i = 0; i < test_len; i++) {
                 buf[i] = (uint8_t)(i + 1);

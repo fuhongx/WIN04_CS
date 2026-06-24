@@ -47,30 +47,40 @@ int slc_timer_accuracy_test(void)
         slc_hal_sysctrl_peripheral_clk_enable((hal_peripheral_clk_e)sysctrl_peripheral[i], true);
         slc_hal_sysctrl_peripheral_mod_reset((hal_peripheral_clk_e)sysctrl_peripheral[i]);
 
+        /* 1、配置 timer，定时 2s（reload = 系统时钟 × 2） */
         slc_hal_timer_init((hal_timer_id_e)i, slc_hal_sysctrl_get_system_clock() * 2, true);
 
+        /* 3、挂载中断并启动 timer（2、中断内置 g_slc_timer_test_flag = 1） */
         slc_hal_register_irq_handler((IRQn_Type)irq_num[i], slc_timer_irq_handler);
         SLC_HAL_ENABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i], 0x3);
-
         slc_hal_timer_start((hal_timer_id_e)i);
-        slc_hal_nop_delay_ms(1950);
 
-        if (g_slc_timer_test_flag == 1) {
-            PRINTF("TIMER%d interrupt test fail!(counter 2s, sleep 1950ms)\n", i);
+        /* 4、延时 1950ms，2s 未到，flag 应为 0 */
+        rom_utility_delay_ms(1950);
+        if (g_slc_timer_test_flag != 0) {
+            PRINTF("TIMER%d accuracy test fail! IRQ before 2s (delay 1950ms, flag=%u)\n",
+                   i, g_slc_timer_test_flag);
+            slc_hal_timer_stop((hal_timer_id_e)i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
             return -1;
         }
 
-        slc_hal_nop_delay_ms(100);
-
+        /* 5、再延时 100ms（合计 2050ms），flag 应为 1 */
+        rom_utility_delay_ms(100);
         if (g_slc_timer_test_flag == 0) {
-            PRINTF("TIMER%d interrupt test fail!(counter 2s, sleep 2050ms)\n", i);
+            PRINTF("TIMER%d accuracy test fail! IRQ not triggered (delay 2050ms, flag=0)\n", i);
+            slc_hal_timer_stop((hal_timer_id_e)i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
             return -1;
         }
 
+        /* 6、关闭 timer 并注销中断 */
         slc_hal_timer_stop((hal_timer_id_e)i);
         SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
         slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
-        PRINTF("TIMER%d Accuracy counter open close test pass!\n", i);
+        PRINTF("TIMER%d accuracy test pass!\n", i);
     }
 
     return 0;

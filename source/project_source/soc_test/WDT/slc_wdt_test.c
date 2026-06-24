@@ -218,6 +218,7 @@ int slc_wdt_write_protect_test(void)
            before_cnt, after_cnt);
 
     rom_hw_wdt_enable_write(true);
+    slc_hal_nop_delay_us(100);
     rom_hw_wdt_get_counter(&before_cnt);
     rom_hw_wdt_set_counter(before_cnt + SLC_WDT_TEST_CNT);
     rom_hw_wdt_get_counter(&after_cnt);
