@@ -252,50 +252,6 @@ EN_ERR_STA_T rom_hw_sysctrl_set_cache_mode(EN_SYSCTRL_CACHE_MODE_T enMode)
     return EN_ERROR_STA_OK;
 }
 
-EN_ERR_STA_T rom_hw_sysctrl_get_cache_total_req(uint32_t *pu32Buffer)
-{
-    if (NULL == pu32Buffer)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    *pu32Buffer = SYS_CTRL->CACHE_TOTAL_REQ;
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_sysctrl_get_cache_hit_counter(uint32_t *pu32Buffer)
-{
-    if (NULL == pu32Buffer)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    *pu32Buffer = SYS_CTRL->CACHE_HIT_CNT;
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_sysctrl_get_prefetch_counter(uint32_t *pu32Buffer)
-{
-    if (NULL == pu32Buffer)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    *pu32Buffer = SYS_CTRL->CACHE_PREFETCH_CNT;
-    return EN_ERROR_STA_OK;
-}
-
-EN_ERR_STA_T rom_hw_sysctrl_get_down_req(uint32_t *pu32Buffer)
-{
-    if (NULL == pu32Buffer)
-    {
-        return EN_ERROR_STA_INVALID;
-    }
-
-    *pu32Buffer = SYS_CTRL->CACHE_DOWN_REQ;
-    return EN_ERROR_STA_OK;
-}
-
 EN_ERR_STA_T rom_hw_cdc_delay(uint32_t u32Delay)
 {
     uint32_t clk32k_cnt = 0;
@@ -308,11 +264,19 @@ EN_ERR_STA_T rom_hw_cdc_delay(uint32_t u32Delay)
     return EN_ERROR_STA_OK;
 }
 
-void rom_hw_sysctrl_set_lp_clk(bool xtal)
+void rom_hw_sysctrl_set_phy_pmu_clk(bool xtal)
 {
-    SYS_CTRL->LP_CLK_SEL &= ~(SYSCTRL_APB1_LP_CLK_MASK | SYSCTRL_PHY_PMU_LP_CLK_MASK);
+    SYS_CTRL->LP_CLK_SEL &= ~SYSCTRL_PHY_PMU_LP_CLK_MASK;
+    if (xtal == false) {
+        SYS_CTRL->LP_CLK_SEL |= SYSCTRL_PHY_PMU_LP_CLK_VAL(1);
+    }
+}
+
+void rom_hw_sysctrl_set_apb1_clk(bool xtal)
+{
+    SYS_CTRL->LP_CLK_SEL &= ~SYSCTRL_APB1_LP_CLK_MASK;
     if (xtal) {
-        SYS_CTRL->LP_CLK_SEL |= (SYSCTRL_APB1_LP_CLK_VAL(1) | SYSCTRL_PHY_PMU_LP_CLK_VAL(1));
+        SYS_CTRL->LP_CLK_SEL |= SYSCTRL_APB1_LP_CLK_VAL(1);
     }
 }
 

@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "app_cfg.h"
 #include "hw_flash.h"
+#include "hw_sysctrl.h"
 #include "slc_hal_rtc.h"
 #include "slc_hal_uart.h"
 #include "slc_hal_lpuart.h"
@@ -19,6 +20,7 @@
 #include "slc_hal_intc.h"
 #include "slc_hal_delay.h"
 #include "slc_lpwr_ctrl.h"
+#include "slc_intc.h"
 #include "slc_low_power_test.h"
 
 #ifdef NT_SHELL
@@ -85,6 +87,7 @@ void RTC_IRQ_Handler(void)
     status = slc_hal_rtc_get_alarm_int_sta();
     slc_hal_rtc_clear_alarm_int_sta(status);
 }
+
 #include "slc_hal_pwm.h"
 __RETENTION_FUNC bool before_sleep(void)
 {
@@ -650,5 +653,73 @@ int low_power_standby_not_wakeup_test(void)
 
     slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STANDBY);
 
+    return 0;
+}
+
+extern uint32_t g_test_nmi_continue_flag;
+extern uint8_t g_lp_fail_flag;
+extern void NMI_Handler_in_RAM(void);
+
+int low_power_enter_failed_test(void)
+{
+    slc_register_nmi_handler(NMI_Handler_in_RAM);  // must use nmi handler in RAM
+    g_test_nmi_continue_flag = 1;
+    
+    slc_lpwr_ctrl_cfg cfg;
+    for(int i=0; i<4; i++) {
+        // stop
+        cfg.lp_wakeup_src_msk = HAL_PMU_LP_WAKEUP_SRC_MSK_LPTIMER1;
+        cfg.phy_power_enable = false;
+        cfg.rf_power_enable = false;
+        cfg.flash_force_on = true;
+        cfg.lp_before_cb_func = before_sleep;
+        cfg.lp_after_cb_func = after_wakeup_stop;
+        slc_lpwr_ctrl_init(&cfg);
+        
+        // prepare negative conditions to stop going into lp mode
+        if(i == 0) {
+            PRINTF("round 1: go to stop but wakeup mask all ZERO\n");
+            slc_hal_pmu_set_lp_wakeup_source(0);    // wakeup mask all ZERO
+            slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STOP);
+        } else if(i == 1) {
+            PRINTF("round 2: go to stop but lp wakeup interrupt ACTIVE\n");
+            wakeup_src_select(HAL_PMU_LP_WAKEUP_SRC_MSK_LPTIMER1); // setup wakeup interrupt trigger
+            // disable irq
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ(LPTIMER1_IRQ);
+            SLC_HAL_DISABLE_GLOBAL_IRQ();
+            // wait wakeup interrupt active: rc32_clk * 64K
+            slc_hal_nop_delay_ms(2000); 
+            slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STOP);
+        } else if(i == 2) {
+            PRINTF("round 3: go to stop but lpio_en DISABLED\n");
+            slc_lpwr_ctrl_sleep_fake(HAL_PMU_LP_MODE_STOP);
+        } else {
+            uint32_t clk_cfg = SYS_CTRL->AHB_CLK_CFG & SYSCTRL_AHB_CLK_EN_REG_MASK;
+            clk_cfg |= (SYS_CTRL->APB0_CLK_CFG & SYSCTRL_APB0_CLK_CFG_REG_MASK) << SYSCTRL_AHB_CLK_EN_REG_LEN;
+            clk_cfg |= (SYS_CTRL->LP_CLK_CFG & SYSCTRL_LP_CLK_CFG_REG_MASK) << (SYSCTRL_AHB_CLK_EN_REG_LEN + SYSCTRL_APB0_CLK_CFG_REG_LEN);
+            cfg.lp_after_cb_func = NULL;
+            cfg.phy_power_enable = true;
+            cfg.rf_power_enable = true;
+            slc_lpwr_ctrl_init(&cfg);
+            PRINTF("round 4: go to standby but phy POWER ON\n");
+            slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STANDBY);
+            
+            rom_hw_flash_release_deep_power_down();
+            slc_hal_pmu_lpio_enable(false);
+            rom_hw_sysctrl_enable_clock_gate(clk_cfg, true);
+        }
+        // Here NMI should be called, lp_fail_flag has been updated.
+        
+        // restore module status IF NEEDED
+        PRINTF("Enter lp mode failed with: 0x%02X\n", g_lp_fail_flag);
+        if (g_lp_fail_flag & (0x1 << i)) {
+            PRINTF("round %d: lp mode negative test PASS.\n", i+1);
+        } else {
+            PRINTF("round %d: lp mode negative test FAILED.\n", i+1);
+        }
+    }
+    
+    PRINTF("finish lp mode negative test.\n");
+    g_test_nmi_continue_flag = 0;
     return 0;
 }

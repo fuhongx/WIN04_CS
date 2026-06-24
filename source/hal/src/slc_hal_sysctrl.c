@@ -55,12 +55,20 @@ void slc_hal_sysctrl_disable_ahb_apb(void)
     rom_hw_sysctrl_enable_clock_gate((EN_SYSCTRL_PERIPHERAL_T)0x7FFFF, false);
 }
 
-void slc_hal_sysctrl_set_lp_clk(hal_sysctrl_lp_src_e clk_src)
+void slc_hal_sysctrl_set_phy_pmu_clk(hal_sysctrl_lp_src_e clk_src)
 {
     if (clk_src >= HAL_SYSCLK_LP_MAX)
         return;
 
-    rom_hw_sysctrl_set_lp_clk((clk_src == HAL_SYSCLK_LP_XTAL32K) ? true : false);
+    rom_hw_sysctrl_set_phy_pmu_clk((clk_src == HAL_SYSCLK_LP_XTAL32K) ? true : false);
+}
+
+void slc_hal_sysctrl_set_apb1_clk(hal_sysctrl_lp_src_e clk_src)
+{
+    if (clk_src >= HAL_SYSCLK_LP_MAX)
+        return;
+
+    rom_hw_sysctrl_set_apb1_clk((clk_src == HAL_SYSCLK_LP_XTAL32K) ? true : false);
 }
 
 void slc_hal_sysctrl_set_phy_fft_clk(hal_sysctrl_phy_fft_clk_e clk_src)

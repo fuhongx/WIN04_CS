@@ -130,12 +130,36 @@ void rom_hw_pmu_rf_lp_bypass(bool enable)
         PMU->LP_MAN &= ~SLC_PMU_RF_LP_BYPASS_MASK;
 }
 
-void rom_hw_pmu_force_flash_on(bool enable)
+void rom_hw_pmu_flash_io_man_en(bool enable)
 {
     if (enable)
-        PMU->LP_MAN |= SLC_PMU_FORCE_FLASH_ON_VAL(1);
+        PMU->LP_MAN |= SLC_PMU_FLASH_IO_MAN_EN_VAL(1);
     else
-        PMU->LP_MAN &= ~SLC_PMU_FORCE_FLASH_ON_MASK;
+        PMU->LP_MAN &= ~SLC_PMU_FLASH_IO_MAN_EN_MASK;
+}
+
+void rom_hw_pmu_flash_io_man_ctrl(bool sw_ctrl)
+{
+    if (sw_ctrl)
+        PMU->LP_MAN |= SLC_PMU_FLASH_IO_MAN_CTRL_VAL(1);
+    else
+        PMU->LP_MAN &= ~SLC_PMU_FLASH_IO_MAN_CTRL_MASK;
+}
+
+void rom_hw_pmu_flash_sw_man_en(bool enable)
+{
+    if (enable)
+        PMU->LP_MAN |= SLC_PMU_FLASH_SW_MAN_EN_VAL(1);
+    else
+        PMU->LP_MAN &= ~SLC_PMU_FLASH_SW_MAN_EN_MASK;
+}
+
+void rom_hw_pmu_flash_sw_man_ctrl(bool sw_ctrl)
+{
+    if (sw_ctrl)
+        PMU->LP_MAN |= SLC_PMU_FLASH_SW_MAN_CTRL_VAL(1);
+    else
+        PMU->LP_MAN &= ~SLC_PMU_FLASH_SW_MAN_CTRL_MASK;
 }
 
 uint8_t rom_hw_pmu_get_lp_fail_flag(void)

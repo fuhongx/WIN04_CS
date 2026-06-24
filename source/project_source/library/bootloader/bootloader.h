@@ -57,7 +57,8 @@ typedef struct
     uint8_t hash_type;          // 0: SHA256, 1: SM3
     uint8_t sign_type;          // 0: ECC256(k1), 1: SM2
     uint8_t safe_level;         // see fw_safe_level_t
-    uint8_t resv[27];           // reserved, padding to 32 bytes
+    uint8_t iwdt_disable;       // whether boot disable iwdt when reset from IWDT, 1: disable, 0: enable
+    uint8_t resv[26];           // reserved, padding to 32 bytes
 } fw_security_sta_t;
 
 typedef struct 
@@ -75,11 +76,13 @@ typedef struct
 
 typedef struct
 {
-    bool tof_rang_limit_en;
-    bool cad_limit_en;
-    bool buf_limit_en;
-    bool sfbw_limit_en;
-    uint8_t resv[28];
+    uint8_t hsf_mode;           // HSF模式选择，0：部分配置；1：全部配置
+    uint8_t frame_mode;         // 帧结构选择，0：1/4 upchirp frame；1：1/2 upchirp frame
+    uint8_t tof_rang_limit_en;
+    uint8_t cad_limit_en;
+    uint8_t buf_limit_en;
+    uint8_t sfbw_limit_en;
+    uint8_t resv[26];
     uint32_t buf_limit_val;
     uint16_t bw_high_limit_val;
     uint16_t bw_low_limit_val;
@@ -87,6 +90,7 @@ typedef struct
     uint16_t sf_low_limit_val;
 } chip_cap_t;
 
+uint32_t rom_hw_crc32(uint8_t *pu8Buffer, uint16_t u16Len);
 void boot_identify_from_rst(void);
 void boot_identify_from_lowpower(void);
 void boot_set_flash_enc_by_security_info(void);

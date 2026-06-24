@@ -26,4 +26,6 @@ int low_power_standby_not_wakeup_test(void);
 int low_power_stop_wakeup_by_lpio_test(void);
 int low_power_standby_wakeup_by_lpio_test(void);
 
+int low_power_enter_failed_test(void);
+
 #endif // __SLC_LOW_POWER_TEST_H__

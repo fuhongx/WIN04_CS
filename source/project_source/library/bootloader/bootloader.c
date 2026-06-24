@@ -28,6 +28,23 @@ stFlashSelfCali_t gstCaliInfo;
 fw_security_info_t g_security_info = {0};
 chip_cap_t g_chip_cap = {0};
 
+uint32_t rom_hw_crc32(uint8_t *pu8Buffer, uint16_t u16Len)
+{
+    stCrcInit_t stInit;
+
+    stInit.bDmaEn = false;
+    stInit.bInputReverse =true;
+    stInit.bOutputXor = true;
+    stInit.enOutputMode = EN_CRC_OUTPUT_REVERSE;
+
+    rom_hw_crc_init(CRC32, &stInit);
+
+    rom_hw_crc_set_init_value(CRC32, 0xFFFFFFFF);
+    rom_hw_crc_set_xor_bytes(CRC32, 0xFFFFFFFF);
+
+    return rom_hw_crc_calculate_data(CRC32, pu8Buffer, u16Len);
+}
+
 void boot_load_code(uint32_t u32FlashAddr, uint32_t u32LoadLen, uint32_t u32LoadAddr)
 {
     uint32_t *puRam = (uint32_t *)u32LoadAddr;
@@ -104,7 +121,7 @@ void boot_check_header(void)
         
         boot2_header_t *pstBoot2Ver = (boot2_header_t *)au32ReadBuffer;
 
-        uint32_t u32HeaderCrcValue = rom_hw_crc_get_crc32_value((uint8_t *)&au32ReadBuffer[0], BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
+        uint32_t u32HeaderCrcValue = rom_hw_crc32((uint8_t *)&au32ReadBuffer[0], BOOT2HEADER_LEN - BOOT2HEADER_CRC_LEN);
 
         if(u32HeaderCrcValue != pstBoot2Ver->u32Boot2HeaderCrc) {
            bool bSeflCheckFlag = boot_reconfig_flash_mode();
@@ -120,13 +137,28 @@ void boot_check_header(void)
 void boot_set_chip_capability(void)
 {
     uint32_t chip_cap_val = 0;
+
+    // GT由于不支持分块熔丝，故不支持基带限制功能
+    if (rom_hw_flash_get_type() == EN_FLASH_TYPE_GT) {
+        return;
+    }
+
     rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM1, 0, (uint8_t *)&g_chip_cap, sizeof(g_chip_cap));
     dump_u8buf("g_chip_cap", (uint8_t *)&g_chip_cap, sizeof(g_chip_cap));
 
-    g_chip_cap.tof_rang_limit_en = (g_chip_cap.tof_rang_limit_en & 0x1) ? 1 : 0;
-    g_chip_cap.cad_limit_en = (g_chip_cap.cad_limit_en & 0x1) ? 1 : 0;
-    g_chip_cap.buf_limit_en = (g_chip_cap.buf_limit_en & 0x1) ? 1 : 0;
-    g_chip_cap.sfbw_limit_en = (g_chip_cap.sfbw_limit_en & 0x1) ? 1 : 0;
+    // OTP不烧录的话，OTP区域默认值是全F，基带功能也默认全功能
+    g_chip_cap.hsf_mode = (g_chip_cap.hsf_mode == 0xFF) ? 0 : ((g_chip_cap.hsf_mode == 0) ? 0 : 1);
+    g_chip_cap.frame_mode = (g_chip_cap.frame_mode == 0xFF) ? 0 : ((g_chip_cap.frame_mode == 0) ? 0 : 1);
+    g_chip_cap.tof_rang_limit_en = (g_chip_cap.tof_rang_limit_en == 0xFF) ?
+        0 : ((g_chip_cap.tof_rang_limit_en == 0) ? 0 : 1);
+    g_chip_cap.cad_limit_en = (g_chip_cap.cad_limit_en == 0xFF) ?
+        0 : ((g_chip_cap.cad_limit_en == 0) ? 0 : 1);
+    g_chip_cap.buf_limit_en = (g_chip_cap.buf_limit_en == 0xFF) ?
+        0 : ((g_chip_cap.buf_limit_en == 0) ? 0 : 1);
+    g_chip_cap.sfbw_limit_en = (g_chip_cap.sfbw_limit_en == 0xFF) ?
+        0 : ((g_chip_cap.sfbw_limit_en == 0) ? 0 : 1);
+
+    // 配置受限功能的范围区间
     g_chip_cap.buf_limit_val = (g_chip_cap.buf_limit_val < 0x1) ? 0x1 : g_chip_cap.buf_limit_val;
     g_chip_cap.buf_limit_val = (g_chip_cap.buf_limit_val > 0x180) ? 0x180 : g_chip_cap.buf_limit_val;
     g_chip_cap.bw_high_limit_val = (g_chip_cap.bw_high_limit_val > 0x6) ? 0x0 : g_chip_cap.bw_high_limit_val;
@@ -135,11 +167,12 @@ void boot_set_chip_capability(void)
     g_chip_cap.sf_high_limit_val = (g_chip_cap.sf_high_limit_val > 0xC) ? 0xC : g_chip_cap.sf_high_limit_val;
     g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val < 0x5) ? 0x5 : g_chip_cap.sf_low_limit_val;
     g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val > 0xC) ? 0x5 : g_chip_cap.sf_low_limit_val;
-    chip_cap_val = ((g_chip_cap.tof_rang_limit_en << 29) | (g_chip_cap.cad_limit_en << 28) |
+    chip_cap_val = ((g_chip_cap.hsf_mode << 31) | (g_chip_cap.frame_mode << 30) |
+                    (g_chip_cap.tof_rang_limit_en << 29) | (g_chip_cap.cad_limit_en << 28) |
                     (g_chip_cap.buf_limit_en << 27) | (g_chip_cap.sfbw_limit_en << 26) |
                     (g_chip_cap.buf_limit_val << 16) | (g_chip_cap.bw_high_limit_val << 12) |
                     (g_chip_cap.bw_low_limit_val << 8) | (g_chip_cap.sf_high_limit_val << 4) |
-                    (g_chip_cap.sf_low_limit_val << 0)) & 0x3DFFFFFF;
+                    (g_chip_cap.sf_low_limit_val << 0)) & 0xFDFFFFFF;
 
     write32(ADDR_SYS_CTRL_BASE + 0x60, chip_cap_val);
 }
@@ -179,8 +212,11 @@ void boot_identify_from_rst(void)
     rst_cause = rom_hw_sysctrl_get_reset_src();
     rom_hw_sysctrl_set_boot_rst_flag(rst_cause);
     // 如果是低功耗看门狗复位，需关闭看门狗
-    if (rst_cause == EN_RST_FROM_IWDT) {
+    if ((rst_cause == EN_RST_FROM_IWDT) && (g_security_info.sta.iwdt_disable)) {
+        rom_hw_iwdt_feed_dog();
+        rom_hw_iwdt_clear_interrupt_flag(0x3);
         rom_hw_wdt_deinit(IWDT);
+        NVIC_ClearPendingIRQ(IWTD_IRQ);
     }
 }
 
@@ -195,7 +231,7 @@ void boot_set_flash_enc_by_security_info(void)
         g_security_info.sta.safe_level = FW_SAFE_LEVEL0;
     }
     if ((g_security_info.sta.fw_enc_status == 1) && (g_security_info.sta.safe_level != FW_SAFE_LEVEL0)) {
-        fw_key = rom_hw_crc_get_crc32_value(g_security_info.key.pub_key, 64);
+        fw_key = rom_hw_crc32(g_security_info.key.pub_key, 64);
         // 写入flash加密密钥
         SYS_CTRL->Res3 = fw_key;
         // 关闭SWD并打开flash加密
@@ -291,6 +327,7 @@ err:
 
 void boot_peripheral_deinit(void)
 {
+    rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_GPIO);
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_CRC32, false);
     rom_hw_sysctrl_reset_peripheral(EN_SYSCTRL_CRC32);
     rom_hw_sysctrl_enable_clock_gate(EN_SYSCTRL_RAND, false);

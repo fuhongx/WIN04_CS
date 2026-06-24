@@ -8,6 +8,7 @@
 #include "app_cfg.h"
 #include "debug.h"
 #include "utility.h"
+#include "hw_sysctrl.h"
 #include "slc_hal_intc.h"
 #include "slc_hal_timer.h"
 #include "slc_hal_lptimer.h"
@@ -37,6 +38,19 @@ void slc_timer_irq_handler(void)
 
 int slc_timer_accuracy_test(void)
 {
+    /* SYS_CTRL PHY_FCLK_SEL寄存器无法读取, 增加用例验证芯片设计修改 2026.6.15 */
+    uint32_t old = SYS_CTRL->LP_CLK_SEL;
+    uint32_t mask = SYSCTRL_PHY_PMU_LP_CLK_MASK | SYSCTRL_APB1_LP_CLK_MASK;
+    SYS_CTRL->LP_CLK_SEL = (old & (~mask)) | ((~old) & mask);
+    uint32_t changed = SYS_CTRL->LP_CLK_SEL;
+    if ((old ^ changed) != mask){
+        PRINTF("SYS_CTRL(0x%02X,0x%02X):PHY_FCLK_SEL/APB1_SYS_CLK bit w/r fail!\n", old, changed);
+        return -2;
+    }
+    SYS_CTRL->LP_CLK_SEL = old;
+    PRINTF("SYS_CTRL:PHY_FCLK_SEL/APB1_SYS_CLK bit w/r PASS!\n");
+    
+    /* Original test */
     uint8_t irq_num[3] = {TIMER0_IRQ, TIMER1_IRQ, TIMER2_IRQ};
     uint32_t sysctrl_peripheral[3] = {HAL_CLK_TIM0, HAL_CLK_TIM1, HAL_CLK_TIM2};
 

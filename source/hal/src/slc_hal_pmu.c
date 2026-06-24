@@ -60,7 +60,9 @@ uint32_t slc_hal_pmu_get_wakeup_src_sta(void)
 
 void slc_hal_pmu_force_flash_on(bool enable)
 {
-    rom_hw_pmu_force_flash_on(enable);
+    // TODO: 待适配flash IO控制
+    rom_hw_pmu_flash_sw_man_ctrl(true);
+    rom_hw_pmu_flash_sw_man_en(enable);
 }
 
 int slc_hal_pmu_phy_power_enable(bool enable)
@@ -92,5 +94,11 @@ uint8_t slc_hal_pmu_get_boot_flag(void)
 {
     uint8_t flag;
     rom_hw_pmu_get_boot_lpwr_flag(&flag);
+    return flag;
+}
+
+uint8_t slc_hal_pmu_get_lp_fail_flag(void)
+{
+    uint8_t flag = rom_hw_pmu_get_lp_fail_flag();
     return flag;
 }

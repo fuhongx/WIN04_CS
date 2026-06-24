@@ -21,6 +21,7 @@
 #include "slc_lpio_test.h"
 #include "slc_lpuart_test.h"
 #include "slc_spi_test.h"
+#include "slc_cache_test.h"
 
 #define SOCTEST_START_LINE    ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 #define SOCTEST_END_LINE      "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
@@ -31,6 +32,10 @@ static const soctest_case_t slc_nvic_test_case[] = {
     {"NVIC Interrupt Test",     slc_nvic_intc_test,         SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"NVIC nest&priority Test", slc_nvic_nest_and_priority_test,    SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"NVIC Primask Test",       slc_nvic_primask_test,      MANUAL_TEST | EXCEPTION_TEST},
+};
+
+static const soctest_case_t slc_cache_test_case[] = {
+    {"CACHE flush Test",        slc_cache_flush_test,    MANUAL_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t slc_systick_test_case[] = {
@@ -131,6 +136,8 @@ static const soctest_case_t  slc_flash_test_case[] = {
     {"Flash Security Register Test",    slc_flash_security_register_test,   SMOKE_TEST | AUTO_TEST},
     {"Flash write protect Test",        slc_flash_protect_test,             MANUAL_TEST | EXCEPTION_TEST},
     {"Flash Endurance Test",            slc_flash_endurance_test,           AUTO_TEST | PRESSURE_TEST},
+    {"Flash Data encrypt Test",         slc_flash_encrypt_test,             MANUAL_TEST},
+    {"Flash Data encrypt Test(woCache)",slc_flash_encrypt_without_cache_test, MANUAL_TEST},
 };
 
 static const soctest_case_t slc_rtc_test_case[] = {
@@ -177,6 +184,7 @@ static const soctest_case_t slc_lowpower_test_case[] = {
     {"standby not wakeup Test", low_power_standby_not_wakeup_test,  MANUAL_TEST | EXCEPTION_TEST},
     {"stop lpio wakeup Test",    low_power_stop_wakeup_by_lpio_test,     MANUAL_TEST | EXCEPTION_TEST},
     {"standby lpio wakeup Test", low_power_standby_wakeup_by_lpio_test,  MANUAL_TEST | EXCEPTION_TEST},
+    {"lowpower failed Test",    low_power_enter_failed_test,        MANUAL_TEST | EXCEPTION_TEST},
 };
 
 static const soctest_case_t slc_reset_test_case[] = {
@@ -223,7 +231,7 @@ static const soctest_case_t slc_lpio_test_case[] = {
 static const soctest_mod_t g_soctest_mod_list[SOCTEST_MOD_TYPE_MAX] =
 {
     [SOCTEST_MOD_NVIC]      = {"NVIC", NULL, NULL, slc_nvic_test_case, TESTCASE_TABLE_SIZE(slc_nvic_test_case)},
-    [SOCTEST_MOD_CACHE]     = {"CACHE", NULL, NULL, NULL, 0},
+    [SOCTEST_MOD_CACHE]     = {"CACHE", NULL, NULL, slc_cache_test_case, TESTCASE_TABLE_SIZE(slc_cache_test_case)},
     [SOCTEST_MOD_SYSTICK]   = {"SYSTICK", NULL, NULL, slc_systick_test_case, TESTCASE_TABLE_SIZE(slc_systick_test_case)},
     [SOCTEST_MOD_EXCPTION]  = {"EXCPTION", NULL, NULL, NULL, 0},
     [SOCTEST_MOD_FLASH]     = {"FLASH", NULL, NULL, slc_flash_test_case, TESTCASE_TABLE_SIZE(slc_flash_test_case)},

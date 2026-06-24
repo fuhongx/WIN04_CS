@@ -45,4 +45,10 @@ void slc_register_irq_handler(IRQn_Type irq_num, irq_handler_t handler);
  */
 void slc_unregister_irq_handler(IRQn_Type irq_num);
 
+/**
+ * @brief 注册NMI中断处理函数，如若不注册，默认使用startup_ARMCM0plus.s中定义的弱函数
+ * @param handler 中断处理函数指针，函数名可自定义
+ */
+void slc_register_nmi_handler(irq_handler_t handler);
+
 #endif  /* __SLC_INTC_H__ */

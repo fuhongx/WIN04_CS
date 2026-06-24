@@ -84,15 +84,51 @@ uint32_t slc_hal_crc_calculate(hal_crc_type_e crc_type, uint8_t *data, uint32_t 
 
 uint16_t slc_hal_crc_calc16(uint8_t *data, uint32_t len)
 {
-    return rom_hw_crc_get_crc16_value(data, (uint16_t)len);
+    stCrcInit_t stInit;
+
+    stInit.bDmaEn = false;
+    stInit.bInputReverse = true;
+    stInit.bOutputXor = true;
+    stInit.enOutputMode = EN_CRC_OUTPUT_REVERSE;
+
+    rom_hw_crc_init(CRC16, &stInit);
+
+    rom_hw_crc_set_init_value(CRC16, 0x0);
+    rom_hw_crc_set_xor_bytes(CRC16, 0x0);
+
+    return (rom_hw_crc_calculate_data(CRC16, data, len) & 0xFFFF);
 }
 
 uint32_t slc_hal_crc_calc24(uint8_t *data, uint32_t len)
 {
-    return rom_hw_crc_get_crc24_value(data, (uint16_t)len);
+    stCrcInit_t stInit;
+
+    stInit.bDmaEn = false;
+    stInit.bInputReverse = true;
+    stInit.bOutputXor = true;
+    stInit.enOutputMode = EN_CRC_OUTPUT_REVERSE;
+
+    rom_hw_crc_init(CRC24, &stInit);
+
+    rom_hw_crc_set_init_value(CRC24, 0xFFFFFF);
+    rom_hw_crc_set_xor_bytes(CRC24, 0xFFFFFF);
+
+    return (rom_hw_crc_calculate_data(CRC24, data, len) & 0xFFFFFF);
 }
 
 uint32_t slc_hal_crc_calc32(uint8_t *data, uint32_t len)
 {
-    return rom_hw_crc_get_crc32_value(data, (uint16_t)len);
+    stCrcInit_t stInit;
+
+    stInit.bDmaEn = false;
+    stInit.bInputReverse =true;
+    stInit.bOutputXor = true;
+    stInit.enOutputMode = EN_CRC_OUTPUT_REVERSE;
+
+    rom_hw_crc_init(CRC32, &stInit);
+
+    rom_hw_crc_set_init_value(CRC32, 0xFFFFFFFF);
+    rom_hw_crc_set_xor_bytes(CRC32, 0xFFFFFFFF);
+
+    return rom_hw_crc_calculate_data(CRC32, data, len);
 }

@@ -18,6 +18,7 @@
 #include "slc_phy_test.h"
 #include "slc_soc_test.h"
 #include "compiler.h"
+#include "slc_intc.h"
 #include "slc_test_slave.h"
 #include "slc_private_spi_frame.h"
 
@@ -47,6 +48,49 @@ static void slc_iwdt_dump_regs(const char *tag)
 
 #ifdef NT_SHELL
 #include "nttop.h"
+
+extern uint8_t g_lp_fail_flag;
+uint32_t g_test_nmi_continue_flag __RETENTION_DATA = 0;
+
+void NMI_Handler_Proc(uint32_t u32ExcReturn, uint32_t u32Msp, uint32_t u32Psp)
+{
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+    } else {
+        PRINTF("@ NMI handler......\n");
+        volatile uint32_t *u32Sp = NULL;
+        if (u32ExcReturn & 0x04) {
+            PRINTF("use PSP, ");
+            u32Sp = (volatile uint32_t *)u32Psp;
+        } else {
+            PRINTF("use MSP, ");
+            u32Sp = (volatile uint32_t *)u32Msp;
+        }
+        PRINTF("and stack frame:\n");
+        PRINTF("R0  : 0x%08X\n", u32Sp[0]);
+        PRINTF("R1  : 0x%08X\n", u32Sp[1]);
+        PRINTF("R2  : 0x%08X\n", u32Sp[2]);
+        PRINTF("R3  : 0x%08X\n", u32Sp[3]);
+        PRINTF("R12 : 0x%08X\n", u32Sp[4]);
+        PRINTF("LR  : 0x%08X\n", u32Sp[5]);
+        PRINTF("PC  : 0x%08X\n", u32Sp[6]);
+        PRINTF("xPSR: 0x%08X\n", u32Sp[7]);
+        
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
+}
+
+__RETENTION_FUNC __attribute__((interrupt)) void NMI_Handler_in_RAM(void)
+{
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+        slc_hal_nop_delay_us(10);
+    } else {
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
+}
 
 void slc_debug_uart_irq_handler(void)
 {
@@ -144,26 +188,28 @@ void slc_platform_init(void)
     PRINTF("FW start to work(freq: %dMHz). Build Time:[%s T %s].\n",
             slc_hal_sysctrl_get_system_clock() / 1000000, __DATE__, __TIME__);
 }
-#include "hw_flash.h"
-void flash_read_id_test(void)
+
+void reset_verification(void)
 {
-    uint8_t dev_id[3] = {0};
-    uint8_t uid[8] = {0};
-    uint8_t buffer[256] = {0};
-
-    rom_hw_flash_read_dev_id(dev_id, 3);
-    rom_hw_flash_read_uid(uid, 8);
-    dump_u8buf("flash dev id", dev_id, sizeof(dev_id));
-    dump_u8buf("flash uid", uid, sizeof(uid));
-    rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-    dump_u8buf("flash sec mem0", buffer, 256);
-
-    // buffer[36] = 0x2;
-    // rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM0, FLASH_ERASE_SECURITY_MEM_KEY);
-    // rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-
-    // rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
-    // dump_u8buf("flash sec mem0", buffer, 256);
+    uint8_t rst_cause = slc_hal_sysctrl_get_reset_src();
+    switch(rst_cause) {
+        case HAL_MORMAL_POWERUP:
+            PRINTF("Reset from PowerOn\n");
+            break;
+        case HAL_RST_FROM_WDT:
+            PRINTF("Reset from WDT timeout\n");
+            break;
+        case HAL_RST_FROM_IWDT:
+            PRINTF("Reset from IWDT timeout\n");
+            break;
+        case HAL_RST_FROM_SOFT:
+            PRINTF("Reset from NVIC reset\n");
+            break;
+        default:
+            PRINTF("Reset from unknown reason: 0x%02X\n", rst_cause);
+            break;
+    }
+    slc_register_nmi_handler(NMI_Handler_in_RAM);
 }
 
 int main(void)
@@ -177,7 +223,7 @@ int main(void)
 #endif // SLC_AUTOTEST
 
     slc_platform_init();
-    flash_read_id_test();
+    reset_verification();
 
 #ifdef SLC_PHYTEST
     slc_phy_test();
@@ -196,9 +242,4 @@ int main(void)
 #pragma diag_suppress 111
 #endif
     return 0;
-}
-
-void NMI_Handler_Proc(void)
-{
-    while (1);
 }
