@@ -17,6 +17,7 @@ static int g_spi_slave_id = HAL_SPI0;
 static volatile uint8_t g_spi_slave_rx_buf[SLC_SPI_TEST_TRX_LEN];
 static volatile uint32_t g_spi_slave_rx_len = 0;
 
+extern void print_reg_4byte_from_to(uint32_t start_addr, uint32_t end_addr);
 void slc_test_slave_spi_irq(void)
 {
     uint32_t sta = slc_hal_spi_get_irq_sta(g_spi_slave_id);
@@ -114,6 +115,7 @@ int slc_test_slave_spi_cfg(slc_test_common_frame_t *rx_frame)
     }
 
     PRINTF("SPI%d slave config done\n", g_spi_slave_id);
+    //print_reg_4byte_from_to((uint32_t)&SPI0->SPI_TCR, (uint32_t)&SPI0->SPI_FTR);
     PRINTF("mode=%d, clk_div=%d, polarity_phase=%d, data_mode=%d, data_len=%d, cs_holding_time=%u, clk_adjust_en=%d, sw_cs_en=%d, anti_noise_level=%d\n",
             config.mode, config.clk_div, config.polarity_phase, config.data_mode, config.data_len,
             config.cs_holding_time, config.clk_adjust_en, config.sw_cs_en, config.anti_noise_level);
@@ -436,6 +438,7 @@ void slc_test_slave_main(void)
                 slc_hal_spi_master_transmit(g_spi_slave_id, (void *)g_spi_slave_rx_buf, g_spi_slave_rx_len, HAL_SPI_TIMEOUT_US);
             }
             PRINTF("spi%d master %s len: %u\r\n", g_spi_slave_id, (iic_dir == 0) ? "rx" : "tx", g_spi_slave_rx_len);
+            
         }
     }
 }

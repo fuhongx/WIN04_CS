@@ -365,8 +365,7 @@ int low_power_sleep_phy_enable_test(void)
     slc_lpwr_ctrl_init(&cfg);
 
     SLC_HAL_ENABLE_GLOBAL_IRQ();
-
-    slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_SLEEP);
+    slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STOP);
 
     return 0;
 }

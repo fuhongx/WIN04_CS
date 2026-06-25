@@ -147,16 +147,16 @@ void boot_set_chip_capability(void)
     dump_u8buf("g_chip_cap", (uint8_t *)&g_chip_cap, sizeof(g_chip_cap));
 
     // OTP不烧录的话，OTP区域默认值是全F，基带功能也默认全功能
-    g_chip_cap.hsf_mode = (g_chip_cap.hsf_mode == 0xFF) ? 0 : ((g_chip_cap.hsf_mode == 0) ? 0 : 1);
-    g_chip_cap.frame_mode = (g_chip_cap.frame_mode == 0xFF) ? 0 : ((g_chip_cap.frame_mode == 0) ? 0 : 1);
+    g_chip_cap.hsf_mod = (g_chip_cap.hsf_mod == 0xFF) ? 0 : (g_chip_cap.hsf_mod & 0x1);
+    g_chip_cap.frame_mode = (g_chip_cap.frame_mode == 0xFF) ? 0 : (g_chip_cap.frame_mode & 0x1);
     g_chip_cap.tof_rang_limit_en = (g_chip_cap.tof_rang_limit_en == 0xFF) ?
-        0 : ((g_chip_cap.tof_rang_limit_en == 0) ? 0 : 1);
+        0 : ((g_chip_cap.tof_rang_limit_en & 0x1) ? 1 : 0);
     g_chip_cap.cad_limit_en = (g_chip_cap.cad_limit_en == 0xFF) ?
-        0 : ((g_chip_cap.cad_limit_en == 0) ? 0 : 1);
+        0 : ((g_chip_cap.cad_limit_en & 0x1) ? 1 : 0);
     g_chip_cap.buf_limit_en = (g_chip_cap.buf_limit_en == 0xFF) ?
-        0 : ((g_chip_cap.buf_limit_en == 0) ? 0 : 1);
+        0 : ((g_chip_cap.buf_limit_en & 0x1) ? 1 : 0);
     g_chip_cap.sfbw_limit_en = (g_chip_cap.sfbw_limit_en == 0xFF) ?
-        0 : ((g_chip_cap.sfbw_limit_en == 0) ? 0 : 1);
+        0 : ((g_chip_cap.sfbw_limit_en & 0x1) ? 1 : 0);
 
     // 配置受限功能的范围区间
     g_chip_cap.buf_limit_val = (g_chip_cap.buf_limit_val < 0x1) ? 0x1 : g_chip_cap.buf_limit_val;
@@ -167,7 +167,7 @@ void boot_set_chip_capability(void)
     g_chip_cap.sf_high_limit_val = (g_chip_cap.sf_high_limit_val > 0xC) ? 0xC : g_chip_cap.sf_high_limit_val;
     g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val < 0x5) ? 0x5 : g_chip_cap.sf_low_limit_val;
     g_chip_cap.sf_low_limit_val = (g_chip_cap.sf_low_limit_val > 0xC) ? 0x5 : g_chip_cap.sf_low_limit_val;
-    chip_cap_val = ((g_chip_cap.hsf_mode << 31) | (g_chip_cap.frame_mode << 30) |
+    chip_cap_val = ((g_chip_cap.hsf_mod << 31) | (g_chip_cap.frame_mode << 30) |
                     (g_chip_cap.tof_rang_limit_en << 29) | (g_chip_cap.cad_limit_en << 28) |
                     (g_chip_cap.buf_limit_en << 27) | (g_chip_cap.sfbw_limit_en << 26) |
                     (g_chip_cap.buf_limit_val << 16) | (g_chip_cap.bw_high_limit_val << 12) |
@@ -378,6 +378,7 @@ void boot_from_boot2(void)
 
     while(1);
 }
+
 
 void boot_selection(void)
 {

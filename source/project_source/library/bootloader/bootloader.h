@@ -76,13 +76,13 @@ typedef struct
 
 typedef struct
 {
-    uint8_t hsf_mode;           // HSF模式选择，0：部分配置；1：全部配置
-    uint8_t frame_mode;         // 帧结构选择，0：1/4 upchirp frame；1：1/2 upchirp frame
-    uint8_t tof_rang_limit_en;
-    uint8_t cad_limit_en;
-    uint8_t buf_limit_en;
-    uint8_t sfbw_limit_en;
-    uint8_t resv[26];
+    uint8_t hsf_mod;
+    uint8_t frame_mode;
+    bool tof_rang_limit_en;
+    bool cad_limit_en;
+    bool buf_limit_en;
+    bool sfbw_limit_en;
+    uint8_t resv[28];
     uint32_t buf_limit_val;
     uint16_t bw_high_limit_val;
     uint16_t bw_low_limit_val;

@@ -59,7 +59,7 @@ uint8_t g_lp_fail_flag __RETENTION_DATA;
 
 void slc_lpwr_ctrl_init(slc_lpwr_ctrl_cfg *lp_cfg)
 {
-    if (lp_cfg == NULL || lp_cfg->lp_wakeup_src_msk == 0) {
+    if (lp_cfg == NULL ) {//|| lp_cfg->lp_wakeup_src_msk == 0
         PRINTF("lp_cfg is NULL or lp_wakeup_src_msk is 0\n");
         return;
     }
@@ -90,6 +90,7 @@ uint8_t slc_check_boot_status(void)
     uint8_t standby_wakeup = 0;
 
     standby_wakeup = slc_hal_pmu_get_boot_flag();
+
     if (standby_wakeup != 0) {
         slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STANDBY);
     } else {

@@ -138,6 +138,7 @@ static const soctest_case_t  slc_flash_test_case[] = {
     {"Flash Endurance Test",            slc_flash_endurance_test,           AUTO_TEST | PRESSURE_TEST},
     {"Flash Data encrypt Test",         slc_flash_encrypt_test,             MANUAL_TEST},
     {"Flash Data encrypt Test(woCache)",slc_flash_encrypt_without_cache_test, MANUAL_TEST},
+    {"Flash io Test",                   slc_flash_io_ctrl_test,             SMOKE_TEST | MANUAL_TEST},
 };
 
 static const soctest_case_t slc_rtc_test_case[] = {

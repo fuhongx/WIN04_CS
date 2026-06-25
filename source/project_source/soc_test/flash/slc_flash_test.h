@@ -11,9 +11,11 @@ int slc_flash_qspi_mode_test(void);
 int slc_flash_read_data_capture_test(void);
 int slc_flash_qspi_delay_test(void);
 __RAM_FUNC int slc_flash_security_register_test(void);
+__RAM_FUNC int slc_flash_pmu_set(void);
 __RAM_FUNC int slc_flash_protect_test(void);
 __RAM_FUNC int slc_flash_endurance_test(void);
 __RAM_FUNC int slc_flash_encrypt_test(void);
 __RAM_FUNC int slc_flash_encrypt_without_cache_test(void);
+__RAM_FUNC int slc_flash_io_ctrl_test(void);
 
 #endif // __SLC_FLASH_TEST_H__

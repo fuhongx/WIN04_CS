@@ -111,4 +111,6 @@ void soctest_set_test_module(uint32_t test_module);
 uint32_t soctest_get_test_result(void);
 void soctest_clear_test_result(void);
 
+int low_power_enter_failed_test(void);
+
 #endif // __SLC_SOC_TEST_H__

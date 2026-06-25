@@ -34,7 +34,7 @@
 #define DEBUG_UART_BAUDRATE                 (921600)
 
 
-#define APP_DEBUG_ENABLED                   (0)
+#define APP_DEBUG_ENABLED                   (1)
 
 #if APP_DEBUG_ENABLED
     #define PRINTF(fmt, args...)           printf(fmt, ##args)

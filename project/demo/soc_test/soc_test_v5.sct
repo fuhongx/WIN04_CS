@@ -10,7 +10,7 @@ LOAD_BOOT2_CODE 0x8000000 0x8001000
 LOAD_APP 0x8001000 0x8040000
 {
 
-    FIRMWARE_HEADER 0x8001000 0x8001018
+    FIRMWARE_HEADER 0x8001000 0x8001078
     {
         *(.firmware.header)
     }
@@ -40,7 +40,7 @@ LOAD_APP 0x8001000 0x8040000
         *(.retention.data)
     }
 
-    RAM_APP_CODE 0x20004800 0x20005800
+    RAM_APP_CODE 0x20004200 0x20005800
     {
         *(.ram.function)
     }

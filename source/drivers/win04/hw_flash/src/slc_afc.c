@@ -121,18 +121,19 @@ void slc_afc_adjust(phy_cfg_trx_e trx_type, phy_cfg_tx_mode_e tx_mode)
         slc_phy_cfg_fc(freq);
         slc_rf_dfe_tx_del_keep_pnt_bypass(true);
 
-#ifdef SLC_FPGA
-        /* subg config */
+//#ifdef SLC_FPGA
+/*       //subg config 
         slc_rf_subg_set_gpio();
         slc_rf_subg_disable_trx();
         if (slc_rf_subg_afc_cali() != EN_ERROR_STA_OK) {
             PRINTF("AFC cali error!, timeout\n");
             return;
         }
+*/
 
         slc_rf_subg_fc_cali(freq);
         slc_rf_subg_set_fc(freq);
-#else
+
         trx_cfg->freq = freq;
         ret += slc_afc_cali(freq, ((trx_cfg->bw == PHY_BW_500K) ? -500000 : -250000),
                             true, (tx_mode == PHY_TX_POLAR) ? true: false);
@@ -148,7 +149,7 @@ void slc_afc_adjust(phy_cfg_trx_e trx_type, phy_cfg_tx_mode_e tx_mode)
             PRINTF("kdac cali failed, ret = %d\n", ret);
             return;
         }
-#endif
+
 
         // 基于初始本振计算SFO，SFO = (与初始本振相比的频偏ppm) * 2^24 / 1000000
         total_ppm = (freq_hz - freq_first + cfo_hz) / (freq_first / 1000000.0f);

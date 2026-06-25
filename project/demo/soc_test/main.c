@@ -96,7 +96,6 @@ void slc_debug_uart_irq_handler(void)
 {
     uint32_t sta __MAYBE_UNUSED = 0;
     sta = slc_hal_uart_get_irq_status(DEBUG_UART_HANDLE);
-
     ntshell_top_run_once();
 }
 #endif
@@ -211,6 +210,7 @@ void reset_verification(void)
     }
     slc_register_nmi_handler(NMI_Handler_in_RAM);
 }
+
 
 int main(void)
 {

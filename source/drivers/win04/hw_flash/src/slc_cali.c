@@ -401,7 +401,7 @@ int slc_afc_cali1(uint32_t freq_hz, int32_t inter_freq_hz, bool tx, bool polar)
         else
             slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xD4), 0x200);
 
-        slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
+            slc_rf_spi_reg_update(SLC_RF_SPI_ADDR_PLL(0x64), RFPLL_PEAKDET_CON_VREF_1P1_MASK, RFPLL_PEAKDET_CON_VREF_1P1_VAL(SLC_PEAKDET_VREF_1P1_TX_CODE));
 
         slc_rf_spi_reg_clr_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_MASK);
         slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_PLL(0xA8), RFPLL_FSM_SKIPPER_VAL(8));   // skip KVCO2
@@ -584,15 +584,15 @@ start:
 
     if(repeat != true){
         repeat = true;
-        rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
-        rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+        rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x50), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+        rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x50), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
         PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
         goto start;
     }
 
     slc_rf_spi_write32_cmd(SLC_RF_SPI_ADDR_CTRL(0x68), ramping_ctrl);
-    rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
-    rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x44), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
+    rpt_afc_ctune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x50), 4, 9);//(RF_PLL->VCO_AFC_CTRL1 & (0x3f << 4)) >> 4;
+    rpt_afc_ftune = slc_rf_spi_get_bits(SLC_RF_SPI_ADDR_PLL(0x50), 0, 3);//(RF_PLL->VCO_AFC_CTRL1 & 0xf);
     PRINTF("rpt_afc_ctune = %08x  rpt_afc_ftune = %08x\n",rpt_afc_ctune,rpt_afc_ftune);
     //slc_rf_spi_reg_or_mask(SLC_RF_SPI_ADDR_CTRL(0x68), SLC_RFCTRL_TX_RAMP_CYCLE_VAL(0x1));
     // PRINTF("AFC %s CALI succ, FREQ_INT 0x%X, FREQ_FRAC 0x%X, INTER_FREQ 0x%X\n", (tx ? "TX" : "RX"),

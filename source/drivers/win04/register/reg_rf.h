@@ -1044,6 +1044,7 @@ typedef struct
 #define RF_CTRL_TXMODE_MO_MASK     (0x1U << RF_CTRL_TXMODE_MO_SHIFT)
 #define RF_CTRL_TXMODE_MO_VAL(x)   (((uint32_t)(x) << RF_CTRL_TXMODE_MO_SHIFT) & RF_CTRL_TXMODE_MO_MASK)
 
+
 typedef struct
 {
     __IOM uint32_t DCOC_I_CTRL;         // 0x00

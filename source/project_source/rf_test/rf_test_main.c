@@ -162,15 +162,15 @@ void spi_cmd_handler(uint8_t *pu8Buffer)
     }
 }
 
-// void slc_phy0_test_mask_irq(void)
-// {
-//     uint32_t irq_flag = slc_phy_irq_get_status();
+ void slc_phy0_test_mask_irq(void)
+ {
+     uint32_t irq_flag = slc_phy_irq_get_status();
 
-//     // clear irq flag
-//     slc_phy_irq_clr_status(irq_flag);
+     // clear irq flag
+     slc_phy_irq_clr_status(irq_flag);
 
-//     PRINTF("PHY0 IRQ: 0x%08X\r\n", irq_flag);
-// }
+     PRINTF("PHY0 IRQ: 0x%08X\r\n", irq_flag);
+ }
 
 void rf_test_main(void)
 {
@@ -186,9 +186,9 @@ void rf_test_main(void)
 #endif
 #endif
     slc_hal_gpio_set_iomux(HAL_GPIO_PIN17, HAL_IOMUX_MODE7);
-    // SLC_HAL_ENABLE_PERIPHERAL_IRQ(PHY0_IRQ, 0x3);
-    // slc_hal_register_irq_handler(PHY0_IRQ, slc_phy0_test_mask_irq);
-    // slc_phy0_irq_enable(PHY_IRQ_ALL_MASK);
+     SLC_HAL_ENABLE_PERIPHERAL_IRQ(PHY0_IRQ, 0x3);
+     slc_hal_register_irq_handler(PHY0_IRQ, slc_phy0_test_mask_irq);
+     slc_phy0_irq_enable(PHY_IRQ_ALL_MASK);
 
     slc_hal_nop_delay_us(800);
 
@@ -437,12 +437,10 @@ void rf_test_main(void)
 
                     break;
 
-                case (0x0004):
+                case (0x0004)://gpadc test to HDF
                     op_addr = ((uint32_t *)(0x40010000 + addr.data));
-
                     // PRINTF("READ 004\n");
-                    payload.data = *op_addr;
-
+                    
                     // put_char(payload.byte[0]);
                     // put_char(payload.byte[1]);
                     // put_char(payload.byte[2]);

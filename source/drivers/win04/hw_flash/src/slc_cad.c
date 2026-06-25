@@ -23,6 +23,24 @@ void slc_cad_normal_enable(void)
     PHY_CTRL->CAD1 |= PHY_CAD_MODEL_EN_VAL(1);
     slc_hal_nop_delay_us(1);
     PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 |= PHY_CAD_MODEL_EN_VAL(1);
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 |= PHY_CAD_MODEL_EN_VAL(1);
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 |= PHY_CAD_MODEL_EN_VAL(1);
+    slc_hal_nop_delay_us(1);
+    PHY_CTRL->CAD1 &= ~PHY_CAD_MODEL_EN_MASK;
 }
 
 void slc_cad_duty_cycle_enable(void)
@@ -52,11 +70,13 @@ void slc_cad_mode_enable(cad_mode_e mode)
     }
 }
 
-void slc_cad_cfg(uint16_t check_symbol_num, uint16_t duty_cycle_period, pre_cad_cfg_t *precad_cfg)
+void slc_cad_cfg(uint16_t check_symbol_num, uint16_t duty_cycle_period, pre_cad_cfg_t *precad_cfg, uint8_t no_demod_data)
 {
     uint32_t val = 0;
     uint8_t precad_en = 0;
 
+    PHY_CTRL->CAD_WAIT_TIME = 500000;
+    
     val = PHY_CTRL->CAD2;
     val &= ~PHY_CAD_CHECK_SYM_NUM_MASK;
     val |= PHY_CAD_CHECK_SYM_NUM_VAL(check_symbol_num);
@@ -105,7 +125,10 @@ void slc_cad_cfg(uint16_t check_symbol_num, uint16_t duty_cycle_period, pre_cad_
 set_mode:
     PHY_CTRL->CAD1 &= ~PHY_PRECAD_EN_MASK;
     PHY_CTRL->CAD1 |= PHY_PRECAD_EN_VAL(precad_en);
-
+    
+    PHY_CTRL->CAD3 &= ~PHY_CAD_NO_DATA_MASK;
+    PHY_CTRL->CAD3 |= PHY_CAD_NO_DATA_VAL(no_demod_data);
+    
     slc_set_phy_mode(PHY_CAD_MODE);
     slc_phy_sw_reset();
 }
