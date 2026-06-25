@@ -32,6 +32,8 @@
 #include "slc_hal_rng.h"
 #include "slc_cali.h"
 
+#include "slc_lpwr_ctrl.h"
+
 #ifdef SLC_SOCTEST
 #include "slc_soc_test.h"
 #endif
@@ -264,6 +266,29 @@ static int usrcmd_phy_trx_cfg(int argc, char **argv)
     return 0;
 }
 
+__RETENTION_FUNC void phy_test_wake_up(void)
+{
+    // 睡前拉低，醒后拉高，统计唤醒时间
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_GPIO, true);
+
+#if APP_DEBUG_ENABLED
+    debug_printf_init();
+#endif
+
+#ifdef NT_SHELL
+    extern void slc_debug_uart_irq_handler(void);
+    slc_hal_register_irq_handler(DEBUG_UART_IRQ, slc_debug_uart_irq_handler);
+    slc_hal_uart_enable_irq(DEBUG_UART_HANDLE, HAL_UART_INT_EN_RX_NOT_EMPTY);
+    SLC_HAL_ENABLE_PERIPHERAL_IRQ(DEBUG_UART_IRQ, 0x3);
+
+    ntshell_top_init();
+
+    //QMX_HAL_ENABLE_GLOBAL_IRQ();
+    
+#endif
+}
+
+
 static int usrcmd_phy_trigger_trx(int argc, char **argv)
 {
     phy_cfg_trx_e trx_mode = PHY_RX_EN;
@@ -368,6 +393,12 @@ static int usrcmd_phy_cad_cfg(int argc, char **argv)
     pre_cad_cfg_t cfg;
     uint16_t check_symbol_num;
     uint16_t duty_cycle_period;
+    slc_lpwr_ctrl_cfg lpcfg;
+    uint8_t sleep_mode = HAL_PMU_LP_MODE_NORMAL;
+    uint32_t phy_test_irq_mask;
+    char *argv1[] = {"phy_trigger", "rx", "1", "0"};
+    int argc1 = 4;
+    uint8_t no_demod_data;
 
     if (argc < 4) {
         nt_shell_printf("param num error, at least 4!\r\n");
@@ -375,15 +406,34 @@ static int usrcmd_phy_cad_cfg(int argc, char **argv)
         return -1;
     }
 
+    lpcfg.lp_wakeup_src_msk = HAL_PMU_LP_WAKEUP_SRC_MSK_PHY0;
+    lpcfg.phy_power_enable = true;
+    lpcfg.rf_power_enable = true;
+    lpcfg.flash_force_on = false;
+    lpcfg.lp_before_cb_func = NULL;
+    lpcfg.lp_after_cb_func = phy_test_wake_up;
+    slc_lpwr_ctrl_init(&lpcfg);
+
     cad_type = (uint8_t)ntlibc_atoi(argv[1], 10);
     check_symbol_num = ntlibc_atoi(argv[2], 10);
     duty_cycle_period = (uint16_t)ntlibc_atoi(argv[3], 10);
+    no_demod_data = (uint8_t)ntlibc_atoi(argv[4], 10);
+    if((argc > 5) && (cad_type == 0)){
+        sleep_mode = (uint8_t)ntlibc_atoi(argv[5], 10);
+        phy_test_irq_mask = (uint32_t)ntlibc_atoi(argv[6], 10);
+    }
 
     PRINTF("cad config: type=%s, check_symbol_num=%d, duty_cycle_period=%d\r\n",
             (cad_type == 0) ? "CAD" : "PRE_CAD", check_symbol_num, duty_cycle_period);
 
     if (cad_type == 0) {
-        slc_cad_cfg(check_symbol_num, duty_cycle_period, NULL);
+        slc_cad_cfg(check_symbol_num, duty_cycle_period, NULL ,no_demod_data);
+        if(sleep_mode){
+            slc_phy0_irq_disable(PHY_IRQ_ALL_MASK);
+            slc_phy0_irq_enable(phy_test_irq_mask);
+            usrcmd_phy_trigger_trx(argc1, argv1);
+            slc_lpwr_ctrl_sleep(sleep_mode);
+        }
         return 0;
     }
 
@@ -394,17 +444,27 @@ static int usrcmd_phy_cad_cfg(int argc, char **argv)
         return -1;
     }
 
-    cfg.pre_addr = (uint16_t)ntlibc_atoi(argv[4], 16);
-    cfg.pre_num = (uint16_t)ntlibc_atoi(argv[5], 10);
-    cfg.cycle_num = (uint16_t)ntlibc_atoi(argv[6], 10);
-    cfg.matchaddr_wide = (uint16_t)ntlibc_atoi(argv[7], 10);
-    cfg.marker = (uint16_t)ntlibc_atoi(argv[8], 10);
-    cfg.nosleep_cycle = (uint16_t)ntlibc_atoi(argv[9], 10);
+    cfg.pre_addr = (uint16_t)ntlibc_atoi(argv[5], 16);
+    cfg.pre_num = (uint16_t)ntlibc_atoi(argv[6], 10);
+    cfg.cycle_num = (uint16_t)ntlibc_atoi(argv[7], 10);
+    cfg.matchaddr_wide = (uint16_t)ntlibc_atoi(argv[8], 10);
+    cfg.marker = (uint16_t)ntlibc_atoi(argv[9], 10);
+    cfg.nosleep_cycle = (uint16_t)ntlibc_atoi(argv[10], 10);
+    if(argc > 11){
+        sleep_mode = (uint8_t)ntlibc_atoi(argv[11], 10);
+        phy_test_irq_mask = (uint32_t)ntlibc_atoi(argv[12], 10);
+    }
 
     PRINTF("pre cad config: pre_addr=0x%X, pre_num=%d, cycle_num=%d, matchaddr_wide=%d, marker=%d, nosleep_cycle=%d\r\n",
            cfg.pre_addr, cfg.pre_num, cfg.cycle_num, cfg.matchaddr_wide, cfg.marker, cfg.nosleep_cycle);
 
-    slc_cad_cfg(check_symbol_num, duty_cycle_period, &cfg);
+    slc_cad_cfg(check_symbol_num, duty_cycle_period, &cfg ,no_demod_data);
+    if(sleep_mode){
+        slc_phy0_irq_disable(PHY_IRQ_ALL_MASK);
+        slc_phy0_irq_enable(phy_test_irq_mask);
+        usrcmd_phy_trigger_trx(argc1, argv1);
+        slc_lpwr_ctrl_sleep(sleep_mode);
+    }
 
     return 0;
 }
@@ -468,6 +528,7 @@ static int usrcmd_sfsearch_cfg(int argc, char **argv)
     float sf1 = 0.0f;
     float sf2 = 0.0f;
     float sf3 = 0.0f;
+    uint8_t sfsearch_len;
 
     if (argc < 2) {
         nt_shell_printf("param num error, at least 2!\r\n");
@@ -488,7 +549,8 @@ static int usrcmd_sfsearch_cfg(int argc, char **argv)
         sf1 = (float)atof(argv[3]);
         sf2 = (float)atof(argv[4]);
         sf3 = (float)atof(argv[5]);
-        slc_sf_search_cfg(sf_num, sf1, sf2, sf3);
+        sfsearch_len = (uint8_t)ntlibc_atoi(argv[6], 10);
+        slc_sf_search_cfg(sf_num, sf1, sf2, sf3, sfsearch_len);
         PRINTF("sfsearch config: sf_num=%d, beishu1=%.03f, beishu2=%.03f, beishu3=%.03f\r\n",
                 sf_num, sf1, sf2, sf3);
     }

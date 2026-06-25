@@ -137,16 +137,17 @@ Reset_Handler   PROC
 ; NMI_Handler
 NMI_Handler PROC
                 EXPORT  NMI_Handler
-;                IMPORT  NMI_Handler_Proc
-;                
-;                MOV     R0, LR
-;                MRS     R1, MSP
-;                MRS     R2, PSP
-;                
-;                LDR     R3, =NMI_Handler_Proc
-;                BLX     R3
+                IMPORT  NMI_Handler_Proc
                 
-                B        .
+                PUSH    {LR}
+                MOV     R0, LR
+                MRS     R1, MSP
+                MRS     R2, PSP
+                
+                LDR     R3, =NMI_Handler_Proc
+                BLX     R3
+                
+                POP     {PC}
                 ENDP
 
 ; HardFault_Handler

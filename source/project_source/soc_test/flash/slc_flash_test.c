@@ -14,6 +14,7 @@
 #include "slc_flash_test.h"
 #include "slc_hal_rng.h"
 #include "slc_hal_delay.h"
+#include "hw_sysctrl.h"
 
 int slc_flash_read_id_test(void)
 {
@@ -274,3 +275,61 @@ __RAM_FUNC int slc_flash_protect_test(void)
 
     return 0;
 }
+
+uint8_t dev_id[2][3] = {0};
+int slc_flash_pmu_set(void)
+{
+    rom_hw_sysctrl_set_cache_mode(EN_CACHE_DISABLE);
+    //PMU->LP_MAN |= (1<<3);
+    for(int i=0; i<1; i++){
+
+        if(i == 0){
+            //PMU->LP_MAN |= (1<<4);
+            PMU->LP_MAN = 0X18;
+        }
+        else if(i == 1){
+            //PMU->LP_MAN &= ~(1<<4);
+            PMU->LP_MAN = 0X08;
+        }
+        else {}
+        
+        slc_hal_nop_delay_ms(100);
+        rom_hw_flash_read_dev_id(dev_id[i], 3);
+        }
+    PMU->LP_MAN = 0;
+    rom_hw_sysctrl_set_cache_mode(EN_CACHE_ENABLE);
+    return 0;
+}
+
+int slc_flash_io_ctrl_test(void)
+{
+    ///uint8_t dev_id[3] = {0};
+    uint8_t uid[8] = {0};
+    uint8_t dev_id_test[3] = {0xC4, 0x40, 0x12};
+
+    slc_flash_pmu_set();
+    for(uint8_t i=0; i<2; i++){
+        dump_u8buf("dev_id", dev_id[i], 3);
+        if(memcmp(dev_id[i], dev_id_test, 3) == 0){
+            if(i == 0){
+                PRINTF("flash io open %d PASS\n",i);
+            }
+            else{
+                PRINTF("flash io close %d FAIL\n",i);
+            }
+        }
+        else{
+            if(i != 0){
+                PRINTF("flash io close %d PASS\n",i);
+            }
+            else{
+                PRINTF("flash io open %d FAIL\n",i);
+            }
+        }
+    }
+    
+    return 0;
+}
+
+
+

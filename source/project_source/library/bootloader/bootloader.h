@@ -75,6 +75,8 @@ typedef struct
 
 typedef struct
 {
+    uint8_t hsf_mod;
+    uint8_t frame_mode;
     bool tof_rang_limit_en;
     bool cad_limit_en;
     bool buf_limit_en;

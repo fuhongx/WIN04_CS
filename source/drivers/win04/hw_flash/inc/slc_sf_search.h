@@ -29,7 +29,7 @@
 #include "slc_phy.h"
 
 void slc_sf_search_enable(bool enable);
-void slc_sf_search_cfg(uint16_t sfsearch_num, float multi0, float multi1, float multi2);
+void slc_sf_search_cfg(uint16_t sfsearch_num, float multi0, float multi1, float multi2, uint8_t sfseeearch_len);
 void slc_sf_search_training(uint16_t sf);
 
 #endif

@@ -16,7 +16,27 @@
 #include "slc_hal_rng.h"
 #include "slc_test_master.h"
 
-#define SPI_TEST_START_ID   HAL_SPI1
+#define SPI_TEST_START_ID   HAL_SPI0
+
+void print_reg_4byte_from_to(uint32_t start_addr, uint32_t end_addr)
+{
+    if (start_addr > end_addr) {
+        PRINTF("ADDR ERROR\n");
+        return;
+    }
+
+    uint32_t total_bytes = end_addr - start_addr + 1;
+
+    uint32_t count = total_bytes / 4;
+
+    uint32_t *addr = (uint32_t *)start_addr;
+
+    for (uint32_t i = 0; i < count; i++) {
+        PRINTF("ADDR 0x%08X: 0x%08X\n",
+               (uint32_t)&addr[i],
+               addr[i]);
+    }
+}
 
 void slc_spi_test_init(void)
 {
@@ -78,6 +98,7 @@ void slc_spi_test_deinit(void)
 int slc_spi_test_master_trx_common(hal_spi_id_e spi_id)
 {
     uint8_t tx_data[SLC_SPI_TEST_TRX_LEN] = {0};
+    uint8_t tx_data_test[SLC_SPI_TEST_TRX_LEN] = {0x4D,0x0F,0x23,0x1C,0x0C,0x74,0xF4,0x1D,0xB0,0x18,0x87,0xA2,0xD4,0x35,0x9E,0xAC};
     uint8_t rx_data[SLC_SPI_TEST_TRX_LEN] = {0};
     uint8_t cmd[4] = {0};
     uint32_t rx_len = 0;
@@ -92,7 +113,6 @@ int slc_spi_test_master_trx_common(hal_spi_id_e spi_id)
     cmd[1] = 0;
     cmd[2] = 0;
     cmd[3] = 0;
-
     // 1、master先发送数据给slave，slave端已提前准备好，在中断内接收数据
     cmd[0] = SLC_SPI_TEST_TX_CMD;
     slc_hal_spi_master_transmit(spi_id, cmd, 4, HAL_SPI_TIMEOUT_US);
@@ -100,7 +120,7 @@ int slc_spi_test_master_trx_common(hal_spi_id_e spi_id)
     slc_hal_spi_master_transmit(spi_id, tx_data, SLC_SPI_TEST_TRX_LEN, HAL_SPI_TIMEOUT_US);
     // 2、确保slave端处理完数据
     slc_hal_nop_delay_ms(2000);
-
+    
     // 3、master再接收数据, slave端在中断内将接收数据原路返回
     cmd[0] = SLC_SPI_TEST_RX_CMD;
     slc_hal_spi_master_transmit(spi_id, cmd, 4, HAL_SPI_TIMEOUT_US);
@@ -145,7 +165,7 @@ int slc_spi_master_div_test(void)
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
-    config.cs_gap_time = 0x8;
+    config.cs_gap_time = 0x30;
     config.tx_fifo_pfull_th = 12;
     config.rx_fifo_pfull_th = 12;
     config.rx_fifo_pempty_th = 4;
@@ -171,9 +191,11 @@ start:
     } else {
         PRINTF("SPI%u slave cfg success.\n", test_id);
     }
+    slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
 
     // slave端最大输入时钟只有6.25MHz
     for (i = HAL_SPI_DIV_8; i < HAL_SPI_DIV_MAX; i++) {
+        
         rx_len = 0;
         memset(rx_data, 0, SLC_TEST_RX_MAX_LEN);
 
@@ -191,6 +213,7 @@ start:
         }
 
         slc_hal_spi_init(test_id, &config);
+        //print_reg_4byte_from_to((uint32_t)&SPI0->SPI_TCR, (uint32_t)&SPI0->SPI_FTR);
 
         ret = slc_spi_test_master_trx_common(test_id);
         if (ret != 0) {
@@ -261,6 +284,7 @@ start:
             PRINTF("SPI%u slave cfg %d failed.\n", test_id, i);
             return -1;
         }
+        slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
 
         slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
 
@@ -311,14 +335,14 @@ int slc_spi_master_data_mode_test(void)
     config.clk_adjust_en = true;
     config.sw_cs_en = false;
     config.anti_noise_level = 1;
-    config.cs_gap_time = 0x8;
+    config.cs_gap_time = 128;//0x8;
     config.tx_fifo_pfull_th = 12;
     config.rx_fifo_pfull_th = 12;
     config.rx_fifo_pempty_th = 4;
     config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
-    tx_data[1] = config.clk_div;
+    tx_data[1] = HAL_SPI_DIV_4;//config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[4] = config.data_len;
     tx_data[5] = config.cs_holding_time;
@@ -400,7 +424,7 @@ int slc_spi_master_data_len_test(void)
     config.tx_fifo_pempty_th = 4;
 
     tx_data[0] = config.mode;
-    tx_data[1] = config.clk_div;
+    tx_data[1] = HAL_SPI_DIV_4;//config.clk_div;
     tx_data[2] = config.polarity_phase;
     tx_data[3] = config.data_mode;
     tx_data[5] = config.cs_holding_time;
@@ -484,7 +508,6 @@ int slc_spi_test_slv_trx_common(hal_spi_id_e spi_id)
         return -1;
     }
     memset(rx_data, 0, SLC_TEST_RX_MAX_LEN);
-
     // 2、确保slave端接收完数据
     slc_hal_spi_slave_transmit(spi_id, tx_buf, SLC_SPI_TEST_TRX_LEN, HAL_SPI_TIMEOUT_US);
 
@@ -580,9 +603,8 @@ start:
             slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_SPI1, true);
             slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_SPI1);
         }
-
         slc_hal_spi_init(test_id, &config);
-
+        
         ret = slc_spi_test_slv_trx_common(test_id);
         if (ret != 0) {
             PRINTF("SPI%u polarity_phase %u test failed.\n", test_id, config.polarity_phase);

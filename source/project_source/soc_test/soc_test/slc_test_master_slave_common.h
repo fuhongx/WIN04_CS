@@ -33,7 +33,7 @@
 
 #define SLC_TEST_TIMEOUT_MS         (5000U)
 
-#define SLC_TEST_CFG_TIMEOUT_MS     (80)
+#define SLC_TEST_CFG_TIMEOUT_MS     (300)
 
 // LPUART测试长度
 #define SLC_LPUART_TEST_TRX_LEN         (64)

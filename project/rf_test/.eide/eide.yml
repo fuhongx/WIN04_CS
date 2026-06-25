@@ -1,0 +1,223 @@
+version: "4.1"
+name: rf_test
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: startup
+      files:
+        - path: ../../source/device/ARMCM0plus/Source/startup_ARMCM0plus.s
+        - path: ../../source/device/ARMCM0plus/Source/system_ARMCM0plus.c
+      folders: []
+    - name: lib
+      files:
+        - path: ../../library/boot2.c
+        - path: ../../library/win04_rom_lib.lib
+        - path: ../../source/device/win04/version.c
+      folders: []
+    - name: debug
+      files:
+        - path: ../../source/component/debug/debug.c
+      folders: []
+    - name: main
+      files:
+        - path: main.c
+      folders: []
+    - name: app
+      files:
+        - path: ../../source/project_source/rf_test/rf_test_main.c
+        - path: ../../source/project_source/rf_test/rf_test_interface.c
+        - path: ../../source/component/private_spi/slc_private_spi_frame.c
+      folders: []
+    - name: drivers
+      files:
+        - path: ../../source/drivers/win04/hw_flash/src/slc_cali.c
+        - path: ../../source/drivers/win04/hw_flash/src/slc_phy.c
+        - path: ../../source/drivers/win04/hw_flash/src/slc_rf.c
+        - path: ../../source/drivers/win04/patch/src/slc_intc.c
+      folders: []
+    - name: hal
+      files:
+        - path: ../../source/hal/src/slc_hal_intc.c
+        - path: ../../source/hal/src/slc_hal_sysctrl.c
+        - path: ../../source/hal/src/slc_hal_gpio.c
+        - path: ../../source/hal/src/slc_hal_uart.c
+        - path: ../../source/hal/src/slc_hal_pmu.c
+        - path: ../../source/hal/src/slc_hal_dma.c
+        - path: ../../source/hal/src/slc_hal_spi.c
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: 4a0657e3eb1c1dfed42007727e15a734
+targets:
+  rf_test:
+    cppPreprocessAttrs:
+      defineList:
+        - WIN04
+        - CAD
+        - SLC_FPGA
+      incList:
+        - ../../source/device/ARMCM0plus/Include
+        - ../../source/device/CMSIS_Core/Include
+        - ../../source/device/reg_device
+        - ../../source/component/error_def
+        - ../../source/component/utility
+        - ../../source/component/debug
+        - ../../source/drivers/win04/register
+        - ../../source/drivers/win04/hw_rom/inc
+        - ../../source/drivers/win04/hw_flash/inc
+        - ../../source/hal/inc
+        - ../../source/mem_cfg/flash
+        - ../../source/mem_cfg/win04
+        - ../../source/device/win04
+        - config
+        - ../../source/drivers/win04/patch/inc
+        - ../../source/component/private_spi
+        - .cmsis/include
+        - RTE/_rf_test
+      libList: []
+    excludeList: []
+    settings:
+      debugger: cortex-debug
+    toolchain: AC6
+    toolchainConfigMap:
+      AC6:
+        archExtensions: ""
+        cpuType: Cortex-M0+
+        floatingPointHardware: none
+        options:
+          version: 3
+          afterBuildTasks:
+            - name: "[Copy linker output for Keil User Commands]"
+              abortAfterFailed: true
+              command: mkdir ${KEIL_OUTPUT_DIR} & copy "${OutDir}\${ProjectName}.axf" "${KEIL_OUTPUT_DIR}\${ProjectName}.axf"
+              disable: false
+            - name: ..\..\tools\format_firmware\project_maker.bat "!L" "$KARM\ARMCC\bin\fromelf.exe"
+              abortAfterFailed: true
+              command: ..\..\tools\format_firmware\project_maker.bat "${KEIL_OUTPUT_DIR}\${ProjectName}.axf" "$KARM\ARMCC\bin\fromelf.exe"
+              disable: true
+            - name: ..\..\tools\format_firmware\project_maker.bat "!L" "$KARM\ARMCLANG\bin\fromelf.exe"
+              abortAfterFailed: true
+              command: ..\..\tools\format_firmware\project_maker.bat "${KEIL_OUTPUT_DIR}\${ProjectName}.axf" "$KARM\ARMCLANG\bin\fromelf.exe"
+              disable: false
+          asm-compiler:
+            $use: asm-auto
+            defines: []
+            misc-controls: ""
+            thumb-mode: true
+          beforeBuildTasks:
+            - name: ..\..\tools\adapt_for_v5\adapt_for_v5.bat $Prf_test.sct
+              abortAfterFailed: true
+              command: ..\..\tools\adapt_for_v5\adapt_for_v5.bat $Prf_test.sct
+              disable: true
+              stopBuildAfterFailed: true
+          c/cpp-compiler:
+            language-c: c99
+            language-cpp: c++11
+            link-time-optimization: false
+            one-elf-section-per-function: true
+            optimization: level-1
+            short-enums#wchar: true
+            warnings: ac5-like-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            misc-controls: --entry=Reset_Handler --keep=gstAppVersion --keep=gau8Boot2Code --diag_suppress=6314
+            output-format: elf
+            ro-base: ""
+            rw-base: ""
+            xo-base: ""
+        scatterFilePath: rf_test.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x40000"
+                startAddr: "0x0"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: true
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+    uploader: JLink

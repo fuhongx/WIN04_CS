@@ -128,6 +128,7 @@ static const soctest_case_t  slc_flash_test_case[] = {
     {"Flash QSPI Delay Test",           slc_flash_qspi_delay_test,          SMOKE_TEST | AUTO_TEST},
     {"Flash Security Register Test",    slc_flash_security_register_test,   SMOKE_TEST | AUTO_TEST},
     {"Flash write protect Test",        slc_flash_protect_test,             MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash io Test",                   slc_flash_io_ctrl_test,             SMOKE_TEST | MANUAL_TEST},
 };
 
 static const soctest_case_t slc_rtc_test_case[] = {
@@ -173,6 +174,7 @@ static const soctest_case_t slc_lowpower_test_case[] = {
     {"standby not wakeup Test", low_power_standby_not_wakeup_test,  MANUAL_TEST | EXCEPTION_TEST},
     {"stop lpio wakeup Test",    low_power_stop_wakeup_by_lpio_test,     MANUAL_TEST | EXCEPTION_TEST},
     {"standby lpio wakeup Test", low_power_standby_wakeup_by_lpio_test,  MANUAL_TEST | EXCEPTION_TEST},
+    {"lowpower failed Test",    low_power_enter_failed_test,        MANUAL_TEST | EXCEPTION_TEST},
 };
 
 static const soctest_case_t slc_uart_test_case[] = {

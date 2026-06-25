@@ -122,6 +122,13 @@ void slc_hal_pmu_set_boot_flag(uint8_t boot_flag);
  */
 uint8_t slc_hal_pmu_get_boot_flag(void);
 
+/**
+ * @brief 获取低功耗进入失败标志
+ * 
+ * @return uint8_t 0x1: wakeup mask all ZERO, 0x2: apb1 or phy INT active, 0x4: lpio_en disable, 0x8: phy is power on
+ */
+uint8_t slc_hal_pmu_get_lp_fail_flag(void);
+
 #ifdef __cplusplus
 }
 #endif

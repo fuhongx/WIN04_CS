@@ -19,6 +19,7 @@
 #include "slc_soc_test.h"
 #include "compiler.h"
 #include "slc_test_slave.h"
+#include "slc_private_spi_frame.h"
 
 #ifdef SLC_AUTOTEST
 #include "slc_uart_cmd_process.h"
@@ -31,10 +32,39 @@ void slc_debug_uart_irq_handler(void)
 {
     uint32_t sta __MAYBE_UNUSED = 0;
     sta = slc_hal_uart_get_irq_status(DEBUG_UART_HANDLE);
-
     ntshell_top_run_once();
 }
 #endif
+
+static void slc_rf_spi_rw_test(void)
+{
+    const uint16_t spi_addr = SLC_RF_SPI_ADDR_PMU(0x20); /* RF_PMU->DCDC_CTRL */
+    const uint32_t ahb_addr = ADDR_RF_PMU_BASE + 0x20U;
+    uint32_t orig_spi;
+    uint32_t orig_bus;
+    uint32_t test_val;
+    uint32_t rb_spi;
+    uint32_t rb_bus;
+
+    orig_spi = slc_rf_spi_read32_cmd(spi_addr);
+    orig_bus = read32(ahb_addr);
+    test_val = (orig_spi & ~SLC_DCDC_OSC_CAPTRIM_MASK) | SLC_DCDC_OSC_CAPTRIM_VAL(0x1A);
+
+    PRINTF("\r\n[RF SPI RW test] DCDC_CTRL\r\n");
+    PRINTF("  spi_addr=0x%04X, ahb=0x%08X\r\n", spi_addr, ahb_addr);
+    PRINTF("  before : spi=0x%08X, bus=0x%08X\r\n", orig_spi, orig_bus);
+
+    slc_rf_spi_write32_cmd(spi_addr, test_val);
+    rb_spi = slc_rf_spi_read32_cmd(spi_addr);
+    rb_bus = read32(ahb_addr);
+    PRINTF("  write  : 0x%08X\r\n", test_val);
+    PRINTF("  after  : spi=0x%08X, bus=0x%08X\r\n", rb_spi, rb_bus);
+    PRINTF("  spi rw : %s\r\n", (rb_spi == test_val) ? "PASS" : "FAIL");
+    PRINTF("  spi=bus: %s\r\n", (rb_spi == rb_bus) ? "PASS" : "FAIL");
+
+    slc_rf_spi_write32_cmd(spi_addr, orig_spi);
+    PRINTF("  restore: spi=0x%08X\r\n", slc_rf_spi_read32_cmd(spi_addr));
+}
 
 void slc_platform_init(void)
 {
@@ -45,6 +75,7 @@ void slc_platform_init(void)
     slc_hal_sysctrl_reset_phy();
 
     slc_hal_pmu_phy_power_enable(true);
+    slc_private_spi_init();
     // vtcxo bypass，使用vBAT供电，切25M之前配置，防止TCXO未工作，切换后CPU卡死
     slc_rf_tcxo_bypass(true);
 
@@ -60,6 +91,12 @@ void slc_platform_init(void)
         PRINTF("FW CALI fail\n");
     }
 #endif
+
+#ifdef SLC_FPGA
+    slc_hal_pmu_phy_power_enable(true);
+    slc_private_spi_init();
+#endif
+
     // 校准结束切换回RC50M，需重新进行UART初始化
     slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_FDB50M, HAL_SYSCLK_DIV_NONE);
 
@@ -73,6 +110,7 @@ void slc_platform_init(void)
 
     ntshell_top_init();
 #endif
+    slc_rf_spi_rw_test();
 #endif
 
     PRINTF("FW start to work(freq: %dMHz). Build Time:[%s T %s].\n",
@@ -99,6 +137,7 @@ void flash_read_id_test(void)
     // rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buffer, 256);
     // dump_u8buf("flash sec mem0", buffer, 256);
 }
+
 
 int main(void)
 {
@@ -130,7 +169,47 @@ int main(void)
     return 0;
 }
 
-void NMI_Handler_Proc(void)
+extern uint8_t g_lp_fail_flag;
+uint32_t g_test_nmi_continue_flag __RETENTION_DATA = 0;
+
+void NMI_Handler_Proc(uint32_t u32ExcReturn, uint32_t u32Msp, uint32_t u32Psp)
 {
-    while (1);
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+    } else {
+        PRINTF("@ NMI handler......\n");
+        volatile uint32_t *u32Sp = NULL;
+        if (u32ExcReturn & 0x04) {
+            PRINTF("use PSP, ");
+            u32Sp = (volatile uint32_t *)u32Psp;
+        } else {
+            PRINTF("use MSP, ");
+            u32Sp = (volatile uint32_t *)u32Msp;
+        }
+        PRINTF("and stack frame:\n");
+        PRINTF("R0  : 0x%08X\n", u32Sp[0]);
+        PRINTF("R1  : 0x%08X\n", u32Sp[1]);
+        PRINTF("R2  : 0x%08X\n", u32Sp[2]);
+        PRINTF("R3  : 0x%08X\n", u32Sp[3]);
+        PRINTF("R12 : 0x%08X\n", u32Sp[4]);
+        PRINTF("LR  : 0x%08X\n", u32Sp[5]);
+        PRINTF("PC  : 0x%08X\n", u32Sp[6]);
+        PRINTF("xPSR: 0x%08X\n", u32Sp[7]);
+        
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
 }
+
+
+__RETENTION_FUNC __attribute__((interrupt)) void NMI_Handler_in_RAM(void)
+{
+    if(g_test_nmi_continue_flag) {
+        g_lp_fail_flag = slc_hal_pmu_get_lp_fail_flag();
+        slc_hal_nop_delay_us(10);
+    } else {
+        PRINTF("An unexpected exception, manual reset needed.\n");
+        while(1);
+    }
+}
+

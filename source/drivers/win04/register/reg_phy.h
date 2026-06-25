@@ -42,11 +42,13 @@ typedef struct
     __IOM uint32_t CAD1;                // 0x58
     __IOM uint32_t CAD2;                // 0x5C
     __IOM uint32_t CAD3;                // 0x60
-    __IOM uint32_t RESV1[2];            // 0x64 ~ 0x68
+    __IOM uint32_t CAD_WAIT_TIME;       // 0x64
+    __IOM uint32_t RESV;                // 0x68
     __IOM uint32_t RANGING1;            // 0x6C
     __IOM uint32_t RANGING2;            // 0x70
     __IOM uint32_t RESV2[1];            // 0x74 ~ 0x74
-    __IOM uint32_t SF_SEARCH;           // 0x78
+    __IOM uint32_t SF_SEARCH1;           // 0x78
+    __IOM uint32_t SF_SEARCH2;          // 0x7C
 }stPhyCtrlHandle_t, *pstPhyCtrlHandle_t;
 
 typedef struct
@@ -287,6 +289,10 @@ typedef struct
 #define PHY_CAD_CYCLE_NUM_SHIFT     (16)
 #define PHY_CAD_CYCLE_NUM_MASK      (0x3FFU << PHY_CAD_CYCLE_NUM_SHIFT)
 #define PHY_CAD_CYCLE_NUM_VAL(x)    (((uint32_t)(x) << PHY_CAD_CYCLE_NUM_SHIFT) & PHY_CAD_CYCLE_NUM_MASK)
+#define PHY_CAD_NO_DATA_SHIFT       (26)
+#define PHY_CAD_NO_DATA_MASK        (0x1U << PHY_CAD_NO_DATA_SHIFT)
+#define PHY_CAD_NO_DATA_VAL(x)      (((uint32_t)(x) << PHY_CAD_NO_DATA_SHIFT) & PHY_CAD_NO_DATA_MASK)
+
 
 #define PHY_RX_DET_PL_CRC_SHIFT     (0)
 #define PHY_RX_DET_PL_CRC_MASK      (0x1U << PHY_RX_DET_PL_CRC_SHIFT)
@@ -314,6 +320,30 @@ typedef struct
 #define PHY_SF_SEARCH_EN_SHIFT      (31)
 #define PHY_SF_SEARCH_EN_MASK       (0x1U << PHY_SF_SEARCH_EN_SHIFT)
 #define PHY_SF_SEARCH_EN_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH_EN_SHIFT) & PHY_SF_SEARCH_EN_MASK)
+
+#define PHY_SF_SEARCH_LEN_SHIFT      (24)
+#define PHY_SF_SEARCH_LEN_MASK       (0x3FU << PHY_SF_SEARCH_LEN_SHIFT)
+#define PHY_SF_SEARCH_LEN_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH_LEN_SHIFT) & PHY_SF_SEARCH_LEN_MASK)
+
+#define PHY_SF_SEARCH4_SHIFT      (28)
+#define PHY_SF_SEARCH4_MASK       (0xFU << PHY_SF_SEARCH4_SHIFT)
+#define PHY_SF_SEARCH4_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH4_SHIFT) & PHY_SF_SEARCH4_MASK)
+
+#define PHY_SF_SEARCH3_SHIFT      (24)
+#define PHY_SF_SEARCH3_MASK       (0xFU << PHY_SF_SEARCH3_SHIFT)
+#define PHY_SF_SEARCH3_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH3_SHIFT) & PHY_SF_SEARCH3_MASK)
+
+#define PHY_SF_SEARCH2_SHIFT      (20)
+#define PHY_SF_SEARCH2_MASK       (0xFU << PHY_SF_SEARCH2_SHIFT)
+#define PHY_SF_SEARCH2_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH2_SHIFT) & PHY_SF_SEARCH2_MASK)
+
+#define PHY_SF_SEARCH1_SHIFT      (16)
+#define PHY_SF_SEARCH1_MASK       (0xFU << PHY_SF_SEARCH1_SHIFT)
+#define PHY_SF_SEARCH1_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH1_SHIFT) & PHY_SF_SEARCH1_MASK)
+
+#define PHY_SF_SEARCH_ADDR_SHIFT      (0)
+#define PHY_SF_SEARCH_ADDR_MASK       (0xFU << PHY_SF_SEARCH_ADDR_SHIFT)
+#define PHY_SF_SEARCH_ADDR_VAL(x)     (((uint32_t)(x) << PHY_SF_SEARCH_ADDR_SHIFT) & PHY_SF_SEARCH_ADDR_MASK)
 
 
 #endif

@@ -20,6 +20,7 @@
 #include "reg_Dev.h"
 #include "slc_intc.h"
 
+#define NMI_INTERRUPT_IDX   2
 #define INTERNAL_IRQ_MAX    16
 #define PERI_IRQ_NUM_MAX    32
 #define MAX_IRQ_NUM         (INTERNAL_IRQ_MAX + PERI_IRQ_NUM_MAX)
@@ -53,4 +54,9 @@ void slc_register_irq_handler(IRQn_Type irq_num, irq_handler_t handler)
 void slc_unregister_irq_handler(IRQn_Type irq_num)
 {
     g_intc_irq_vector[irq_num + INTERNAL_IRQ_MAX] = (uint32_t)NULL;
+}
+
+void slc_register_nmi_handler(irq_handler_t handler)
+{
+    g_intc_irq_vector[NMI_INTERRUPT_IDX] = (uint32_t)handler;
 }

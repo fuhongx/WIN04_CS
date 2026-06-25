@@ -19,24 +19,6 @@
 
 uint8_t phy_test_rx_buffer[PHY_PAYLOAD_MAX_LEN+1];
 
-uint8_t sf_train_val[256] = {
-    7, 6, 5, 5, 5, 9, 5, 5, 6, 5, 8, 6, 5, 6, 8, 7,
-    6, 7, 7, 6, 9, 5, 5, 7, 5, 8, 6, 5, 6, 5, 5, 5,
-    7, 7, 5, 6, 6, 5, 6, 7, 7, 7, 5, 5, 8, 5, 6, 9,
-    6, 5, 7, 6, 6, 7, 5, 7, 5, 5, 5, 6, 7, 6, 8, 5,
-    5, 6, 5, 9, 5, 8, 12, 6, 6, 5, 5, 7, 6, 5, 5, 8,
-    9, 5, 5, 5, 5, 6, 6, 5, 5, 5, 7, 6, 5, 6, 6, 7,
-    5, 5, 5, 8, 5, 5, 7, 5, 8, 6, 6, 6, 5, 8, 6, 5,
-    5, 7, 5, 7, 6, 5, 6, 7, 5, 5, 6, 5, 5, 5, 5, 5,
-    6, 5, 8, 5, 5, 6, 7, 5, 5, 5, 6, 6, 10, 6, 5, 9,
-    6, 6, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 6, 5, 6,
-    5, 6, 5, 6, 7, 5, 7, 7, 6, 5, 5, 10, 8, 6, 5, 7,
-    10, 5, 7, 5, 10, 6, 5, 5, 5, 6, 7, 5, 5, 5, 6, 5,
-    5, 6, 5, 6, 5, 7, 5, 5, 5, 6, 7, 6, 5, 5, 8, 5,
-    5, 5, 9, 5, 5, 5, 5, 5, 6, 11, 5, 5, 5, 5, 7, 5,
-    5, 5, 7, 6, 6, 6, 11, 5, 6, 5, 9, 5, 5, 6, 5, 5,
-    5, 5, 5, 8, 5, 6, 5, 5, 6, 8, 5, 6, 5, 8, 5, 6
-};
 
 void slc_phy_display_rx_data(void)
 {
@@ -173,9 +155,9 @@ void PHY0_IRQ_Handler(void)
     }
     if (irq_flag & PHY_IRQ_SFSEARCH_FAIL_MASK) {
         g_phy_test_pkg.sfsearch_fail++;
-        slc_sf_search_training(sf_train_val[sf_fail_cnt % 256]);
+        //slc_sf_search_training(sf_train_val[sf_fail_cnt % 256]);
         // if ((sf_fail_cnt % 20) == 0)
-        //     PRINTF("PHY0 SF search fail, num=%d\r\n", g_phy_test_pkg.sfsearch_fail);
+        PRINTF("PHY0 SF search fail, num=%d\r\n", g_phy_test_pkg.sfsearch_fail);
         sf_fail_cnt++;
     }
     if (irq_flag & PHY_IRQ_SFSEARCH_DONE_MASK) {
@@ -254,7 +236,7 @@ void PHY1_IRQ_Handler(void)
         PRINTF("PHY1 CAD demod error\r\n");
     }
     if (irq_flag & PHY_IRQ_SFSEARCH_FAIL_MASK) {
-        slc_sf_search_training(sf_train_val[sf_fail_cnt % 256]);
+        //slc_sf_search_training(sf_train_val[sf_fail_cnt % 256]);
         // if ((sf_fail_cnt % 20) == 0)
         //     PRINTF("PHY1 SF search fail\r\n");
         sf_fail_cnt++;

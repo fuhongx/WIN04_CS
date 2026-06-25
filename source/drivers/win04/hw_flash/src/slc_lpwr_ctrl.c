@@ -55,10 +55,11 @@ lp_before_cb g_lp_before_cb_func __RETENTION_DATA;
 bool g_phy_power_enable __RETENTION_DATA;
 bool g_rf_power_enable __RETENTION_DATA;
 bool g_flash_force_on __RETENTION_DATA;
+uint8_t g_lp_fail_flag __RETENTION_DATA;
 
 void slc_lpwr_ctrl_init(slc_lpwr_ctrl_cfg *lp_cfg)
 {
-    if (lp_cfg == NULL || lp_cfg->lp_wakeup_src_msk == 0) {
+    if (lp_cfg == NULL ) {//|| lp_cfg->lp_wakeup_src_msk == 0
         PRINTF("lp_cfg is NULL or lp_wakeup_src_msk is 0\n");
         return;
     }
@@ -89,11 +90,80 @@ uint8_t slc_check_boot_status(void)
     uint8_t standby_wakeup = 0;
 
     standby_wakeup = slc_hal_pmu_get_boot_flag();
+
     if (standby_wakeup != 0) {
         slc_lpwr_ctrl_sleep(HAL_PMU_LP_MODE_STANDBY);
     }
 
     return standby_wakeup;
+}
+
+__RETENTION_FUNC void slc_lpwr_ctrl_sleep_fake(hal_pmu_lp_mode lp_mode)
+{
+    uint8_t boot_lpwr_mode = 0;
+    uint32_t system_old_clk = 0;
+    uint8_t flash_type_old = rom_hw_flash_get_type();
+    uint32_t i;
+#if (defined(__clang__) && defined(__ARMCOMPILER_VERSION)) || defined(__CC_ARM)
+    uint32_t *ram_code_flash_addr = (uint32_t *)&Load$$RAM_APP_CODE$$Base;
+    uint32_t *ram_code_ram_addr = (uint32_t *)&Image$$RAM_APP_CODE$$Base;
+    uint32_t *ram_data_flash_addr = (uint32_t *)&Load$$RAM_APP_DATA$$Base;
+    uint32_t *ram_data_ram_addr = (uint32_t *)&Image$$RAM_APP_DATA$$Base;
+    uint32_t ram_code_len = (uint32_t)&Image$$RAM_APP_CODE$$Length;
+    uint32_t ram_data_len = (uint32_t)&Image$$RAM_APP_DATA$$Length;
+#endif
+    if (g_lp_before_cb_func != NULL) {
+        bool bRet = g_lp_before_cb_func();
+        if (false == bRet)
+            return;
+    }
+    SLC_HAL_DISABLE_GLOBAL_IRQ();
+
+    switch (lp_mode)
+    {
+        case HAL_PMU_LP_MODE_STOP:
+        {
+            system_old_clk = SystemCoreClock;
+            slc_hal_pmu_phy_power_enable(g_phy_power_enable);
+            slc_hal_pmu_rf_lp_bypass(g_rf_power_enable);
+
+            slc_hal_pmu_set_lp_mode(HAL_PMU_LP_MODE_STOP);
+            slc_hal_sysctrl_disable_ahb_apb();
+            slc_hal_pmu_lpio_enable(false); // Different with slc_lpwr_ctrl_sleep
+            rom_hw_flash_deep_power_down();
+
+            __WFI();
+            
+            for (i = 0; i < (RAM_SIZE_MAX - RAM_RETENTION_SIZE); i+=4)
+            {
+                write32((RAM_RETENTION_MAX_ADDR + i), 0);
+            }
+
+#if (defined(__clang__) && defined(__ARMCOMPILER_VERSION)) || defined(__CC_ARM)
+            for (i = 0; i < ram_code_len; i+=4)
+                ram_code_ram_addr[i] = ram_code_flash_addr[i];
+
+            for (i = 0; i < ram_data_len; i+=4)
+                ram_data_ram_addr[i] = ram_data_flash_addr[i];
+#elif defined ( __GNUC__ )
+            gcc_restore_data();
+#endif
+
+            rom_hw_flash_set_type(flash_type_old);
+            SystemCoreClock = system_old_clk;
+
+            rom_hw_flash_release_deep_power_down();
+            SLC_HAL_ENABLE_GLOBAL_IRQ();
+            break;
+        }
+        default:
+            break;
+    }
+
+    if (NULL != g_lp_after_cb_func) {
+        g_lp_after_cb_func();
+    }
+    slc_lpwr_ctrl_sw_deinit();
 }
 
 __RETENTION_FUNC void slc_lpwr_ctrl_sleep(hal_pmu_lp_mode lp_mode)

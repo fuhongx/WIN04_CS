@@ -132,6 +132,24 @@ uint32_t slc_rf_spi_get_bits(uint16_t addr, uint8_t start_bit, uint8_t end_bit)
     return (reg >> start_bit) & mask;
 }
 
+void slc_rf_spi_reg_update(uint16_t addr, uint32_t clr_mask, uint32_t set_bits)
+{
+    uint32_t reg = slc_rf_spi_read32_cmd(addr);
+    reg = (reg & ~clr_mask) | set_bits;
+    slc_rf_spi_write32_cmd(addr, reg);
+}
+
+void slc_rf_spi_reg_clr_mask(uint16_t addr, uint32_t mask)
+{
+    slc_rf_spi_reg_update(addr, mask, 0);
+}
+
+void slc_rf_spi_reg_or_mask(uint16_t addr, uint32_t mask)
+{
+    uint32_t reg = slc_rf_spi_read32_cmd(addr);
+    slc_rf_spi_write32_cmd(addr, reg | mask);
+}
+
 void slc_phy_spi_write32_cmd(uint16_t addr, uint32_t data)
 {
     uint8_t tx_buf[8] = {0};
