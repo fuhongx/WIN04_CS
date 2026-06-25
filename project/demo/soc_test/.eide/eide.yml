@@ -55,6 +55,7 @@ virtualFolder:
         - path: ../../../source/project_source/soc_test/NVIC/slc_nvic_test.c
         - path: ../../../source/project_source/soc_test/phy/slc_phy_test.c
         - path: ../../../source/project_source/soc_test/RTC/slc_rtc_test.c
+        - path: ../../../source/project_source/soc_test/cache/slc_cache_test.c
         - path: ../../../source/project_source/soc_test/reset/slc_reset_test.c
         - path: ../../../source/project_source/soc_test/soc_test/slc_soc_test.c
         - path: ../../../source/project_source/soc_test/soc_test/slc_test_master.c
@@ -731,6 +732,7 @@ targets:
         - ../../../source/project_source/soc_test/NVIC
         - ../../../source/project_source/soc_test/phy
         - ../../../source/project_source/soc_test/RTC
+        - ../../../source/project_source/soc_test/cache
         - ../../../source/project_source/soc_test/reset
         - ../../../source/project_source/soc_test/soc_test
         - ../../../source/project_source/soc_test/systick
