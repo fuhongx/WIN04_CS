@@ -11,6 +11,13 @@ volatile slc_test_common_frame_t g_test_common_tx_data = {0};
 volatile uint8_t g_test_common_rx_data[SLC_TEST_RX_MAX_LEN] = {0};
 volatile uint8_t g_test_common_idx = 0;
 
+static slc_test_uart_rx_hook_t g_test_uart_rx_hook = NULL;
+
+void slc_test_uart_set_rx_hook(slc_test_uart_rx_hook_t hook)
+{
+    g_test_uart_rx_hook = hook;
+}
+
 int slc_test_check_frame(void)
 {
     uint32_t crc_real = 0;
@@ -44,8 +51,18 @@ void slc_test_uart_irq_handler(void)
     sta = slc_hal_uart_get_irq_status(SLC_TEST_UART_HANDLE);
 
     if (sta & (HAL_UART_STA_RX_READY | HAL_UART_STA_RX_NOT_EMPTY)) {
-        slc_hal_uart_receive_data(SLC_TEST_UART_HANDLE, (uint8_t *)g_test_common_rx_data, (uint32_t *)&rx_len, HAL_UART_TIMEOUT_US);
-        g_test_common_idx += rx_len;
+        if (g_test_uart_rx_hook != NULL) {
+            uint8_t buf[SLC_TEST_RX_MAX_LEN];
+            uint32_t hook_len = sizeof(buf);
+
+            slc_hal_uart_receive_data(SLC_TEST_UART_HANDLE, buf, &hook_len, HAL_UART_TIMEOUT_US);
+            if (hook_len > 0) {
+                g_test_uart_rx_hook(buf, hook_len);
+            }
+        } else {
+            slc_hal_uart_receive_data(SLC_TEST_UART_HANDLE, (uint8_t *)g_test_common_rx_data, (uint32_t *)&rx_len, HAL_UART_TIMEOUT_US);
+            g_test_common_idx += rx_len;
+        }
     }
 
     if (sta & (HAL_UART_STA_TX_FIFO_EMPTY | HAL_UART_STA_TX_EMPTY)) {
@@ -69,6 +86,7 @@ void slc_test_common_init(void)
     memset((void *)&g_test_common_tx_data, 0, sizeof(slc_test_common_frame_t));
     g_test_common_idx = 0;
     memset((void *)g_test_common_rx_data, 0, sizeof(g_test_common_rx_data));
+    g_test_uart_rx_hook = NULL;
 
     slc_hal_gpio_set_iomux(SLC_TEST_UART_TX_PIN, SLC_TEST_UART_IOMUX);
     slc_hal_gpio_set_iomux(SLC_TEST_UART_RX_PIN, SLC_TEST_UART_IOMUX);

@@ -42,6 +42,7 @@ static const soctest_case_t slc_systick_test_case[] = {
     {"Systick Accuracy Test",   slc_systick_accuracy_test,  SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"Systick Interrupt Test",  slc_systick_intc_test,      SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"Systick Maxtime Test",    slc_systick_maxtime_test,   AUTO_TEST | PRESSURE_TEST},
+    {"NOP delay RC50M Test",    slc_nop_delay_rc50m_test,   AUTO_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t slc_mem_test_case[] = {
@@ -92,6 +93,7 @@ static const soctest_case_t slc_iic_test_case[] = {
     {"I2C master speed Test",   slc_iic_master_speed_test,      SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"I2C master addrbits Test", slc_iic_master_addrbits_test,  SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"I2C slv addrbits Test",   slc_iic_slv_addrbits_test,      SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
+    {"I2C iomux map Test",      slc_iic_iomux_map_test,         MANUAL_TEST},
 };
 
 static const soctest_case_t slc_spi_test_case[] = {
@@ -116,6 +118,7 @@ static const soctest_case_t slc_crc_test_case[] = {
     {"CRC32 Accuracy Test",     slc_crc32_accuracy_test,    SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"CRC Performance Test",    slc_crc_performance_test,   AUTO_TEST | PRESSURE_TEST},
     {"CRC Random test",         slc_crc_random_test,        MANUAL_TEST},
+    {"CRC output reverse Test", slc_crc_output_reverse_test, AUTO_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t slc_aes_test_case[] = {
@@ -123,6 +126,7 @@ static const soctest_case_t slc_aes_test_case[] = {
     {"AES128 Polling Test",     slc_aes128_polling_test,     AUTO_TEST | PRESSURE_TEST},
     {"AES128 Performance Test", slc_aes128_performance_test, AUTO_TEST | PRESSURE_TEST},
     {"AES128 Random Test",      slc_aes128_random_test,      MANUAL_TEST},
+    {"AES128 Interrupt Test",   slc_aes128_interrupt_test,   AUTO_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t  slc_flash_test_case[] = {
@@ -134,6 +138,12 @@ static const soctest_case_t  slc_flash_test_case[] = {
     {"Flash Read Data Capture Test",    slc_flash_read_data_capture_test,   SMOKE_TEST | AUTO_TEST},
     {"Flash QSPI Delay Test",           slc_flash_qspi_delay_test,          SMOKE_TEST | AUTO_TEST},
     {"Flash Security Register Test",    slc_flash_security_register_test,   SMOKE_TEST | AUTO_TEST},
+    {"Flash fuse Test",               slc_flash_fuse_test,                MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash fuse SEC_MEM0 write Test", slc_flash_fuse_sec_mem0_write_test, MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash fuse lock verify Test",   slc_flash_fuse_lock_verify_test,    MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash fuse lock probe Test",    slc_flash_fuse_lock_probe_test,     MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash fuse lock probe GT Test", slc_flash_fuse_lock_probe_gt_test,  MANUAL_TEST | EXCEPTION_TEST},
+    {"Flash fuse lock probe GT blow Test", slc_flash_fuse_lock_probe_gt_blow_test, MANUAL_TEST | EXCEPTION_TEST},
     {"Flash write protect Test",        slc_flash_protect_test,             MANUAL_TEST | EXCEPTION_TEST},
     {"Flash Endurance Test",            slc_flash_endurance_test,           AUTO_TEST | PRESSURE_TEST},
     {"Flash Data encrypt Test",         slc_flash_encrypt_test,             MANUAL_TEST},
@@ -166,6 +176,8 @@ static const soctest_case_t slc_pwm_test_case[] = {
     {"PWM Accuracy Test",       slc_pwm_timer_accuracy_test, SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"PWM Pause Test",          slc_pwm_timer_pause_test,    SMOKE_TEST | AUTO_TEST | PRESSURE_TEST},
     {"PWM output Test",         slc_pwm_timer_output_test,   MANUAL_TEST | EXCEPTION_TEST},
+    {"PWM duty Test",           slc_pwm_timer_duty_test,     MANUAL_TEST},
+    {"PWM polar Test",          slc_pwm_timer_polar_test,    MANUAL_TEST},
 };
 
 static const soctest_case_t slc_lowpower_test_case[] = {
@@ -199,8 +211,11 @@ static const soctest_case_t slc_uart_test_case[] = {
     {"UART databits Test",  slc_uart_databits_test, MANUAL_TEST | EXCEPTION_TEST},
     {"UART complex test",   slc_uart_complex_test,  AUTO_TEST | PRESSURE_TEST},
     {"UART rx_fifo Test",   slc_uart_rx_fifo_test,  AUTO_TEST | PRESSURE_TEST},
+    {"UART tx_fifo Test",   slc_uart_tx_fifo_test,  AUTO_TEST | PRESSURE_TEST},
     {"UART rts_cts Test",   slc_uart_rts_cts_test,  MANUAL_TEST | EXCEPTION_TEST},
     {"UART rs485 Test",     slc_uart_rs485_test,    MANUAL_TEST | EXCEPTION_TEST},
+    {"UART single board fifo Test", slc_uart_single_board_fifo_test, MANUAL_TEST},
+    {"UART irq status Test", slc_uart_irq_status_test, MANUAL_TEST},
 };
 
 static const soctest_case_t slc_lpuart_test_case[] = {
@@ -208,6 +223,8 @@ static const soctest_case_t slc_lpuart_test_case[] = {
     {"LPUART stopbit Test",   slc_lpuart_stopbit_test,  AUTO_TEST | PRESSURE_TEST},
     {"LPUART parity Test",    slc_lpuart_parity_test,   AUTO_TEST | PRESSURE_TEST},
     {"LPUART complex test",   slc_lpuart_complex_test,  AUTO_TEST | PRESSURE_TEST},
+    {"LPUART loopback frame Test", slc_lpuart_single_board_frame_test, MANUAL_TEST},
+    {"LPUART RX FIFO thld Test", slc_lpuart_rx_fifo_thld_test, AUTO_TEST | PRESSURE_TEST},
 };
 
 static const soctest_case_t slc_gpio_test_case[] = {

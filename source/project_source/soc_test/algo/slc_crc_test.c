@@ -98,6 +98,7 @@ int slc_crc24_accuracy_test(void)
         dump_u8buf("Data:", crc_data, sizeof(crc_data));
         return -1;
     }
+    
     return 0;
 }
 
@@ -331,4 +332,205 @@ err:
 
     free(data);
     return ret;
+}
+
+static uint8_t crc_test_reverse_bits8(uint8_t val)
+{
+    val = (uint8_t)(((val & 0xAAU) >> 1) | ((val & 0x55U) << 1));
+    val = (uint8_t)(((val & 0xCCU) >> 2) | ((val & 0x33U) << 2));
+    val = (uint8_t)(((val & 0xF0U) >> 4) | ((val & 0x0FU) << 4));
+    return val;
+}
+
+static uint16_t crc_test_byte_reverse16(uint16_t val)
+{
+    return (uint16_t)(((val & 0xFFU) << 8) | (val >> 8));
+}
+
+static uint32_t crc_test_byte_reverse24(uint32_t val)
+{
+    val &= 0xFFFFFFU;
+    return ((val & 0xFFU) << 16) | (val & 0xFF00U) | ((val >> 16) & 0xFFU);
+}
+
+static uint32_t crc_test_byte_reverse32(uint32_t val)
+{
+    return ((val & 0xFFU) << 24) | ((val & 0xFF00U) << 8) |
+           ((val & 0xFF0000U) >> 8) | ((val >> 24) & 0xFFU);
+}
+
+static uint16_t crc_test_bit_reverse16(uint16_t val)
+{
+    return (uint16_t)(((uint16_t)crc_test_reverse_bits8((uint8_t)(val >> 8)) << 8) |
+                      crc_test_reverse_bits8((uint8_t)(val & 0xFFU)));
+}
+
+static uint32_t crc_test_bit_reverse24(uint32_t val)
+{
+    val &= 0xFFFFFFU;
+    return ((uint32_t)crc_test_reverse_bits8((uint8_t)(val >> 16)) << 16) |
+           ((uint32_t)crc_test_reverse_bits8((uint8_t)((val >> 8) & 0xFFU)) << 8) |
+           crc_test_reverse_bits8((uint8_t)(val & 0xFFU));
+}
+
+static uint32_t crc_test_bit_reverse32(uint32_t val)
+{
+    return ((uint32_t)crc_test_reverse_bits8((uint8_t)(val >> 24)) << 24) |
+           ((uint32_t)crc_test_reverse_bits8((uint8_t)((val >> 16) & 0xFFU)) << 16) |
+           ((uint32_t)crc_test_reverse_bits8((uint8_t)((val >> 8) & 0xFFU)) << 8) |
+           crc_test_reverse_bits8((uint8_t)(val & 0xFFU));
+}
+
+static uint32_t crc_test_apply_output_mode(uint32_t sw_norm, hal_crc_out_e mode, hal_crc_type_e type)
+{
+    switch (mode) {
+    case HAL_CRC_OUTPUT_BYTE_REVERSE:
+        if (type == HAL_CRC16) {
+            return crc_test_byte_reverse16((uint16_t)sw_norm);
+        }
+        if (type == HAL_CRC24) {
+            return crc_test_byte_reverse24(sw_norm);
+        }
+        return crc_test_byte_reverse32(sw_norm);
+
+    case HAL_CRC_OUTPUT_BIT_REVERSE:
+        if (type == HAL_CRC16) {
+            return crc_test_bit_reverse16((uint16_t)sw_norm);
+        }
+        if (type == HAL_CRC24) {
+            return crc_test_bit_reverse24(sw_norm);
+        }
+        return crc_test_bit_reverse32(sw_norm);
+
+    default:
+        return sw_norm;
+    }
+}
+
+static int crc_test_output_mode_once(hal_crc_type_e crc_type, hal_crc_out_e output_mode,
+                                     uint8_t *data, uint32_t len, crc_config_t *crc_cfg,
+                                     hal_crc_init_t *crc_init)
+{
+    uint32_t hw_crc = 0;
+    uint32_t sw_norm = 0;
+    uint32_t sw_expect = 0;
+    uint32_t mask = 0xFFFFFFFFU;
+
+    crc_cfg->refout = 0;
+    crc_init->output_mode = output_mode;
+
+    switch (crc_type) {
+    case HAL_CRC16:
+        mask = 0xFFFFU;
+        crc_init->crc_type = HAL_CRC16;
+        crc_init->init_val = crc_cfg->init & mask;
+        crc_init->xor_val = crc_cfg->xorout & mask;
+        crc16_init_table(crc_cfg);
+        sw_norm = crc16_compute(data, len, crc_cfg);
+        break;
+
+    case HAL_CRC24:
+        mask = 0xFFFFFFU;
+        crc_init->crc_type = HAL_CRC24;
+        crc_init->init_val = crc_cfg->init & mask;
+        crc_init->xor_val = crc_cfg->xorout & mask;
+        crc24_init_table(crc_cfg);
+        sw_norm = crc24_compute(data, len, crc_cfg);
+        break;
+
+    case HAL_CRC32:
+        crc_init->crc_type = HAL_CRC32;
+        crc_init->init_val = crc_cfg->init;
+        crc_init->xor_val = crc_cfg->xorout;
+        crc32_init_table(crc_cfg);
+        sw_norm = crc32_compute(data, len, crc_cfg);
+        break;
+
+    default:
+        return -1;
+    }
+
+    sw_expect = crc_test_apply_output_mode(sw_norm, output_mode, crc_type) & mask;
+
+    slc_hal_crc_init(crc_init);
+    hw_crc = slc_hal_crc_calculate(crc_type, data, len) & mask;
+
+    if (hw_crc != sw_expect) {
+        PRINTF("CRC output mode test fail, type=%u mode=%u, hw=0x%X sw_norm=0x%X expect=0x%X\n",
+               crc_type, output_mode, hw_crc, sw_norm & mask, sw_expect);
+        dump_u8buf("CRC data", data, len);
+        return -1;
+    }
+
+    PRINTF("CRC output mode pass, type=%u mode=%u, norm=0x%X result=0x%X\n",
+           crc_type, output_mode, sw_norm & mask, hw_crc);
+    return 0;
+}
+
+int slc_crc_output_reverse_test(void)
+{
+    uint8_t crc_data[16] = {0};
+    hal_crc_init_t crc_init = {0};
+    crc_config_t crc_cfg = {0};
+    hal_crc_out_e output_modes[] = {HAL_CRC_OUTPUT_BYTE_REVERSE, HAL_CRC_OUTPUT_BIT_REVERSE};
+    int ret = 0;
+    hal_rng_init_t rng_init = {0};
+
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_RAND, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_RAND);
+    rng_init.seed = 0xA4567891;
+    slc_hal_rng_init(&rng_init);
+    ret = slc_hal_get_random_u8(crc_data, sizeof(crc_data), 1000);
+    if (ret != 0) {
+        PRINTF("get random u8 error, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_CRC16, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_CRC16);
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_CRC24, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_CRC24);
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_CRC32, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_CRC32);
+
+    crc_init.input_reverse = true;
+    crc_init.output_xor = true;
+
+    crc_cfg.refin = 1;
+    crc_cfg.refout = 0;
+    crc_cfg.poly = CRC16_POLY;
+    crc_cfg.init = 0x0000;
+    crc_cfg.xorout = 0x0000;
+    for (int i = 0; i < (int)(sizeof(output_modes) / sizeof(output_modes[0])); i++) {
+        ret = crc_test_output_mode_once(HAL_CRC16, output_modes[i], crc_data,
+                                        sizeof(crc_data), &crc_cfg, &crc_init);
+        if (ret != 0) {
+            return -1;
+        }
+    }
+
+    crc_cfg.poly = CRC24_POLY;
+    crc_cfg.init = 0xFFFFFF;
+    crc_cfg.xorout = 0xFFFFFF;
+    for (int i = 0; i < (int)(sizeof(output_modes) / sizeof(output_modes[0])); i++) {
+        ret = crc_test_output_mode_once(HAL_CRC24, output_modes[i], crc_data,
+                                        sizeof(crc_data), &crc_cfg, &crc_init);
+        if (ret != 0) {
+            return -1;
+        }
+    }
+
+    crc_cfg.poly = CRC32_POLY;
+    crc_cfg.init = 0xFFFFFFFF;
+    crc_cfg.xorout = 0xFFFFFFFF;
+    for (int i = 0; i < (int)(sizeof(output_modes) / sizeof(output_modes[0])); i++) {
+        ret = crc_test_output_mode_once(HAL_CRC32, output_modes[i], crc_data,
+                                        sizeof(crc_data), &crc_cfg, &crc_init);
+        if (ret != 0) {
+            return -1;
+        }
+    }
+
+    PRINTF("CRC output reverse test passed.\n");
+    return 0;
 }

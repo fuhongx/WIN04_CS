@@ -30,6 +30,7 @@
 #define SLC_TEST_RX_MAX_LEN         (32U)
 
 #define SLC_TEST_UART_RX_FIFO_THLD  (16U)
+#define SLC_TEST_UART_TX_FIFO_DEPTH (16U)
 
 #define SLC_TEST_TIMEOUT_MS         (5000U)
 
@@ -54,6 +55,7 @@ typedef enum
     SLC_TEST_CMD_UART_CFG = 0,  // UART配置
     SLC_TEST_CMD_UART_TRX,      // UART收发测试
     SLC_TEST_CMD_UART_RX_FIFO,  // UART RX FIFO阈值测试
+    SLC_TEST_CMD_UART_TX_FIFO,  // UART TX FIFO阈值测试
 
     // LPUART相关测试命令
     SLC_TEST_CMD_LPUART_CFG,    // LPUART配置
@@ -71,8 +73,20 @@ typedef enum
     SLC_TEST_CMD_SPI_CFG,       // SPI配置
     SLC_TEST_CMD_SPI_S_TRX,     // SPI SLAVE收发测试
 
+    // LPUART RX FIFO 水线：slave 按指定长度通过 LPUART 发送测试数据
+    SLC_TEST_CMD_LPUART_RX_FIFO,
+
     SLC_TEST_CMD_MAX,
 } slc_test_cmd_e;
+
+typedef enum
+{
+    SLC_UART_TX_FIFO_SLAVE_RX_PREP = 0,       // Slave 清空接收缓冲，IRQ 捕获测试数据
+    SLC_UART_TX_FIFO_SLAVE_RX_GET,            // Slave 读取并校验测试数据
+    SLC_UART_TX_FIFO_SLAVE_TX_SEND,         // Slave 向 TX FIFO 写入测试数据
+    SLC_UART_TX_FIFO_SLAVE_TX_FILL_CLEAR,   // Slave 写满 TX FIFO 后清理
+    SLC_UART_TX_FIFO_SLAVE_RX_PREP_POLL,    // Slave 清空 RX，保持协议接收（用于清 FIFO 后检查）
+} slc_uart_tx_fifo_phase_e;
 
 typedef struct __attribute__((packed))
 {
@@ -88,8 +102,11 @@ extern volatile slc_test_common_frame_t g_test_common_tx_data;
 extern volatile uint8_t g_test_common_rx_data[SLC_TEST_RX_MAX_LEN];
 extern volatile uint8_t g_test_common_idx;
 
+typedef void (*slc_test_uart_rx_hook_t)(const uint8_t *data, uint32_t len);
+
 int slc_test_check_frame(void);
 void slc_test_common_init(void);
 void slc_test_common_deinit(void);
+void slc_test_uart_set_rx_hook(slc_test_uart_rx_hook_t hook);
 
 #endif  // __SLC_TEST_MASTER_SLAVE_COMMON_H__

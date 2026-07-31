@@ -15,7 +15,133 @@
 #include "slc_flash_test.h"
 #include "slc_hal_rng.h"
 #include "slc_hal_delay.h"
-#include "hw_sysctrl.h"
+#include "gt25q20d.h"
+#include "p25q21l.h"
+#include "win04_mem_cfg.h"
+
+/*
+ * GT25Q40 为 512KB，WIN04 仅使用前 256KB (0x08000000~0x0803FFFF)。
+ * SR1=0x44 保护 512KB 整片最后 4KB (0x0807F000)，超出可用范围，不适用。
+ * SR1=0x64 (SEC+TB+BP0, CMP=0) 保护最低 4KB (0x08000000~0x08000FFF)，Table1。
+ */
+#define FLASH_PROTECT_SR1_CFG       (EN_FLASH_STA1_BP0 | EN_FLASH_STA1_SEC | EN_FLASH_STA1_TB)
+#define FLASH_USABLE_MAX_ADDR       (FLASH_BASE_ADDR + FLASH_SIZE_MAX)
+#define FLASH_PROTECTED_TEST_ADDR   (FLASH_BASE_ADDR + 0x800U)
+#define FLASH_UNPROTECTED_TEST_ADDR (FLASH_USERER_DATA_ADDR)
+
+static __RAM_FUNC int flash_protect_wait_ready(void)
+{
+    uint8_t sta = 0;
+    uint32_t retry = 100000U;
+
+    while (retry--) {
+        rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
+        if (!(sta & EN_FLASH_STA1_BUSY)) {
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+static __RAM_FUNC int flash_protect_restore_sr(uint8_t sr1, uint8_t sr2)
+{
+    uint8_t sta = 0;
+
+    if (rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG2, sr2) != EN_ERROR_STA_OK) {
+        return -1;
+    }
+    if (flash_protect_wait_ready() != 0) {
+        return -1;
+    }
+
+    if (rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, sr1) != EN_ERROR_STA_OK) {
+        return -1;
+    }
+    if (flash_protect_wait_ready() != 0) {
+        return -1;
+    }
+
+    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
+    PRINTF("Flash status register 1 restored: 0x%X\n", sta & (uint8_t) ~(EN_FLASH_STA1_WEL | EN_FLASH_STA1_BUSY));
+
+    return 0;
+}
+
+static __RAM_FUNC int flash_protect_clear_bp(uint8_t sr2_keep)
+{
+    uint8_t sr2 = sr2_keep & (uint8_t) ~EN_FLASH_STA2_CMP;
+
+    return flash_protect_restore_sr(0, sr2);
+}
+
+static __RAM_FUNC int flash_protect_prog_probe(uint32_t addr, int expect_program_ok, int do_erase)
+{
+    uint8_t pattern[4] = {0x5A, 0xA5, 0x55, 0xAA};
+    uint8_t before[4] = {0};
+    uint8_t after[4] = {0};
+    uint32_t sector = addr & ~(UNIT_SECTOR - 1U);
+    int ret;
+
+    PRINTF("flash protect test: probe 0x%08X, expect %s%s\n",
+           addr, expect_program_ok ? "program ok" : "protected",
+           do_erase ? " (erase+program)" : " (program only)");
+
+    slc_hal_sysctrl_cache_mode_set(HAL_CACHE_FLUSH);
+    rom_hw_flash_read_data(addr, before, sizeof(before));
+
+    if (do_erase) {
+        rom_hw_flash_erase_by_length(sector, UNIT_SECTOR);
+        if (flash_protect_wait_ready() != 0) {
+            PRINTF("flash protect test: erase timeout, addr=0x%08X\n", addr);
+            return -1;
+        }
+
+        slc_hal_sysctrl_cache_mode_set(HAL_CACHE_FLUSH);
+        rom_hw_flash_read_data(addr, after, sizeof(after));
+        if (!expect_program_ok && memcmp(after, before, sizeof(before)) != 0) {
+            PRINTF("flash protect test: addr 0x%08X expect protected, but erase changed data\n", addr);
+            dump_u8buf("before", before, sizeof(before));
+            dump_u8buf("after erase", after, sizeof(after));
+            return -1;
+        }
+    }
+
+    rom_hw_flash_write_data(addr, pattern, sizeof(pattern));
+    if (flash_protect_wait_ready() != 0) {
+        PRINTF("flash protect test: program timeout, addr=0x%08X\n", addr);
+        return -1;
+    }
+
+    slc_hal_sysctrl_cache_mode_set(HAL_CACHE_FLUSH);
+    rom_hw_flash_read_data(addr, after, sizeof(after));
+
+    if (expect_program_ok) {
+        if (memcmp(after, pattern, sizeof(pattern)) != 0) {
+            PRINTF("flash protect test: addr 0x%08X expect program ok, rd mismatch\n", addr);
+            dump_u8buf("expect", pattern, sizeof(pattern));
+            dump_u8buf("read", after, sizeof(after));
+            ret = -1;
+        } else {
+            PRINTF("flash protect test: addr 0x%08X program ok\n", addr);
+            ret = 0;
+        }
+    } else if (memcmp(after, pattern, sizeof(pattern)) == 0) {
+        PRINTF("flash protect test: addr 0x%08X expect protected, but programmed\n", addr);
+        ret = -1;
+    } else if (memcmp(after, before, sizeof(before)) != 0) {
+        PRINTF("flash protect test: addr 0x%08X expect protected, but content changed\n", addr);
+        dump_u8buf("before", before, sizeof(before));
+        dump_u8buf("after", after, sizeof(after));
+        ret = -1;
+    } else {
+        PRINTF("flash protect test: addr 0x%08X protected (%s blocked)\n", addr,
+               do_erase ? "erase/program" : "program");
+        ret = 0;
+    }
+
+    return ret;
+}
 
 int slc_flash_read_id_test(void)
 {
@@ -268,56 +394,758 @@ __RAM_FUNC int slc_flash_security_register_test(void)
     return 0;
 }
 
+/* SEC_MEM0 = fw_security_info_t: cap[32] + sta[32] + key[192] */
+/* TODO(PY): 写状态寄存器后续改为 rom_hw_flash_write_status_reg1(u16Sta)，
+ * 一次性写入 SR1+SR2（低字节=SR1，高字节=SR2）；GT 仍用 rom_hw_flash_write_status_reg。
+ * 涉及 flash_fuse_lock_sec_mem0_lb、flash_protect_restore_sr、flash protect test 等。
+ * 本次先不改。 */
+#define FLASH_OTP_FUSE_STATUS_OFFSET        (33U)
+#define FLASH_OTP_FUSE_STATUS_FUSED        (1U)
+#define FLASH_SEC_MEM0_SNAPSHOT_SIZE       (256U)
+#define FLASH_SEC_MEM0_CAP_FLAG_END        (2U)    /* cap.fw_enc/otp_fuse_capable @0~1 */
+#define FLASH_SEC_MEM0_STA_OFF             (32U)
+#define FLASH_SEC_MEM0_STA_FLAG_END        (38U)   /* sta fields @32~37 */
+#define FLASH_SEC_MEM0_KEY_OFF             (64U)
+#define FLASH_SEC_MEM0_KEY_PUBKEY_END      (128U)  /* key.pub_key @64~127 */
+
+static const uint16_t flash_otp_tamper_probe_offsets[] = {
+    0,   /* cap */
+    32,  /* sta.fw_enc_status */
+    34,  /* sta.hash_type (skip fuse byte @33) */
+    64,  /* key start */
+    128, /* key mid */
+};
+
+static int flash_fuse_read_sec_mem0(uint8_t *buf, uint16_t len)
+{
+    EN_ERR_STA_T ret;
+
+    ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, buf, len);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read SEC_MEM0 failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int flash_fuse_is_py_flash(void)
+{
+    return rom_hw_flash_get_type() == EN_FLASH_TYPE_PY;
+}
+
+static uint8_t flash_fuse_sec_mem0_lb_mask(void)
+{
+    return flash_fuse_is_py_flash() ? PY_FLASH_STA_LB1 : (uint8_t)EN_FLASH_STA2_LB;
+}
+
+static int flash_fuse_sec_mem0_lb_locked(uint8_t sr_high)
+{
+    return (sr_high & flash_fuse_sec_mem0_lb_mask()) != 0U;
+}
+
+/* Scheme B: blow Flash LB to permanently lock SEC_MEM0 (Security Register #1). */
+static int flash_fuse_lock_sec_mem0_lb(void)
+{
+    uint8_t sr_high = 0;
+    uint8_t sr_high_after = 0;
+    uint8_t lb_mask = flash_fuse_sec_mem0_lb_mask();
+    EN_ERR_STA_T ret;
+
+    ret = rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sr_high);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read status high byte failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    if (flash_fuse_sec_mem0_lb_locked(sr_high)) {
+        PRINTF("flash fuse: SEC_MEM0 already locked, SR-high=0x%02X\n", sr_high);
+        return 0;
+    }
+
+    sr_high |= lb_mask;
+    PRINTF("flash fuse: lock SEC_MEM0 via LB, target SR-high=0x%02X (irreversible)\n", sr_high);
+
+    ret = rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG2, sr_high);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("write status LB failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    ret = rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sr_high_after);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("readback status high byte failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    if (!flash_fuse_sec_mem0_lb_locked(sr_high_after)) {
+        PRINTF("flash fuse fail: SEC_MEM0 LB not set, SR-high=0x%02X\n", sr_high_after);
+        return -1;
+    }
+
+    PRINTF("flash fuse: SEC_MEM0 LB locked, SR-high=0x%02X\n", sr_high_after);
+    return 0;
+}
+
+/* 1) 尝试写入 OTP 区，预期内容不被篡改 */
+static int flash_fuse_verify_otp_write_protected(const uint8_t *snap)
+{
+    uint8_t tamper = 0;
+    uint8_t readback[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    EN_ERR_STA_T ret;
+    uint32_t i;
+
+    PRINTF("fuse lock test 1: tamper OTP region by program write\n");
+
+    for (i = 0; i < (sizeof(flash_otp_tamper_probe_offsets) / sizeof(flash_otp_tamper_probe_offsets[0])); i++) {
+        uint16_t offset = flash_otp_tamper_probe_offsets[i];
+
+        tamper = snap[offset] ^ 0xA5U;
+        if (tamper == snap[offset]) {
+            tamper = 0x00U;
+        }
+
+        ret = rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0, offset, &tamper, 1);
+        PRINTF("  write probe offset %u with 0x%02X, ret=0x%X\n", offset, tamper, ret);
+    }
+
+    if (flash_fuse_read_sec_mem0(readback, sizeof(readback)) != 0) {
+        return -1;
+    }
+
+    if (memcmp(snap, readback, sizeof(readback)) != 0) {
+        PRINTF("fuse lock test 1 fail: OTP region changed after tamper write\n");
+        dump_u8buf("snap", (uint8_t *)snap, sizeof(readback));
+        dump_u8buf("readback", readback, sizeof(readback));
+        return -1;
+    }
+
+    PRINTF("fuse lock test 1 pass: OTP region not tampered\n");
+    return 0;
+}
+
+/* 2) 尝试擦除 OTP 区，预期擦不掉 */
+/* 仅 resv 区可写测试图案；cap/sta/key 设计标志位见 bootloader.h fw_security_info_t */
+static int flash_fuse_sec_mem0_is_test_byte(uint16_t offset)
+{
+    if ((offset >= FLASH_SEC_MEM0_CAP_FLAG_END) && (offset < FLASH_SEC_MEM0_STA_OFF)) {
+        return 1;
+    }
+
+    if ((offset >= FLASH_SEC_MEM0_STA_FLAG_END) && (offset < FLASH_SEC_MEM0_KEY_OFF)) {
+        return 1;
+    }
+
+    if (offset >= FLASH_SEC_MEM0_KEY_PUBKEY_END) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static uint8_t flash_fuse_pattern_byte(uint16_t offset)
+{
+    uint8_t val = 0x5AU ^ (uint8_t)(offset + 1U);
+
+    if (val == 0xFFU) {
+        val = 0x5AU;
+    }
+
+    return val;
+}
+
+static void flash_fuse_dump_sr_high(uint8_t sr_high)
+{
+    if (flash_fuse_is_py_flash()) {
+        PRINTF("  PY SR-high(35H)=0x%02X: QE=%u LB1=%u LB2=%u LB3=%u (SEC_MEM0 need LB1=1)\n",
+               sr_high,
+               (sr_high & PY_FLASH_STA_QE) ? 1U : 0U,
+               (sr_high & PY_FLASH_STA_LB1) ? 1U : 0U,
+               (sr_high & PY_FLASH_STA_LB2) ? 1U : 0U,
+               (sr_high & PY_FLASH_STA_LB3) ? 1U : 0U);
+    } else {
+        PRINTF("  GT SR2=0x%02X: SRP1=%u QE=%u LB=%u CMP=%u SUS=%u (SEC_MEM0 need LB=1)\n",
+               sr_high,
+               (sr_high & EN_FLASH_STA2_SRP1) ? 1U : 0U,
+               (sr_high & EN_FLASH_STA2_QE) ? 1U : 0U,
+               (sr_high & EN_FLASH_STA2_LB) ? 1U : 0U,
+               (sr_high & EN_FLASH_STA2_CMP) ? 1U : 0U,
+               (sr_high & EN_FLASH_STA2_SUS) ? 1U : 0U);
+    }
+}
+
 /**
- * @brief Flash写保护功能测试：先读取并保存状态寄存器原始值，然后写入0x44
- *        设置块保护，验证受保护地址区域的写入行为，最后恢复原始写保护状态。
- *        注意：该测试会尝试写BOOT2_CODE_ADDR等关键地址区域，需人工判定结果。
- * @return 0: 测试完成
+ * @brief 熔丝前准备：不擦除 SEC_MEM0，仅向 resv 区写测试图案，保留现有标志/控制位。
+ *        用法：本用例 -> 手动熔丝 -> Flash fuse lock probe Test
+ */
+int slc_flash_fuse_sec_mem0_write_test(void)
+{
+    uint8_t sr_high = 0;
+    uint8_t baseline[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    uint8_t expected[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    uint8_t readback[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    EN_ERR_STA_T ret;
+    uint16_t offset;
+    int pattern_count = 0;
+
+    PRINTF("flash fuse sec mem0 write test: write resv only, no erase, keep flag bytes\n");
+    PRINTF("flash type: %s\n", flash_fuse_is_py_flash() ? "PY" : "GT");
+
+    ret = rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sr_high);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read SR-high failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    flash_fuse_dump_sr_high(sr_high);
+
+    if (flash_fuse_sec_mem0_lb_locked(sr_high)) {
+        PRINTF("flash fuse sec mem0 write test fail: SEC_MEM0 already locked\n");
+        return -1;
+    }
+
+    if (flash_fuse_read_sec_mem0(baseline, sizeof(baseline)) != 0) {
+        return -1;
+    }
+
+    memcpy(expected, baseline, sizeof(expected));
+
+    for (offset = 0; offset < FLASH_SEC_MEM0_SNAPSHOT_SIZE; offset++) {
+        uint8_t pattern;
+
+        if (!flash_fuse_sec_mem0_is_test_byte(offset)) {
+            continue;
+        }
+
+        pattern = flash_fuse_pattern_byte(offset);
+        ret = rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0, offset, &pattern, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("write offset %u with 0x%02X failed, ret=0x%X\n", offset, pattern, ret);
+            return -1;
+        }
+
+        expected[offset] &= pattern;
+        pattern_count++;
+    }
+
+    if (pattern_count == 0) {
+        PRINTF("flash fuse sec mem0 write test fail: no test pattern region\n");
+        return -1;
+    }
+
+    if (flash_fuse_read_sec_mem0(readback, sizeof(readback)) != 0) {
+        return -1;
+    }
+
+    for (offset = 0; offset < FLASH_SEC_MEM0_SNAPSHOT_SIZE; offset++) {
+        if (readback[offset] != expected[offset]) {
+            PRINTF("flash fuse sec mem0 write test fail: offset %u expect 0x%02X got 0x%02X\n",
+                   offset, expected[offset], readback[offset]);
+            return -1;
+        }
+    }
+
+    PRINTF("flash fuse sec mem0 write test pass: %d resv bytes written\n", pattern_count);
+    PRINTF("write: cap.resv@2~31, sta.resv@38~63, key.resv@128~255\n");
+    PRINTF("keep: cap@0~1, sta@32~37, key.pub_key@64~127 (unchanged)\n");
+    PRINTF("next: manual fuse, then run Flash fuse lock probe Test\n");
+    return 0;
+}
+
+static int flash_fuse_verify_otp_erase_protected(const uint8_t *snap)
+{
+    uint8_t readback[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    EN_ERR_STA_T ret;
+
+    PRINTF("fuse lock test 2: erase OTP region\n");
+
+    ret = rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM0, FLASH_ERASE_SECURITY_MEM_KEY);
+    PRINTF("  erase SEC_MEM0 ret=0x%X\n", ret);
+
+    if (flash_fuse_read_sec_mem0(readback, sizeof(readback)) != 0) {
+        return -1;
+    }
+
+    if (memcmp(snap, readback, sizeof(readback)) != 0) {
+        PRINTF("fuse lock test 2 fail: OTP region changed after erase attempt\n");
+        dump_u8buf("snap", (uint8_t *)snap, sizeof(readback));
+        dump_u8buf("readback", readback, sizeof(readback));
+        return -1;
+    }
+
+    PRINTF("fuse lock test 2 pass: OTP region not erased\n");
+    return 0;
+}
+
+/* 3) 尝试改写指定 OTP 字节，预期读回与快照一致 */
+static int flash_fuse_verify_otp_byte_locked(const uint8_t *snap, uint16_t offset)
+{
+    static const uint8_t try_vals[] = {0x00U, 0xFFU, 0xFEU, 0x01U, 0x5AU};
+    uint8_t readback = 0;
+    EN_ERR_STA_T ret;
+    uint32_t i;
+
+    PRINTF("fuse lock test 3: tamper OTP byte@%u (snap=0x%02X)\n", offset, snap[offset]);
+
+    for (i = 0; i < (sizeof(try_vals) / sizeof(try_vals[0])); i++) {
+        ret = rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0,
+                                              offset,
+                                              (uint8_t *)&try_vals[i], 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("  write byte@%u with 0x%02X rejected, ret=0x%X\n",
+                   offset, try_vals[i], ret);
+        }
+
+        ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                             offset,
+                                             &readback, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("  readback byte@%u failed, ret=0x%X\n", offset, ret);
+            return -1;
+        }
+
+        PRINTF("  write byte@%u with 0x%02X, readback 0x%02X\n",
+               offset, try_vals[i], readback);
+        if (readback != snap[offset]) {
+            PRINTF("fuse lock test 3 fail: byte@%u changed 0x%02X->0x%02X\n",
+                   offset, snap[offset], readback);
+            return -1;
+        }
+    }
+
+    PRINTF("fuse lock test 3 pass: OTP byte@%u unchanged\n", offset);
+    return 0;
+}
+
+static void flash_fuse_print_status_info(void)
+{
+    uint8_t fuse_sta = 0;
+    uint8_t sr_high = 0;
+
+    if (rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                       FLASH_OTP_FUSE_STATUS_OFFSET,
+                                       &fuse_sta, 1) != EN_ERROR_STA_OK) {
+        PRINTF("info: read otp_fuse_status failed\n");
+        return;
+    }
+
+    if (rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sr_high) != EN_ERROR_STA_OK) {
+        PRINTF("info: read status high byte failed\n");
+        return;
+    }
+
+    PRINTF("info: otp_fuse_status=0x%02X, SR-high=0x%02X (reference only)\n", fuse_sta, sr_high);
+    flash_fuse_dump_sr_high(sr_high);
+}
+
+static int flash_fuse_run_lock_probe(const uint8_t *snap, int probe_fuse_byte)
+{
+    if (flash_fuse_verify_otp_write_protected(snap) != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_verify_otp_erase_protected(snap) != 0) {
+        return -1;
+    }
+
+    if (probe_fuse_byte) {
+        if (flash_fuse_verify_otp_byte_locked(snap, FLASH_OTP_FUSE_STATUS_OFFSET) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int flash_fuse_check_precondition(void)
+{
+    uint8_t fuse_sta = 0;
+    uint8_t sr_high = 0;
+    uint8_t lb_mask = flash_fuse_sec_mem0_lb_mask();
+    EN_ERR_STA_T ret;
+
+    ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                         FLASH_OTP_FUSE_STATUS_OFFSET,
+                                         &fuse_sta, 1);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read otp_fuse_status failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    ret = rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sr_high);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read status high byte failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    PRINTF("otp_fuse_status=0x%02X (expect 0x01), SR-high=0x%02X\n", fuse_sta, sr_high);
+    flash_fuse_dump_sr_high(sr_high);
+
+    if (fuse_sta != FLASH_OTP_FUSE_STATUS_FUSED) {
+        PRINTF("flash fuse verify fail: otp not fused");
+        if (fuse_sta == 0xFFU) {
+            PRINTF(" (0xFF=default/erased, SEC_MEM0 offset %u not blown)",
+                   FLASH_OTP_FUSE_STATUS_OFFSET);
+        }
+        if (flash_fuse_sec_mem0_lb_locked(sr_high)) {
+            PRINTF(" [LB already set: program fuse byte before lock next time]");
+        }
+        PRINTF("\n");
+        return -1;
+    }
+
+    if (!flash_fuse_sec_mem0_lb_locked(sr_high)) {
+        PRINTF("flash fuse verify fail: SEC_MEM0 LB not locked");
+        PRINTF(" (need SR-high|0x%02X, e.g. 0x%02X if other bits unchanged)\n",
+               lb_mask, (uint8_t)(sr_high | lb_mask));
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief 外部已熔丝/已锁 OTP 后的只读验证用例（不吹熔丝、不写 SR2 LB）。
+ *
+ * 设计逻辑
+ * 1、确认 otp_fuse_status 已熔、SEC_MEM0 LB 已锁（PY: LB1, GT: SR2.LB）
+ * 2、快照 SEC_MEM0，尝试篡改 OTP 区多个偏移
+ * 3、尝试擦除 SEC_MEM0
+ * 4、尝试写 0/FF/FE 清熔丝位
+ *
+ * check逻辑
+ * 1、篡改写后 SEC_MEM0 与快照一致
+ * 2、擦除后 SEC_MEM0 与快照一致
+ * 3、清熔丝写后 otp_fuse_status 仍为 1
+ */
+int slc_flash_fuse_lock_verify_test(void)
+{
+    uint8_t sec_mem0_snap[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+
+    PRINTF("flash fuse lock verify test: external fused OTP only\n");
+
+    if (flash_fuse_check_precondition() != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_read_sec_mem0(sec_mem0_snap, sizeof(sec_mem0_snap)) != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_run_lock_probe(sec_mem0_snap, 1) != 0) {
+        return -1;
+    }
+
+    PRINTF("flash fuse lock verify test pass\n");
+    return 0;
+}
+
+/**
+ * @brief 不检查熔丝/LB 前置，直接探测 SEC_MEM0 是否已被硬件锁住（PY/GT 通用）。
+ */
+int slc_flash_fuse_lock_probe_test(void)
+{
+    uint8_t sec_mem0_snap[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+
+    PRINTF("flash fuse lock probe test: tamper/erase without precondition\n");
+    PRINTF("flash type: %s\n", flash_fuse_is_py_flash() ? "PY" : "GT");
+
+    flash_fuse_print_status_info();
+
+    if (flash_fuse_read_sec_mem0(sec_mem0_snap, sizeof(sec_mem0_snap)) != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_run_lock_probe(sec_mem0_snap, 1) != 0) {
+        PRINTF("flash fuse lock probe test fail: SEC_MEM0 not locked\n");
+        return -1;
+    }
+
+    PRINTF("flash fuse lock probe test pass: SEC_MEM0 write/erase protected\n");
+    return 0;
+}
+
+/**
+ * @brief GT Flash 专用：仅写/擦探测，不检查 offset33 软件熔丝标志。
+ *        
+ */
+int slc_flash_fuse_lock_probe_gt_test(void)
+{
+    uint8_t sec_mem0_snap[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+
+    if (flash_fuse_is_py_flash()) {
+        PRINTF("flash fuse lock probe gt test fail: GT flash required\n");
+        return -1;
+    }
+
+    PRINTF("flash fuse lock probe gt test: tamper/erase only, skip offset33\n");
+
+    flash_fuse_print_status_info();
+
+    if (flash_fuse_read_sec_mem0(sec_mem0_snap, sizeof(sec_mem0_snap)) != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_run_lock_probe(sec_mem0_snap, 0) != 0) {
+        PRINTF("flash fuse lock probe gt test fail: SEC_MEM0 not locked\n");
+        return -1;
+    }
+
+    PRINTF("flash fuse lock probe gt test pass: SEC_MEM0 write/erase protected\n");
+    return 0;
+}
+
+/**
+ * @brief GT Flash：测试前先置 SR2.LB 熔丝，再做写/擦探测（跳过 offset33）。
+ *
+ * 设计逻辑
+ * 1、确认当前为 GT Flash
+ * 2、调用 flash_fuse_lock_sec_mem0_lb 置位 SR2.LB（已锁则跳过）
+ * 3、快照 SEC_MEM0，执行写/擦保护探测（不测 offset33）
+ *
+ * check逻辑
+ * 1、LB 置位成功（或原本已锁）
+ * 2、篡改写后 SEC_MEM0 与快照一致
+ * 3、擦除后 SEC_MEM0 与快照一致
+ */
+int slc_flash_fuse_lock_probe_gt_blow_test(void)
+{
+    uint8_t sec_mem0_snap[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+
+    if (flash_fuse_is_py_flash()) {
+        PRINTF("flash fuse lock probe gt blow test fail: GT flash required\n");
+        return -1;
+    }
+
+    PRINTF("flash fuse lock probe gt blow test: blow LB then probe (skip offset33)\n");
+    PRINTF("warning: SR2.LB lock is irreversible\n");
+
+    flash_fuse_print_status_info();
+
+    if (flash_fuse_lock_sec_mem0_lb() != 0) {
+        PRINTF("flash fuse lock probe gt blow test fail: LB lock failed\n");
+        return -1;
+    }
+
+    flash_fuse_print_status_info();
+
+    if (flash_fuse_read_sec_mem0(sec_mem0_snap, sizeof(sec_mem0_snap)) != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_run_lock_probe(sec_mem0_snap, 0) != 0) {
+        PRINTF("flash fuse lock probe gt blow test fail: SEC_MEM0 not locked\n");
+        return -1;
+    }
+
+    PRINTF("flash fuse lock probe gt blow test pass: LB blown and OTP protected\n");
+    return 0;
+}
+
+int slc_flash_fuse_test(void)
+{
+    uint8_t fuse_sta = 0;
+    uint8_t fuse_val = FLASH_OTP_FUSE_STATUS_FUSED;
+    uint8_t byte_prev = 0;
+    uint8_t byte_next = 0;
+    uint8_t byte_prev_after = 0;
+    uint8_t byte_next_after = 0;
+    uint8_t sec_mem0_snap[FLASH_SEC_MEM0_SNAPSHOT_SIZE];
+    EN_ERR_STA_T ret;
+    int already_fused = 0;
+
+    PRINTF("flash fuse test: blow SEC_MEM0 otp_fuse_status (irreversible)\n");
+
+    ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                         FLASH_OTP_FUSE_STATUS_OFFSET - 1U,
+                                         &byte_prev, 1);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read byte before fuse offset failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                         FLASH_OTP_FUSE_STATUS_OFFSET,
+                                         &fuse_sta, 1);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read otp_fuse_status failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                         FLASH_OTP_FUSE_STATUS_OFFSET + 1U,
+                                         &byte_next, 1);
+    if (ret != EN_ERROR_STA_OK) {
+        PRINTF("read byte after fuse offset failed, ret=0x%X\n", ret);
+        return -1;
+    }
+
+    PRINTF("otp_fuse_status before: 0x%02X, neighbor: 0x%02X / 0x%02X\n",
+           fuse_sta, byte_prev, byte_next);
+
+    if (fuse_sta == FLASH_OTP_FUSE_STATUS_FUSED) {
+        PRINTF("flash fuse test: already fused, verify OTP lock only\n");
+        already_fused = 1;
+    } else {
+        ret = rom_hw_flash_write_security_mem(EN_FLASH_SEC_MEM0,
+                                              FLASH_OTP_FUSE_STATUS_OFFSET,
+                                              &fuse_val, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("write otp_fuse_status failed, ret=0x%X\n", ret);
+            return -1;
+        }
+
+        fuse_sta = 0;
+        ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                             FLASH_OTP_FUSE_STATUS_OFFSET,
+                                             &fuse_sta, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("readback otp_fuse_status failed, ret=0x%X\n", ret);
+            return -1;
+        }
+
+        PRINTF("otp_fuse_status after blow: 0x%02X\n", fuse_sta);
+
+        if (fuse_sta != FLASH_OTP_FUSE_STATUS_FUSED) {
+            PRINTF("flash fuse test fail: blow result mismatch\n");
+            return -1;
+        }
+
+        ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                             FLASH_OTP_FUSE_STATUS_OFFSET - 1U,
+                                             &byte_prev_after, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("read neighbor before fuse offset failed, ret=0x%X\n", ret);
+            return -1;
+        }
+
+        ret = rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0,
+                                             FLASH_OTP_FUSE_STATUS_OFFSET + 1U,
+                                             &byte_next_after, 1);
+        if (ret != EN_ERROR_STA_OK) {
+            PRINTF("read neighbor after fuse offset failed, ret=0x%X\n", ret);
+            return -1;
+        }
+
+        if ((byte_prev_after != byte_prev) || (byte_next_after != byte_next)) {
+            PRINTF("flash fuse test fail: neighbor changed 0x%02X->0x%02X, 0x%02X->0x%02X\n",
+                   byte_prev, byte_prev_after, byte_next, byte_next_after);
+            return -1;
+        }
+
+        PRINTF("neighbor verify pass: only fuse byte changed\n");
+    }
+
+    if (flash_fuse_lock_sec_mem0_lb() != 0) {
+        return -1;
+    }
+
+    if (flash_fuse_read_sec_mem0(sec_mem0_snap, sizeof(sec_mem0_snap)) != 0) {
+        return -1;
+    }
+
+    if (sec_mem0_snap[FLASH_OTP_FUSE_STATUS_OFFSET] != FLASH_OTP_FUSE_STATUS_FUSED) {
+        PRINTF("flash fuse test fail: fuse not set before lock verify\n");
+        return -1;
+    }
+
+    if (flash_fuse_run_lock_probe(sec_mem0_snap, 1) != 0) {
+        return -1;
+    }
+
+    if (already_fused) {
+        PRINTF("flash fuse test pass: already fused and OTP locked\n");
+    } else {
+        PRINTF("flash fuse test pass: blow success and OTP locked\n");
+    }
+
+    return 0;
+}
+
+/**
+ * @brief GT25Q40 写保护测试 (Status Register BP, CMP=0, 仅使用前 256KB):
+ *        先清 BP，再擦用户数据扇区；设 SR1=0x64 保护最低 4KB，用户数据区应可擦写。
+ *        不做整片擦除（运行中擦全会破坏 Flash 内代码/字符串导致跑飞）。
+ * @return 0: 通过; -1: 失败
  */
 __RAM_FUNC int slc_flash_protect_test(void)
 {
     uint8_t sta = 0;
     uint8_t sta_orig1 = 0;
-    uint32_t val = 0;
+    uint8_t sta_orig2 = 0;
+    uint8_t sr2_cfg = 0;
+    int ret = 0;
+
+    PRINTF("flash usable range: 0x%08X ~ 0x%08X\n", FLASH_BASE_ADDR, FLASH_USABLE_MAX_ADDR - 1U);
+
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta_orig1);
-    PRINTF("Flash status register 1: 0x%X\n", sta_orig1);
-    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sta);
-    PRINTF("Flash status register 2: 0x%X\n", sta);
+    PRINTF("Flash status register 1: 0x%X\n", sta_orig1 & (uint8_t) ~(EN_FLASH_STA1_WEL | EN_FLASH_STA1_BUSY));
+    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sta_orig2);
+    PRINTF("Flash status register 2: 0x%X\n", sta_orig2);
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG3, &sta);
     PRINTF("Flash status register 3: 0x%X\n", sta);
 
-    rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, 0x44);
+    sr2_cfg = sta_orig2 & (uint8_t) ~EN_FLASH_STA2_CMP;
+
+    PRINTF("flash protect test: clear BP and erase user data sector\n");
+    if (flash_protect_clear_bp(sr2_cfg) != 0) {
+        PRINTF("flash protect test: clear BP failed\n");
+        return -1;
+    }
+    rom_hw_flash_erase_by_length(FLASH_UNPROTECTED_TEST_ADDR, UNIT_SECTOR);
+    if (flash_protect_wait_ready() != 0) {
+        PRINTF("flash protect test: user data sector erase timeout\n");
+        return -1;
+    }
+    slc_hal_sysctrl_cache_mode_set(HAL_CACHE_FLUSH);
+    PRINTF("flash protect test: prep done (BP cleared, user sector erased)\n");
+
+    if (rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG2, sr2_cfg) != EN_ERROR_STA_OK) {
+        PRINTF("flash protect test: write SR2 failed\n");
+        return -1;
+    }
+    if (flash_protect_wait_ready() != 0) {
+        return -1;
+    }
+
+    if (rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, FLASH_PROTECT_SR1_CFG) != EN_ERROR_STA_OK) {
+        PRINTF("flash protect test: write SR1 failed\n");
+        flash_protect_clear_bp(sta_orig2);
+        return -1;
+    }
+    if (flash_protect_wait_ready() != 0) {
+        flash_protect_clear_bp(sta_orig2);
+        return -1;
+    }
+
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
-    PRINTF("Flash status register 1: 0x%X\n", sta);
+    PRINTF("Flash status register 1: 0x%X (expect 0x%X)\n",
+           sta & (uint8_t) ~(EN_FLASH_STA1_WEL | EN_FLASH_STA1_BUSY), FLASH_PROTECT_SR1_CFG);
     rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG2, &sta);
     PRINTF("Flash status register 2: 0x%X\n", sta);
 
-    val = read32(FLASH_MAX_ADDR - UNIT_1K);
-    PRINTF("test flash 0x%X\n", val);
-    write32(FLASH_MAX_ADDR - UNIT_1K, val + 0x12345678);
-    PRINTF("test flash 0x%X\n", read32(FLASH_MAX_ADDR - UNIT_1K));
+    PRINTF("protected probe addr 0x%08X (low 4KB, erase+program expect blocked)\n",
+           FLASH_PROTECTED_TEST_ADDR);
+    if (flash_protect_prog_probe(FLASH_PROTECTED_TEST_ADDR, 0, 1) != 0) {
+        ret = -1;
+    }
 
-    val = read32(0x8000FF8);
-    PRINTF("test flash 0x%X\n", val);
-    write32(0x8000FF8, val + 0x12345678);
-    PRINTF("test flash 0x%X\n", read32(0x8000FF8));
+    PRINTF("unprotected probe addr 0x%08X (user data)\n", FLASH_UNPROTECTED_TEST_ADDR);
+    if (flash_protect_prog_probe(FLASH_UNPROTECTED_TEST_ADDR, 1, 1) != 0) {
+        ret = -1;
+    }
 
-    val = read32(FLASH_FIRM_UP_BOOT2_CODE_ADDR);
-    PRINTF("addr 0x%X test flash 0x%X\n", FLASH_FIRM_UP_BOOT2_CODE_ADDR, val);
-    write32(FLASH_FIRM_UP_BOOT2_CODE_ADDR, val + 0x12345678);
-    PRINTF("test flash 0x%X\n", read32(FLASH_FIRM_UP_BOOT2_CODE_ADDR));
+    if (flash_protect_clear_bp(sta_orig2) != 0) {
+        ret = -1;
+    } else {
+        PRINTF("Flash BP cleared, SR1=0x0 (ready for reprogram)\n");
+    }
 
-    val = read32(FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20);
-    PRINTF("addr 0x%X test flash 0x%X\n", FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20, val);
-    write32(FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20, val + 0x12345678);
-    PRINTF("test flash 0x%X\n", read32(FLASH_FIRM_UP_BOOT2_CODE_ADDR + UNIT_1K * 20));
+    if (ret == 0) {
+        PRINTF("flash protect test passed.\n");
+    }
 
-    /* 恢复原始写保护状态 */
-    rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG1, sta_orig1);
-    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &sta);
-    PRINTF("Flash status register 1 restored: 0x%X\n", sta);
-
-    return 0;
+    return ret;
 }
 
 /**

@@ -101,9 +101,18 @@
 #define PY_FLASH_TIMING_SE_US                               (20000) 
 #define PY_FLASH_TIMING_BE32_US                             (20000) 
 #define PY_FLASH_TIMING_BE64_US                             (20000) 
-#define PY_FLASH_TIMING_CE_US                               (20000) 
+#define PY_FLASH_TIMING_CE_US                               (20000)
 
-
+//------------------------------------------------------------------------------
+//Status register high byte (RDSR1 35H): S15-S8, see P25Q21H datasheet
+//------------------------------------------------------------------------------
+#define PY_FLASH_STA_SRP1                                   (1U << 0) /* S8  */
+#define PY_FLASH_STA_QE                                     (1U << 1) /* S9  */
+#define PY_FLASH_STA_LB1                                    (1U << 3) /* S11, lock Security Register #1 */
+#define PY_FLASH_STA_LB2                                    (1U << 4) /* S12, lock Security Register #2 */
+#define PY_FLASH_STA_LB3                                    (1U << 5) /* S13, lock Security Register #3 */
+#define PY_FLASH_STA_CMP                                    (1U << 6) /* S14 */
+#define PY_FLASH_STA_SUS1                                   (1U << 7) /* S15 */
 
 #endif
 

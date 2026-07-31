@@ -481,6 +481,15 @@ EN_ERR_STA_T rom_hw_flash_enable_qspi(bool bEnable);
  */
 EN_ERR_STA_T rom_hw_flash_init(void);
 
+/**
+ * @brief Program at most one 256-byte flash page through Legacy SPI mode.
+ *
+ * @param address Absolute flash address in the 0x08000000 mapping window.
+ * @param data    Data buffer in RAM.
+ * @param len     Number of bytes to program. The range must not cross a page.
+ * @return 0 on success; a negative value identifies the validation/controller error.
+ */
+int rom_hw_legacy_spi_program(uint32_t address, uint8_t *data, uint32_t len);
 
 EN_ERR_STA_T rom_hw_flash_read_data_u32(uint32_t u32Addr, uint32_t* pu32Buffer, uint32_t u32Len);
 EN_ERR_STA_T rom_hw_flash_write_data_u32(uint32_t u32Addr, uint32_t* pu32Buffer, uint32_t u32Len);
@@ -492,6 +501,8 @@ EN_ERR_STA_T rom_hw_flash_erase_security_mem(EN_FLASH_SEC_MEM_T enType, uint32_t
 EN_ERR_STA_T rom_hw_flash_set_read_mode(EN_FLASH_READ_MODE_T enMode);
 EN_ERR_STA_T rom_hw_flash_set_write_mode(EN_FLASH_WRITE_MODE_T enMode);
 EN_ERR_STA_T rom_hw_flash_write_status_reg(EN_FLASH_READ_STA_REG_T enReg, uint8_t u8Sta);
+// PY写EN_FLASH_READ_STA_REG1和EN_FLASH_READ_STA_REG2需使用下面接口
+EN_ERR_STA_T rom_hw_flash_write_status_reg1(uint16_t u16Sta);
 EN_ERR_STA_T rom_hw_flash_config_read_write_mode(EN_FLASH_RW_MODE_T enMode);
 
 #ifdef __cplusplus

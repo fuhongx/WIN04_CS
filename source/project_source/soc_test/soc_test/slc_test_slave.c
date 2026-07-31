@@ -12,10 +12,127 @@
 #include "slc_hal_lpuart.h"
 #include "slc_rf.h"
 #include "sw_crc.h"
+#include "hw_uart.h"
+#include "reg_uart.h"
 
 static int g_spi_slave_id = HAL_SPI0;
 static volatile uint8_t g_spi_slave_rx_buf[SLC_SPI_TEST_TRX_LEN];
 static volatile uint32_t g_spi_slave_rx_len = 0;
+
+static uint8_t g_uart_tx_fifo_rx_buf[SLC_TEST_UART_TX_FIFO_DEPTH];
+static uint8_t g_uart_tx_fifo_rx_len = 0;
+static bool g_uart_tx_fifo_poll_rx = false;
+
+static void slc_test_slave_uart_raw_rx_hook(const uint8_t *data, uint32_t len)
+{
+    uint32_t i;
+
+    for (i = 0; i < len; i++) {
+        if (g_uart_tx_fifo_rx_len >= SLC_TEST_UART_TX_FIFO_DEPTH) {
+            break;
+        }
+        g_uart_tx_fifo_rx_buf[g_uart_tx_fifo_rx_len++] = data[i];
+    }
+
+    if (g_uart_tx_fifo_rx_len >= SLC_TEST_UART_TX_FIFO_DEPTH) {
+        slc_test_uart_set_rx_hook(NULL);
+    }
+}
+
+static void slc_test_slave_uart_raw_rx_abort(void)
+{
+    slc_test_uart_set_rx_hook(NULL);
+    g_uart_tx_fifo_poll_rx = false;
+    g_uart_tx_fifo_rx_len = 0;
+    memset(g_uart_tx_fifo_rx_buf, 0, sizeof(g_uart_tx_fifo_rx_buf));
+}
+
+static stUartHandle_t *slc_test_slave_uart_handle(void)
+{
+    return (SLC_TEST_UART_HANDLE == HAL_UART1) ? UART1 : UART0;
+}
+
+static uint8_t slc_test_slave_uart_tx_fifo_cnt_get(stUartHandle_t *handle)
+{
+    return (uint8_t)(handle->TX_FIFO_CNT & UART_TX_FIFO_CNT_REG_MASK);
+}
+
+static int slc_test_slave_uart_tx_fifo_put(stUartHandle_t *handle, uint8_t byte)
+{
+    uint16_t sta = 0;
+
+    rom_hw_uart_get_uart_status(handle, &sta);
+    if (!(sta & EN_UART_STA_TX_FIFO_NOT_FULL)) {
+        return -1;
+    }
+
+    handle->DATA_FIFO_AND_CLK_DLV_LO = byte;
+    return 0;
+}
+
+static uint8_t slc_test_slave_uart_tx_fifo_fill(stUartHandle_t *handle, uint8_t base, uint8_t len)
+{
+    uint8_t i;
+
+    for (i = 0; i < len; i++) {
+        if (slc_test_slave_uart_tx_fifo_put(handle, (uint8_t)(base + i)) != 0) {
+            return i;
+        }
+    }
+
+    return len;
+}
+
+static int slc_test_slave_uart_tx_fifo_burst_fill(stUartHandle_t *handle, uint8_t base, uint8_t len, uint8_t *written)
+{
+    uint16_t sta = 0;
+    uint8_t i;
+
+    *written = 0;
+    rom_hw_uart_get_uart_status(handle, &sta);
+    if (!(sta & EN_UART_STA_TX_FIFO_NOT_FULL)) {
+        return -1;
+    }
+
+    for (i = 0; i < len; i++) {
+        handle->DATA_FIFO_AND_CLK_DLV_LO = (uint8_t)(base + i);
+    }
+
+    *written = len;
+    return 0;
+}
+
+static void slc_test_slave_uart_tx_fifo_clear(stUartHandle_t *handle)
+{
+    stUartFifoCfg_t fifo = {0};
+
+    fifo.bFifoEn = true;
+    fifo.bRxFifoClean = false;
+    fifo.bTxFifoClean = true;
+    fifo.enDmaMode = EN_UART_DMA_MODE0;
+    fifo.enTxFifoThld = EN_UART_TX_FIFO_THLD_EMPTY;
+    fifo.enRxFifoThld = EN_UART_RX_FIFO_THLD_1BYTES;
+    rom_hw_uart_set_fifo_mode(handle, &fifo);
+
+    fifo.bTxFifoClean = false;
+    rom_hw_uart_set_fifo_mode(handle, &fifo);
+}
+
+static void slc_test_slave_uart_rx_fifo_clear(stUartHandle_t *handle)
+{
+    stUartFifoCfg_t fifo = {0};
+
+    fifo.bFifoEn = true;
+    fifo.bRxFifoClean = true;
+    fifo.bTxFifoClean = false;
+    fifo.enDmaMode = EN_UART_DMA_MODE0;
+    fifo.enTxFifoThld = EN_UART_TX_FIFO_THLD_EMPTY;
+    fifo.enRxFifoThld = EN_UART_RX_FIFO_THLD_1BYTES;
+    rom_hw_uart_set_fifo_mode(handle, &fifo);
+
+    fifo.bRxFifoClean = false;
+    rom_hw_uart_set_fifo_mode(handle, &fifo);
+}
 
 extern void print_reg_4byte_from_to(uint32_t start_addr, uint32_t end_addr);
 void slc_test_slave_spi_irq(void)
@@ -126,6 +243,8 @@ int slc_test_slave_spi_cfg(slc_test_common_frame_t *rx_frame)
 static volatile uint8_t g_iic_slave_rx_buf[SLC_IIC_TEST_TRX_LEN];
 static volatile uint32_t g_iic_slave_rx_len = 0;
 static int g_iic_slave_id = HAL_IIC0;
+static uint8_t g_iic_slave_scl_pin = 0xFFU;
+static uint8_t g_iic_slave_sda_pin = 0xFFU;
 
 void slc_test_slave_iic_irq(void)
 {
@@ -156,6 +275,10 @@ void slc_test_slave_iic_irq(void)
 int slc_test_slave_iic_cfg(slc_test_common_frame_t *rx_frame)
 {
     hal_iic_init_t config = {0};
+    uint8_t iic_id = rx_frame->data[7];
+    uint8_t scl_pin;
+    uint8_t sda_pin;
+    uint8_t iomux_mode;
 
     if (rx_frame->data[0] == HAL_IIC_MASTER) {
         config.mode = HAL_IIC_SLAVE;
@@ -168,25 +291,49 @@ int slc_test_slave_iic_cfg(slc_test_common_frame_t *rx_frame)
     config.tx_thld = rx_frame->data[5];
     config.rx_thld = rx_frame->data[6];
 
-    if (rx_frame->data[7] == HAL_IIC0) {
-        slc_hal_gpio_set_iomux(HAL_GPIO_PIN4, HAL_IOMUX_MODE5); // I2C0 SCL
-        slc_hal_gpio_set_iomux(HAL_GPIO_PIN5, HAL_IOMUX_MODE5); // I2C0 SDA
+    /* data[11]=1 时使用自定义脚：data[8]=SCL, data[9]=SDA, data[10]=iomux mode */
+    if (rx_frame->data[11] == 1U) {
+        scl_pin = rx_frame->data[8];
+        sda_pin = rx_frame->data[9];
+        iomux_mode = rx_frame->data[10];
+    } else if (iic_id == HAL_IIC0) {
+        scl_pin = HAL_GPIO_PIN4;
+        sda_pin = HAL_GPIO_PIN5;
+        iomux_mode = HAL_IOMUX_MODE5;
+    } else {
+        scl_pin = HAL_GPIO_PIN6;
+        sda_pin = HAL_GPIO_PIN7;
+        iomux_mode = HAL_IOMUX_MODE5;
+    }
 
+    if ((g_iic_slave_scl_pin != 0xFFU) && (g_iic_slave_sda_pin != 0xFFU) &&
+        ((g_iic_slave_scl_pin != scl_pin) || (g_iic_slave_sda_pin != sda_pin))) {
+        slc_hal_gpio_set_iomux((hal_gpio_pin_e)g_iic_slave_scl_pin, HAL_IOMUX_GPIO);
+        slc_hal_gpio_set_iomux((hal_gpio_pin_e)g_iic_slave_sda_pin, HAL_IOMUX_GPIO);
+        slc_hal_gpio_set_mode((hal_gpio_pin_e)g_iic_slave_scl_pin, HAL_GPIO_PULL_NONE);
+        slc_hal_gpio_set_mode((hal_gpio_pin_e)g_iic_slave_sda_pin, HAL_GPIO_PULL_NONE);
+    }
+
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)scl_pin, (hal_gpio_iomux_e)iomux_mode);
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)sda_pin, (hal_gpio_iomux_e)iomux_mode);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)scl_pin, HAL_GPIO_OPEN_DRAIN);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)sda_pin, HAL_GPIO_OPEN_DRAIN);
+    g_iic_slave_scl_pin = scl_pin;
+    g_iic_slave_sda_pin = sda_pin;
+
+    if (iic_id == HAL_IIC0) {
         slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_I2C0, true);
         slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_I2C0);
     } else {
-        slc_hal_gpio_set_iomux(HAL_GPIO_PIN6, HAL_IOMUX_MODE5); // I2C1 SCL
-        slc_hal_gpio_set_iomux(HAL_GPIO_PIN7, HAL_IOMUX_MODE5); // I2C1 SDA
-
         slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_I2C1, true);
         slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_I2C1);
     }
 
-    slc_hal_iic_init((hal_iic_id_e)rx_frame->data[7], &config);
+    slc_hal_iic_init((hal_iic_id_e)iic_id, &config);
 
-    g_iic_slave_id = rx_frame->data[7];
+    g_iic_slave_id = iic_id;
     if (config.mode == HAL_IIC_SLAVE) {
-        if (rx_frame->data[7] == HAL_IIC0) {
+        if (iic_id == HAL_IIC0) {
             slc_hal_register_irq_handler(I2C0_IRQ, slc_test_slave_iic_irq);
             SLC_HAL_ENABLE_PERIPHERAL_IRQ(I2C0_IRQ, 0x3);
         } else {
@@ -194,11 +341,12 @@ int slc_test_slave_iic_cfg(slc_test_common_frame_t *rx_frame)
             SLC_HAL_ENABLE_PERIPHERAL_IRQ(I2C1_IRQ, 0x3);
         }
 
-        slc_hal_iic_irq_enable((hal_iic_id_e)rx_frame->data[7], HAL_IIC_IRQ_RX_FIFO_FULL | HAL_IIC_IRQ_READ_REQ);
+        slc_hal_iic_irq_enable((hal_iic_id_e)iic_id, HAL_IIC_IRQ_RX_FIFO_FULL | HAL_IIC_IRQ_READ_REQ);
     }
 
-    PRINTF("IIC%d mode=%d, speed=%d, addr_bits=%d, addr=0x%04X\n", g_iic_slave_id, config.mode,
-            config.speed, config.addr_bits, config.addr);
+    PRINTF("IIC%d mode=%d, speed=%d, addr_bits=%d, addr=0x%04X, scl=%u sda=%u iomux=%u\n",
+           g_iic_slave_id, config.mode, config.speed, config.addr_bits, config.addr,
+           scl_pin, sda_pin, iomux_mode);
     return 0;
 }
 
@@ -289,6 +437,7 @@ void slc_test_slave_main(void)
             continue;
 
         if (slc_test_check_frame() != 0) {
+            slc_test_slave_uart_raw_rx_abort();
             g_test_common_idx = 0;
             continue;
         }
@@ -320,6 +469,56 @@ void slc_test_slave_main(void)
                 test_len = rx_frame->data[0];
                 g_test_common_tx_data.data[0] = (test_len != 0) ? 0 : 1;
 
+                break;
+
+            case SLC_TEST_CMD_UART_TX_FIFO:
+                g_test_common_tx_data.data[0] = 0;
+                test_len = rx_frame->data[0];
+                switch (test_len) {
+                case SLC_UART_TX_FIFO_SLAVE_RX_PREP:
+                    slc_test_slave_uart_raw_rx_abort();
+                    slc_test_slave_uart_rx_fifo_clear(slc_test_slave_uart_handle());
+                    g_uart_tx_fifo_poll_rx = false;
+                    slc_test_uart_set_rx_hook(slc_test_slave_uart_raw_rx_hook);
+                    break;
+                case SLC_UART_TX_FIFO_SLAVE_RX_PREP_POLL:
+                    slc_test_slave_uart_raw_rx_abort();
+                    slc_test_slave_uart_rx_fifo_clear(slc_test_slave_uart_handle());
+                    g_uart_tx_fifo_poll_rx = true;
+                    break;
+                case SLC_UART_TX_FIFO_SLAVE_RX_GET: {
+                    uint8_t pattern = rx_frame->data[1];
+
+                    slc_test_uart_set_rx_hook(NULL);
+                    if (g_uart_tx_fifo_poll_rx) {
+                        uint32_t rx_get_len = SLC_TEST_UART_TX_FIFO_DEPTH;
+
+                        slc_hal_uart_receive_data(SLC_TEST_UART_HANDLE, g_uart_tx_fifo_rx_buf,
+                                                  &rx_get_len, HAL_UART_TIMEOUT_US);
+                        g_uart_tx_fifo_rx_len = (uint8_t)rx_get_len;
+                        g_uart_tx_fifo_poll_rx = false;
+                    }
+                    g_test_common_tx_data.data[1] = g_uart_tx_fifo_rx_len;
+                    for (i = 0; i < g_uart_tx_fifo_rx_len; i++) {
+                        if (g_uart_tx_fifo_rx_buf[i] != (uint8_t)(pattern + i)) {
+                            g_test_common_tx_data.data[0] = 1;
+                            break;
+                        }
+                    }
+                    g_uart_tx_fifo_rx_len = 0;
+                    memset(g_uart_tx_fifo_rx_buf, 0, sizeof(g_uart_tx_fifo_rx_buf));
+                    break;
+                }
+                case SLC_UART_TX_FIFO_SLAVE_TX_SEND:
+                    g_test_common_tx_data.data[1] = SLC_TEST_UART_TX_FIFO_DEPTH;
+                    break;
+                case SLC_UART_TX_FIFO_SLAVE_TX_FILL_CLEAR:
+                    g_test_common_tx_data.data[1] = 0;
+                    break;
+                default:
+                    g_test_common_tx_data.data[0] = 1;
+                    break;
+                }
                 break;
 
             case SLC_TEST_CMD_LPUART_CFG:
@@ -373,6 +572,11 @@ void slc_test_slave_main(void)
                 iic_dir = rx_frame->data[1];
                 break;
 
+            case SLC_TEST_CMD_LPUART_RX_FIFO:
+                test_len = rx_frame->data[0];
+                g_test_common_tx_data.data[0] = ((test_len != 0) && (test_len <= 4)) ? 0 : 1;
+                break;
+
             default:
                 PRINTF("slave unknown cmd: %u\r\n", rx_frame->cmd);
                 break;
@@ -398,6 +602,30 @@ void slc_test_slave_main(void)
             slc_hal_uart_send_data(SLC_TEST_UART_HANDLE, buf, test_len, HAL_UART_TIMEOUT_US);
         }
 
+        if (rx_frame->cmd == SLC_TEST_CMD_UART_TX_FIFO) {
+            if (test_len == SLC_UART_TX_FIFO_SLAVE_TX_SEND) {
+                stUartHandle_t *uart = slc_test_slave_uart_handle();
+                uint8_t written = 0;
+
+                slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
+                slc_test_slave_uart_tx_fifo_burst_fill(uart, rx_frame->data[1],
+                                                        SLC_TEST_UART_TX_FIFO_DEPTH, &written);
+            } else if (test_len == SLC_UART_TX_FIFO_SLAVE_TX_FILL_CLEAR) {
+                stUartHandle_t *uart = slc_test_slave_uart_handle();
+                uint8_t written = 0;
+                uint8_t cnt = 0;
+
+                slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
+                slc_test_slave_uart_tx_fifo_burst_fill(uart, rx_frame->data[1],
+                                                        SLC_TEST_UART_TX_FIFO_DEPTH, &written);
+                slc_test_slave_uart_tx_fifo_clear(uart);
+                cnt = slc_test_slave_uart_tx_fifo_cnt_get(uart);
+                if ((written != SLC_TEST_UART_TX_FIFO_DEPTH) || (cnt != 0)) {
+                    PRINTF("slave tx fifo fill/clear fail, written=%u, cnt=%u\r\n", written, cnt);
+                }
+            }
+        }
+
         if (rx_frame->cmd == SLC_TEST_CMD_LPUART_CFG) {
             slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);    // 确保fifo数据都发完
             slc_test_slave_lpuart_cfg(rx_frame);
@@ -408,6 +636,16 @@ void slc_test_slave_main(void)
             if (lpuart_dir == 1) {
                 slc_hal_lpuart_send_data((hal_lpuart_id_e)rx_frame->data[0], (uint8_t *)g_test_lpuart_rx_buf, g_test_lpuart_rx_len);
             }
+        }
+
+        if ((test_len != 0) && (rx_frame->cmd == SLC_TEST_CMD_LPUART_RX_FIFO)) {
+            uint8_t pattern_start = rx_frame->data[1];
+
+            slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
+            for (i = 0; i < test_len; i++) {
+                buf[i] = (uint8_t)(pattern_start + i);
+            }
+            slc_hal_lpuart_send_data(HAL_LPUART0, buf, test_len);
         }
 
         if (rx_frame->cmd == SLC_TEST_CMD_I2C_CFG) {

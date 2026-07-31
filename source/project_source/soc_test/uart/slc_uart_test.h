@@ -12,8 +12,14 @@ int slc_uart_complex_test(void);
 
 int slc_uart_rx_fifo_test(void);
 
+int slc_uart_tx_fifo_test(void);
+
 int slc_uart_rts_cts_test(void);
 
 int slc_uart_rs485_test(void);
+
+int slc_uart_single_board_fifo_test(void);
+
+int slc_uart_irq_status_test(void);
 
 #endif  // __SLC_UART_TEST_H__

@@ -8,5 +8,7 @@ int slc_lpuart_baudrate_test(void);
 int slc_lpuart_stopbit_test(void);
 int slc_lpuart_parity_test(void);
 int slc_lpuart_complex_test(void);
+int slc_lpuart_single_board_frame_test(void);
+int slc_lpuart_rx_fifo_thld_test(void);
 
 #endif  // __SLC_LPUART_TEST_H__

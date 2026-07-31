@@ -21,6 +21,7 @@
 #include "slc_intc.h"
 #include "slc_test_slave.h"
 #include "slc_private_spi_frame.h"
+#include "hw_flash.h"
 
 #ifdef SLC_SOCTEST
 #include "slc_hal_iwdt.h"
@@ -41,6 +42,20 @@ static void slc_iwdt_dump_regs(const char *tag)
     PRINTF("  IWDT_TER = 0x%08X\r\n", IWDT->IWDT_TER);
 }
 #endif
+
+#define FLASH_SEC_MEM0_DUMP_LEN     (256U)
+
+static void slc_dump_flash_sec_mem0(void)
+{
+    uint8_t sec_mem0[FLASH_SEC_MEM0_DUMP_LEN];
+
+    if (rom_hw_flash_read_security_mem(EN_FLASH_SEC_MEM0, 0, sec_mem0, sizeof(sec_mem0)) != EN_ERROR_STA_OK) {
+        PRINTF("read EN_FLASH_SEC_MEM0 failed\r\n");
+        return;
+    }
+
+    dump_u8buf("EN_FLASH_SEC_MEM0", sec_mem0, sizeof(sec_mem0));
+}
 
 #ifdef SLC_AUTOTEST
 #include "slc_uart_cmd_process.h"
@@ -223,6 +238,7 @@ int main(void)
 #endif // SLC_AUTOTEST
 
     slc_platform_init();
+    slc_dump_flash_sec_mem0();
     reset_verification();
 
 #ifdef SLC_PHYTEST

@@ -17,6 +17,7 @@
 
 volatile uint8_t g_slc_timer_test_flag = 0;
 volatile uint8_t g_slc_timer_index = 0;
+volatile uint32_t g_slc_lptimer_irq_cnt = 0;
 
 void slc_timer_irq_handler(void)
 {
@@ -61,15 +62,15 @@ int slc_timer_accuracy_test(void)
         slc_hal_sysctrl_peripheral_clk_enable((hal_peripheral_clk_e)sysctrl_peripheral[i], true);
         slc_hal_sysctrl_peripheral_mod_reset((hal_peripheral_clk_e)sysctrl_peripheral[i]);
 
-        /* 1、配置 timer，定时 2s（reload = 系统时钟 × 2） */
+        /* 1〝酝置 timer，定时 2s（reload = 系统时钟 × 2） */
         slc_hal_timer_init((hal_timer_id_e)i, slc_hal_sysctrl_get_system_clock() * 2, true);
 
-        /* 3、挂载中断并启动 timer（2、中断内置 g_slc_timer_test_flag = 1） */
+        /* 3〝挂载中断并坯动 timer（2〝中断内置 g_slc_timer_test_flag = 1） */
         slc_hal_register_irq_handler((IRQn_Type)irq_num[i], slc_timer_irq_handler);
         SLC_HAL_ENABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i], 0x3);
         slc_hal_timer_start((hal_timer_id_e)i);
 
-        /* 4、延时 1950ms，2s 未到，flag 应为 0 */
+        /* 4〝延时 1950ms，2s 未到，flag 应为 0 */
         rom_utility_delay_ms(1950);
         if (g_slc_timer_test_flag != 0) {
             PRINTF("TIMER%d accuracy test fail! IRQ before 2s (delay 1950ms, flag=%u)\n",
@@ -80,7 +81,7 @@ int slc_timer_accuracy_test(void)
             return -1;
         }
 
-        /* 5、再延时 100ms（合计 2050ms），flag 应为 1 */
+        /* 5〝冝延时 100ms（坈计 2050ms），flag 应为 1 */
         rom_utility_delay_ms(100);
         if (g_slc_timer_test_flag == 0) {
             PRINTF("TIMER%d accuracy test fail! IRQ not triggered (delay 2050ms, flag=0)\n", i);
@@ -90,7 +91,7 @@ int slc_timer_accuracy_test(void)
             return -1;
         }
 
-        /* 6、关闭 timer 并注销中断 */
+        /* 6〝关闭 timer 并注销中断 */
         slc_hal_timer_stop((hal_timer_id_e)i);
         SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
         slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
@@ -143,51 +144,118 @@ void slc_lptimer_irq_handler(void)
 
     if (g_slc_timer_index == 0) {
         sta = slc_hal_lptimer_get_irq_status(HAL_LPTIMER0);
+        g_slc_lptimer_irq_cnt = slc_hal_lptimer_get_count(HAL_LPTIMER0);
         slc_hal_lptimer_clear_irq(HAL_LPTIMER0, sta);
     } else {
         sta = slc_hal_lptimer_get_irq_status(HAL_LPTIMER1);
+        g_slc_lptimer_irq_cnt = slc_hal_lptimer_get_count(HAL_LPTIMER1);
         slc_hal_lptimer_clear_irq(HAL_LPTIMER1, sta);
     }
 
     g_slc_timer_test_flag = 1;
 }
 
+static uint32_t slc_lptimer_elapsed_ms(uint32_t reload, uint32_t count)
+{
+    if (count >= reload) {
+        return 0U;
+    }
+
+    return ((reload - count) * 1000U) / HAL_SYS_CLK_FREQ_32K;
+}
+
 int slc_lptimer_accuracy_test(void)
 {
     uint8_t irq_num[2] = {LPTIMER0_IRQ, LPTIMER1_IRQ};
     uint32_t sysctrl_peripheral[2] = {HAL_CLK_LPTIM0, HAL_CLK_LPTIM1};
+    uint32_t reload = HAL_SYS_CLK_FREQ_32K * 2U;
+    uint32_t count_at_1950ms;
+    uint32_t count_stop;
+    uint32_t count_after_delay;
+    uint32_t count_early_stop;
 
     for (int i = HAL_LPTIMER0; i < HAL_LPTIMER_MAX; i++) {
         g_slc_timer_test_flag = 0;
+        g_slc_lptimer_irq_cnt = 0U;
         g_slc_timer_index = i;
 
         slc_hal_sysctrl_peripheral_clk_enable((hal_peripheral_clk_e)sysctrl_peripheral[i], true);
         slc_hal_sysctrl_peripheral_mod_reset((hal_peripheral_clk_e)sysctrl_peripheral[i]);
 
-        slc_hal_lptimer_init((hal_lptimer_id_e)i, HAL_SYS_CLK_FREQ_32K * 2, true);
+        slc_hal_lptimer_init((hal_lptimer_id_e)i, reload, true);
 
         slc_hal_register_irq_handler((IRQn_Type)irq_num[i], slc_lptimer_irq_handler);
         SLC_HAL_ENABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i], 0x3);
 
+        PRINTF("LpTimer%d: reload=%u (expect 2000ms @32K)\n", i, reload);
+
+        /* start: 2s timeout should assert irq near 2000ms */
         slc_hal_lptimer_start((hal_lptimer_id_e)i);
         slc_hal_nop_delay_ms(1950);
+        count_at_1950ms = slc_hal_lptimer_get_count((hal_lptimer_id_e)i);
+        PRINTF("LpTimer%d: after 1950ms delay, cnt=%u, est=%ums, irq=%u\n",
+               i, count_at_1950ms, slc_lptimer_elapsed_ms(reload, count_at_1950ms),
+               g_slc_timer_test_flag);
 
         if (g_slc_timer_test_flag == 1) {
-            PRINTF("LpTimer%d interrupt test fail!(counter 2s, sleep 1950ms)\n", i);
+            PRINTF("LpTimer%d start test fail!(counter 2s, sleep 1950ms)\n", i);
+            slc_hal_lptimer_stop((hal_lptimer_id_e)i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
             return -1;
         }
 
         slc_hal_nop_delay_ms(100);
+        PRINTF("LpTimer%d: after 2050ms delay, irq_cnt=%u, est_irq=%ums, irq=%u\n",
+               i, g_slc_lptimer_irq_cnt, slc_lptimer_elapsed_ms(reload, g_slc_lptimer_irq_cnt),
+               g_slc_timer_test_flag);
 
         if (g_slc_timer_test_flag == 0) {
-            PRINTF("LpTimer%d interrupt test fail!(counter 2s, sleep 2050ms)\n", i);
+            PRINTF("LpTimer%d start test fail!(counter 2s, sleep 2050ms)\n", i);
+            slc_hal_lptimer_stop((hal_lptimer_id_e)i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
             return -1;
         }
 
+        /* stop: counter should freeze after stop */
         slc_hal_lptimer_stop((hal_lptimer_id_e)i);
+        count_stop = slc_hal_lptimer_get_count((hal_lptimer_id_e)i);
+        slc_hal_nop_delay_ms(500);
+        count_after_delay = slc_hal_lptimer_get_count((hal_lptimer_id_e)i);
+        PRINTF("LpTimer%d: after stop, cnt=%u; +500ms cnt=%u (expect equal)\n",
+               i, count_stop, count_after_delay);
+        if (count_stop != count_after_delay) {
+            PRINTF("LpTimer%d stop test fail! counter still running after stop\n", i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
+            return -1;
+        }
+
+        /* early stop: irq should not fire before 2s timeout */
+        slc_hal_sysctrl_peripheral_mod_reset((hal_peripheral_clk_e)sysctrl_peripheral[i]);
+        g_slc_timer_test_flag = 0;
+        g_slc_lptimer_irq_cnt = 0U;
+        slc_hal_lptimer_init((hal_lptimer_id_e)i, reload, true);
+        slc_hal_lptimer_start((hal_lptimer_id_e)i);
+        slc_hal_nop_delay_ms(500);
+        count_early_stop = slc_hal_lptimer_get_count((hal_lptimer_id_e)i);
+        slc_hal_lptimer_stop((hal_lptimer_id_e)i);
+        PRINTF("LpTimer%d: early stop at ~500ms, cnt=%u, est=%ums\n",
+               i, count_early_stop, slc_lptimer_elapsed_ms(reload, count_early_stop));
+        slc_hal_nop_delay_ms(2000);
+        PRINTF("LpTimer%d: after early stop +2000ms wait, irq=%u (expect 0)\n",
+               i, g_slc_timer_test_flag);
+        if (g_slc_timer_test_flag != 0) {
+            PRINTF("LpTimer%d stop test fail! irq after early stop\n", i);
+            SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
+            slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
+            return -1;
+        }
+
         SLC_HAL_DISABLE_PERIPHERAL_IRQ((IRQn_Type)irq_num[i]);
         slc_hal_unregister_irq_handler((IRQn_Type)irq_num[i]);
-        PRINTF("LpTimer%d Accuracy test pass!\n", i);
+        PRINTF("LpTimer%d accuracy test pass! (start/stop)\n", i);
     }
 
     return 0;

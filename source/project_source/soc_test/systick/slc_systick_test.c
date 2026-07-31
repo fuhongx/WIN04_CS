@@ -143,3 +143,82 @@ int slc_systick_maxtime_test(void)
         return 0;
     }
 }
+
+static float slc_nop_delay_measure_ms(uint32_t delay_ms)
+{
+    uint32_t start_time;
+    uint32_t end_time;
+    float clk_khz;
+
+    start_time = slc_hal_timer_get_count(HAL_TIMER0);
+    slc_hal_nop_delay_ms(delay_ms);
+    end_time = slc_hal_timer_get_count(HAL_TIMER0);
+
+    clk_khz = slc_hal_sysctrl_get_system_clock() / 1000.0f;
+    return (float)(start_time - end_time) / clk_khz;
+}
+
+static int slc_nop_delay_check_ms(uint32_t expect_ms, float tol_pct)
+{
+    float cost_ms;
+    float err_ms;
+    float tol_ms;
+
+    cost_ms = slc_nop_delay_measure_ms(expect_ms);
+    err_ms = cost_ms - (float)expect_ms;
+    tol_ms = (float)expect_ms * tol_pct / 100.0f;
+
+    PRINTF("nop_delay: expect=%ums, cost=%.3fms, err=%+.3fms, tol=±%.3fms\n",
+           expect_ms, cost_ms, err_ms, tol_ms);
+
+    if (fabsf(err_ms) > tol_ms) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief RC50M 下验证 slc_hal_nop_delay_ms（底层 rom_utility_delay）精度。
+ *
+ * 设计逻辑
+ * 1、切 RC50M，用 TIMER0 作参考计时
+ * 2、依次调用 slc_hal_nop_delay_ms(1/10/100)，打印实测耗时
+ * 3、测完恢复 FDB50M 并重新初始化 DEBUG UART
+ *
+ * check逻辑
+ * 1、各档延时误差在 ±5% 以内
+ */
+int slc_nop_delay_rc50m_test(void)
+{
+    static const uint32_t delay_ms_list[] = {1U, 10U, 100U};
+    uint32_t i;
+
+    PRINTF("NOP delay RC50M test start\n");
+
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_RC50M, HAL_SYSCLK_DIV_NONE);
+    debug_printf_init();
+    PRINTF("sysclk=%uHz (RC50M)\n", slc_hal_sysctrl_get_system_clock());
+
+    slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_TIM0, true);
+    slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_TIM0);
+    slc_hal_timer_init(HAL_TIMER0, 0xFFFFFFFF, false);
+    slc_hal_timer_start(HAL_TIMER0);
+
+    for (i = 0; i < (sizeof(delay_ms_list) / sizeof(delay_ms_list[0])); i++) {
+        if (slc_nop_delay_check_ms(delay_ms_list[i], 5.0f) != 0) {
+            slc_hal_timer_stop(HAL_TIMER0);
+            slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_FDB50M, HAL_SYSCLK_DIV_NONE);
+            debug_printf_init();
+            PRINTF("NOP delay RC50M test fail at %ums\n", delay_ms_list[i]);
+            return -1;
+        }
+    }
+
+    slc_hal_timer_stop(HAL_TIMER0);
+    slc_hal_sysctrl_system_clock_init(HAL_SYSCLK_FDB50M, HAL_SYSCLK_DIV_NONE);
+    debug_printf_init();
+
+    PRINTF("NOP delay RC50M test pass\n");
+    return 0;
+}

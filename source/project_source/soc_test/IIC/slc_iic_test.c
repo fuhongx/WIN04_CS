@@ -422,3 +422,186 @@ start:
     PRINTF("IIC speed test passed.\n");
     return 0;
 }
+
+/*
+ * I2C IOMUX 映射全覆盖（方案 A）
+ * - 测传 UART 固定 PIN2/3，不占用的 I2C 脚对才测
+ * - 冲突脚：测传 UART(PIN2/3)、DEBUG UART → SKIP
+ */
+typedef struct {
+    uint8_t iic_id;
+    uint8_t scl_pin;
+    uint8_t sda_pin;
+    uint8_t iomux_mode;
+} slc_iic_iomux_map_t;
+
+/* MODE4: 偶脚 SDA / 奇脚 SCK；MODE5: 偶脚 SCK / 奇脚 SDA */
+static const slc_iic_iomux_map_t g_iic_iomux_maps[] = {
+    /* I2C0 */
+    {HAL_IIC0, HAL_GPIO_PIN1,  HAL_GPIO_PIN0,  HAL_IOMUX_MODE4},
+    {HAL_IIC0, HAL_GPIO_PIN0,  HAL_GPIO_PIN1,  HAL_IOMUX_MODE5},
+    {HAL_IIC0, HAL_GPIO_PIN5,  HAL_GPIO_PIN4,  HAL_IOMUX_MODE4},
+    {HAL_IIC0, HAL_GPIO_PIN4,  HAL_GPIO_PIN5,  HAL_IOMUX_MODE5},
+    {HAL_IIC0, HAL_GPIO_PIN9,  HAL_GPIO_PIN8,  HAL_IOMUX_MODE4},
+    {HAL_IIC0, HAL_GPIO_PIN8,  HAL_GPIO_PIN9,  HAL_IOMUX_MODE5},
+    {HAL_IIC0, HAL_GPIO_PIN13, HAL_GPIO_PIN12, HAL_IOMUX_MODE4},
+    {HAL_IIC0, HAL_GPIO_PIN12, HAL_GPIO_PIN13, HAL_IOMUX_MODE5},
+    {HAL_IIC0, HAL_GPIO_PIN17, HAL_GPIO_PIN16, HAL_IOMUX_MODE4},
+    {HAL_IIC0, HAL_GPIO_PIN16, HAL_GPIO_PIN17, HAL_IOMUX_MODE5},
+    /* I2C1 */
+    {HAL_IIC1, HAL_GPIO_PIN3,  HAL_GPIO_PIN2,  HAL_IOMUX_MODE4},
+    {HAL_IIC1, HAL_GPIO_PIN2,  HAL_GPIO_PIN3,  HAL_IOMUX_MODE5},
+    {HAL_IIC1, HAL_GPIO_PIN7,  HAL_GPIO_PIN6,  HAL_IOMUX_MODE4},
+    {HAL_IIC1, HAL_GPIO_PIN6,  HAL_GPIO_PIN7,  HAL_IOMUX_MODE5},
+    {HAL_IIC1, HAL_GPIO_PIN11, HAL_GPIO_PIN10, HAL_IOMUX_MODE4},
+    {HAL_IIC1, HAL_GPIO_PIN10, HAL_GPIO_PIN11, HAL_IOMUX_MODE5},
+    {HAL_IIC1, HAL_GPIO_PIN15, HAL_GPIO_PIN14, HAL_IOMUX_MODE4},
+    {HAL_IIC1, HAL_GPIO_PIN14, HAL_GPIO_PIN15, HAL_IOMUX_MODE5},
+};
+
+static int slc_iic_iomux_pin_conflict(uint8_t pin)
+{
+    if ((pin == SLC_TEST_UART_TX_PIN) || (pin == SLC_TEST_UART_RX_PIN)) {
+        return 1;
+    }
+    if ((pin == DEBUG_UART_TX_PIN) || (pin == DEBUG_UART_RX_PIN)) {
+        return 1;
+    }
+    return 0;
+}
+
+static void slc_iic_iomux_release_pins(uint8_t scl_pin, uint8_t sda_pin)
+{
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)scl_pin, HAL_IOMUX_GPIO);
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)sda_pin, HAL_IOMUX_GPIO);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)scl_pin, HAL_GPIO_PULL_NONE);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)sda_pin, HAL_GPIO_PULL_NONE);
+}
+
+static void slc_iic_iomux_apply_pins(uint8_t scl_pin, uint8_t sda_pin, uint8_t iomux_mode)
+{
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)scl_pin, (hal_gpio_iomux_e)iomux_mode);
+    slc_hal_gpio_set_iomux((hal_gpio_pin_e)sda_pin, (hal_gpio_iomux_e)iomux_mode);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)scl_pin, HAL_GPIO_OPEN_DRAIN);
+    slc_hal_gpio_set_mode((hal_gpio_pin_e)sda_pin, HAL_GPIO_OPEN_DRAIN);
+}
+
+/**
+ * @brief I2C IOMUX Table 映射覆盖（方案 A：跳过测传/DEBUG 冲突脚）
+ *
+ * 设计逻辑
+ * 1、按 IOMUX Table 建 IIC0/IIC1 映射矩阵（pin 组 × MODE4/MODE5）
+ * 2、冲突脚（UART 测传 PIN2/3、DEBUG UART）SKIP；其余经 UART 同步主从切脚
+ * 3、固定 100K/7bit，做一次短主从收发；测完恢复为 GPIO
+ *
+ * check逻辑
+ * 1、冲突项 SKIP（不算 FAIL）；可测项全部执行
+ * 2、每组 trx 数据一致则该组 PASS
+ * 3、全部可测项 PASS → 用例 PASS
+ */
+int slc_iic_iomux_map_test(void)
+{
+    hal_iic_init_t config = {0};
+    uint8_t tx_data[SLC_TEST_RX_MAX_LEN] = {0};
+    uint8_t rx_data[SLC_TEST_RX_MAX_LEN] = {0};
+    uint8_t rx_len = 0;
+    uint32_t i;
+    int ret;
+    int tested = 0;
+    int skipped = 0;
+    uint8_t last_scl = 0xFFU;
+    uint8_t last_sda = 0xFFU;
+
+    PRINTF("I2C iomux map test: scheme A, skip UART/DEBUG conflict pins\n");
+    PRINTF("wire Master<->Slave same pins for each map; idle pins stay GPIO\n");
+
+    config.mode = HAL_IIC_MASTER;
+    config.speed = HAL_IIC_SPEED_100K;
+    config.addr_bits = HAL_IIC_ADDR_7BIT;
+    config.addr = SLC_TEST_I2C_SLAVE_ADDR_7BIT;
+    config.tx_thld = HAL_IIC_MAX_FIFO_DEPTH - 1;
+    config.rx_thld = 1;
+
+    tx_data[0] = config.mode;
+    tx_data[1] = config.speed;
+    tx_data[2] = config.addr_bits;
+    tx_data[3] = config.addr & 0xFF;
+    tx_data[4] = (config.addr >> 8) & 0xFF;
+    tx_data[5] = config.tx_thld;
+    tx_data[6] = config.rx_thld;
+    tx_data[11] = 1U; /* custom pinmux */
+
+    for (i = 0; i < (sizeof(g_iic_iomux_maps) / sizeof(g_iic_iomux_maps[0])); i++) {
+        const slc_iic_iomux_map_t *map = &g_iic_iomux_maps[i];
+
+        if (slc_iic_iomux_pin_conflict(map->scl_pin) ||
+            slc_iic_iomux_pin_conflict(map->sda_pin)) {
+            PRINTF("i2c_iomux: id=%u pins=%u/%u mode=%u result=SKIP\n",
+                   map->iic_id, map->scl_pin, map->sda_pin, map->iomux_mode);
+            skipped++;
+            continue;
+        }
+
+        if ((last_scl != 0xFFU) && (last_sda != 0xFFU)) {
+            slc_iic_iomux_release_pins(last_scl, last_sda);
+        }
+
+        tx_data[7] = map->iic_id;
+        tx_data[8] = map->scl_pin;
+        tx_data[9] = map->sda_pin;
+        tx_data[10] = map->iomux_mode;
+
+        rx_len = 0;
+        memset(rx_data, 0, SLC_TEST_RX_MAX_LEN);
+        slc_test_master_send_cmd(SLC_TEST_CMD_I2C_CFG, tx_data, SLC_TEST_FRAME_DATA_LEN);
+        ret = slc_test_master_get_result(rx_data, &rx_len);
+        if ((ret != 0) || (rx_data[0] != 0)) {
+            PRINTF("i2c_iomux: id=%u pins=%u/%u mode=%u result=FAIL (slave cfg)\n",
+                   map->iic_id, map->scl_pin, map->sda_pin, map->iomux_mode);
+            return -1;
+        }
+
+        slc_hal_nop_delay_ms(SLC_TEST_CFG_TIMEOUT_MS);
+
+        if (map->iic_id == HAL_IIC0) {
+            slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_I2C0, true);
+            slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_I2C0);
+        } else {
+            slc_hal_sysctrl_peripheral_clk_enable(HAL_CLK_I2C1, true);
+            slc_hal_sysctrl_peripheral_mod_reset(HAL_CLK_I2C1);
+        }
+
+        slc_iic_iomux_apply_pins(map->scl_pin, map->sda_pin, map->iomux_mode);
+        slc_hal_iic_init((hal_iic_id_e)map->iic_id, &config);
+
+        ret = slc_iic_test_master_trx_common((hal_iic_id_e)map->iic_id);
+        if (ret != 0) {
+            PRINTF("i2c_iomux: id=%u pins=%u/%u mode=%u result=FAIL\n",
+                   map->iic_id, map->scl_pin, map->sda_pin, map->iomux_mode);
+            slc_iic_iomux_release_pins(map->scl_pin, map->sda_pin);
+            return -1;
+        }
+
+        PRINTF("i2c_iomux: id=%u pins=%u/%u mode=%u result=PASS\n",
+               map->iic_id, map->scl_pin, map->sda_pin, map->iomux_mode);
+        tested++;
+        last_scl = map->scl_pin;
+        last_sda = map->sda_pin;
+    }
+
+    if ((last_scl != 0xFFU) && (last_sda != 0xFFU)) {
+        slc_iic_iomux_release_pins(last_scl, last_sda);
+    }
+
+    /* 恢复默认脚，避免影响后续 I2C 用例 */
+    slc_iic_iomux_apply_pins(HAL_GPIO_PIN4, HAL_GPIO_PIN5, HAL_IOMUX_MODE5);
+    slc_iic_iomux_apply_pins(HAL_GPIO_PIN6, HAL_GPIO_PIN7, HAL_IOMUX_MODE5);
+
+    if (tested == 0) {
+        PRINTF("I2C iomux map test fail: no map tested (all skipped)\n");
+        return -1;
+    }
+
+    PRINTF("I2C iomux map test passed: tested=%d skipped=%d\n", tested, skipped);
+    return 0;
+}

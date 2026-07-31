@@ -9,4 +9,6 @@ int slc_iic_master_addrbits_test(void);
 
 int slc_iic_slv_addrbits_test(void);
 
+int slc_iic_iomux_map_test(void);
+
 #endif // __SLC_IIC_TEST_H__

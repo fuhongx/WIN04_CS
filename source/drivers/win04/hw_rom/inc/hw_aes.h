@@ -59,5 +59,12 @@ void rom_hw_aes128_init(EN_AES128_MODE_T mode, uint8_t *key, uint8_t *iv);
 EN_ERR_STA_T rom_hw_aes128_crypto(uint8_t *in, uint32_t inlen, uint8_t *out);
 EN_ERR_STA_T rom_hw_aes128_encrypt_once(uint8_t *key, uint8_t *iv, uint8_t *data, uint32_t len, uint8_t *enc_data);
 EN_ERR_STA_T rom_hw_aes128_decrypt_once(uint8_t *key, uint8_t *iv, uint8_t *enc_data, uint32_t len, uint8_t *dec_data);
+EN_ERR_STA_T rom_hw_aes128_set_data(uint32_t *pu32Data);
+EN_ERR_STA_T rom_hw_aes128_get_data(uint32_t *pu32Buffer);
+EN_ERR_STA_T rom_hw_aes128_set_interrupt_mask(uint8_t u8Mask, bool bEnable);
+EN_ERR_STA_T rom_hw_aes128_get_interrupt_flag(uint8_t *pu8Flag);
+EN_ERR_STA_T rom_hw_aes128_clear_interrupt_flag(uint8_t u8Flag);
+
+extern uint32_t g_aes_total_len;
 
 #endif

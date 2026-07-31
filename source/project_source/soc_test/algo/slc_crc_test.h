@@ -9,4 +9,6 @@ int slc_crc_performance_test(void);
 
 int slc_crc_random_test(void);
 
+int slc_crc_output_reverse_test(void);
+
 #endif // __SLC_CRC_TEST_H__

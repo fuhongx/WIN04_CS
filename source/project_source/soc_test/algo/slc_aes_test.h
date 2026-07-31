@@ -9,4 +9,6 @@ int slc_aes128_performance_test(void);
 
 int slc_aes128_random_test(void);
 
+int slc_aes128_interrupt_test(void);
+
 #endif // __SLC_AES_TEST_H__
