@@ -1343,3 +1343,168 @@ EN_ERR_STA_T rom_hw_flash_config_read_write_mode(EN_FLASH_RW_MODE_T enMode)
 
     return u8Ret;
 }
+
+#define QSPI_CFG_LEGACY_MODE      (1U << 8)
+#define QSPI_INT_RX_OVERFLOW      (1U << 7)
+#define QSPI_INT_TX_UNDERFLOW     (1U << 1)
+#define FLASH_PP_POLL_INTERVAL_US (10U)
+
+int rom_hw_legacy_spi_page_program(uint32_t address, uint8_t *data, uint32_t len)
+{
+    volatile uint32_t *legacy_fifo = (volatile uint32_t *)FLASH_BASE_ADDR;
+    uint32_t flash_offset;
+    uint32_t i;
+    uint32_t tx_word;
+    uint32_t rx_dummy = 0U;
+    uint8_t flash_status;
+    int timeout = PY_FLASH_TIMING_PP_US;
+
+    if ((data == NULL) || (len == 0U) || (len > UNIT_PAGE) ||
+        (address < FLASH_BASE_ADDR) || (address >= FLASH_MAX_ADDR) ||
+        (len > (FLASH_MAX_ADDR - address)))
+    {
+        return 1;
+    }
+
+    flash_offset = address - FLASH_BASE_ADDR;
+    if (((flash_offset & (UNIT_PAGE - 1U)) + len) > UNIT_PAGE)
+    {
+        return 2;
+    }
+
+    if (!rom_hw_flash_ctrl_query_qspi_busy())
+    {
+        return 3;
+    }
+
+    rom_hw_flash_write_enable_cmd();
+    rom_hw_flash_read_status_reg(EN_FLASH_READ_STA_REG1, &flash_status);
+    if ((flash_status & EN_FLASH_STA1_WEL) == 0)
+    {
+        return 5;
+    }
+
+    if (!rom_hw_flash_ctrl_query_qspi_busy())
+    {
+        return 6;
+    }
+
+    FLASH_CTRL->INT_STA = QSPI_INT_RX_OVERFLOW | QSPI_INT_TX_UNDERFLOW;
+    FLASH_CTRL->QSPI_CFG |= QSPI_CFG_LEGACY_MODE;
+    __DSB();
+
+    /*
+     * WIN04 expands an 8-bit Legacy AHB write over all four byte lanes, so a
+     * STRB of 02h appears on the SPI bus as 02 02 02 02. Pack four serial
+     * bytes into one little-endian AHB word instead. For address 0003E000h,
+     * the value below is 00E00302h and the wire order is 02 03 E0 00.
+     */
+    tx_word = (uint32_t)PY_FLASH_CMD_PP |
+              (((flash_offset >> 16) & 0xFFU) << 8) |
+              (((flash_offset >> 8) & 0xFFU) << 16) |
+              ((flash_offset & 0xFFU) << 24);
+    *legacy_fifo = tx_word;
+
+    /*
+     * Keep one four-byte word in flight: each write fills TX and each read
+     * removes four corresponding full-duplex bytes from RX. This prevents TX
+     * underflow and RX overflow without inserting gaps in the SPI frame.
+     */
+    for (i = 0U; (i + 4U) <= len; i += 4U)
+    {
+        tx_word = (uint32_t)data[i] |
+                  ((uint32_t)data[i + 1U] << 8) |
+                  ((uint32_t)data[i + 2U] << 16) |
+                  ((uint32_t)data[i + 3U] << 24);
+        *legacy_fifo = tx_word;
+        rx_dummy = *legacy_fifo;
+    }
+
+    if (i < len)
+    {
+        /* Keep the final AHB access 32-bit; FF padding does not program NOR bits. */
+        tx_word = 0xFFFFFFFFU;
+        tx_word = (tx_word & 0xFFFFFF00U) | (uint32_t)data[i];
+        if ((i + 1U) < len)
+        {
+            tx_word = (tx_word & 0xFFFF00FFU) |
+                      ((uint32_t)data[i + 1U] << 8);
+        }
+        if ((i + 2U) < len)
+        {
+            tx_word = (tx_word & 0xFF00FFFFU) |
+                      ((uint32_t)data[i + 2U] << 16);
+        }
+        *legacy_fifo = tx_word;
+        rx_dummy = *legacy_fifo;
+    }
+
+    /* Drain the four RX bytes still in flight from the PP header. */
+    rx_dummy = *legacy_fifo;
+    __DSB();
+
+    /*
+     * TX is now empty, so the PP frame ends and CS rises to start tPP. Wait
+     * until the serial interface and both Legacy FIFOs are fully idle before
+     * opening the first RDSR frame.
+     */
+    while ((FLASH_CTRL->QSPI_CFG &
+            (FLASH_CTRL_QSPI_CFG_STA_MASK << FLASH_CTRL_QSPI_CFG_STA_SHIFT)) == 0U)
+    {
+    }
+    rom_utility_delay_us(1U);
+
+    /*
+     * Stay in Legacy mode while the Flash is busy. A 32-bit write puts
+     * 05h + three dummy bytes on MOSI; RX byte 0 is the command phase and RX
+     * bytes 1..3 are SR1. Never leave Legacy mode while WIP is still set: if the
+     * device remains busy, waiting here is safer than changing QSPI timing.
+     */
+    do
+    {
+        *legacy_fifo = 0xFFFFFF00U | (uint32_t)PY_FLASH_CMD_RDSR;
+        rx_dummy = *legacy_fifo;
+        flash_status = (uint8_t)(rx_dummy >> 24);
+
+        while ((FLASH_CTRL->QSPI_CFG &
+                (FLASH_CTRL_QSPI_CFG_STA_MASK << FLASH_CTRL_QSPI_CFG_STA_SHIFT)) == 0U)
+        {
+        }
+
+        if ((flash_status & EN_FLASH_STA1_BUSY) == 0U)
+        {
+            break;
+        }
+        rom_utility_delay_us(FLASH_PP_POLL_INTERVAL_US);
+        timeout -= FLASH_PP_POLL_INTERVAL_US;
+
+        if (timeout < 0) {
+            break;
+        }
+    } while (1);
+
+    FLASH_CTRL->QSPI_CFG &= ~QSPI_CFG_LEGACY_MODE;
+    __DSB();
+
+    FLASH_CTRL->INT_STA = QSPI_INT_RX_OVERFLOW | QSPI_INT_TX_UNDERFLOW;
+    NVIC_ClearPendingIRQ(FLASH_CTRL_IRQ);
+    __DSB();
+    __ISB();
+
+    return 0;
+}
+
+int rom_hw_legacy_spi_program(uint32_t address, uint8_t *data, uint32_t len)
+{
+    uint32_t i = 0;
+    int ret = 0;
+    for (i = 0; (i + UNIT_PAGE) < len; i += UNIT_PAGE)
+    {
+        ret = rom_hw_legacy_spi_page_program(address + i, &data[i], UNIT_PAGE);
+        if (ret != 0)
+            return ret;
+    }
+
+    ret = rom_hw_legacy_spi_page_program(address + i, &data[i], len - i);
+    return ret;
+}
